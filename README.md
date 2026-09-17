@@ -9,7 +9,7 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
 - **Kod**: https://github.com/imagoprint90/ewidencja-sprzetu-it
 - **Wersja na żywo**: https://ewidencja-sprzetu-it.vercel.app
 
-## Stan projektu (Etap 2 ukończony)
+## Stan projektu (Etap 3 ukończony)
 
 **Gotowe i działające, z danymi trwałymi w Supabase (nie w przeglądarce):**
 - Logowanie e-mail/hasło przez Supabase Auth, z opcją przypomnienia hasła (link e-mail).
@@ -31,10 +31,15 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   wewnętrznym dzienniku zdarzeń (`audit_log`) — podgląd tego dziennika w interfejsie to
   kolejny krok.
 
+- **„Przekaż sprzęt”** (zakładka Przydziały na karcie sprzętu): pierwsze wydanie, przekazanie
+  od pracownika A do B (z zachowaniem historii A), zwrot do magazynu, oraz przekazanie całego
+  zestawu (sprzęt + zaznaczone powiązane urządzenia) — wszystko w jednej atomowej transakcji
+  SQL (`transfer_equipment_set`, `supabase/migrations/0009_transfer_sets.sql`). Blokada dwóch
+  aktywnych przydziałów tego samego sprzętu i walidacja dat są wymuszane w bazie danych, nie
+  tylko w interfejsie.
+
 **Przygotowane, ale jeszcze niepodłączone:**
-- Operacja „Przekaż sprzęt” / zwrot do magazynu jako atomowe funkcje SQL (funkcje już są w
-  `supabase/migrations/0003_assignments.sql`, brakuje tylko interfejsu) — Etap 3.
-- Generowanie protokołów PDF — Etap 4.
+- Generowanie protokołów PDF przy przekazaniu/zwrocie — Etap 4.
 - Katalog oprogramowania i licencji, pulpit z gwarancjami/licencjami — Etap 5.
 
 ## Uruchomienie lokalne
@@ -49,6 +54,14 @@ npm run dev
 Aplikacja będzie dostępna pod adresem **http://localhost:3000**. Do zalogowania i
 korzystania z aplikacji lokalnie potrzebny jest plik `.env.local` — patrz niżej. Bez niego
 zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
+
+## Aktualizacja bazy po zmianach w kodzie
+
+Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
+etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
+wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
+co już istnieje. Najnowszy plik do zastosowania: `supabase/migrations/0009_transfer_sets.sql`
+(operacja „Przekaż sprzęt”).
 
 ## Konfiguracja Supabase
 

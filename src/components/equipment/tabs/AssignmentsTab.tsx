@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -27,9 +28,9 @@ export function AssignmentsTab({
           Pełna historia przydziałów tego sprzętu, łącznie z poprzednimi użytkownikami.
         </p>
         {isAdmin && (
-          <Button size="sm" disabled title="Operacja „Przekaż sprzęt” zostanie uruchomiona w Etapie 3">
-            Przekaż sprzęt
-          </Button>
+          <Link href={`/sprzet/${equipment.id}/przekaz`}>
+            <Button size="sm">Przekaż sprzęt</Button>
+          </Link>
         )}
       </div>
 

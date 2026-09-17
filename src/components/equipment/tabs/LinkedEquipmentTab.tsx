@@ -68,8 +68,8 @@ export function LinkedEquipmentTab({
       <p className="text-sm text-muted">
         Powiąż ten sprzęt z innymi urządzeniami wchodzącymi w skład zestawu (np. stacja
         dokująca, monitor). Każde urządzenie zachowuje własny numer inwentarzowy i historię —
-        samo powiązanie nie zmienia przydziałów. Przekazywanie zestawu jako całości będzie
-        dostępne w Etapie 3.
+        samo powiązanie nie zmienia przydziałów. Zestaw jako całość przekażesz z poziomu
+        zakładki „Przydziały” → „Przekaż sprzęt”.
       </p>
 
       {linkedItems.length === 0 ? (

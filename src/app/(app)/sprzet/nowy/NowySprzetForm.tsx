@@ -52,7 +52,7 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
         <h1 className="text-xl font-semibold">Dodaj sprzęt</h1>
         <p className="text-sm text-muted">
           Nowy sprzęt trafia domyślnie do statusu „W magazynie”. Przydzielenie do pracownika
-          wykonasz operacją „Przekaż sprzęt” na karcie sprzętu (Etap 3).
+          wykonasz operacją „Przekaż sprzęt” na karcie sprzętu, w zakładce „Przydziały”.
         </p>
       </div>
 
