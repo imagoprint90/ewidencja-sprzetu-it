@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Columns3 } from "lucide-react";
+import { Columns3, ChevronUp, ChevronDown, X } from "lucide-react";
 import { EQUIPMENT_COLUMNS, EQUIPMENT_COLUMN_LABELS, type EquipmentColumnKey } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 
@@ -23,12 +23,22 @@ export function ColumnPicker({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  function toggle(col: EquipmentColumnKey) {
-    if (visible.includes(col)) {
-      onChange(visible.filter((c) => c !== col));
-    } else {
-      onChange([...visible, col]);
-    }
+  const hidden = EQUIPMENT_COLUMNS.filter((c) => !visible.includes(c));
+
+  function remove(col: EquipmentColumnKey) {
+    onChange(visible.filter((c) => c !== col));
+  }
+
+  function add(col: EquipmentColumnKey) {
+    onChange([...visible, col]);
+  }
+
+  function move(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= visible.length) return;
+    const next = [...visible];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
   }
 
   return (
@@ -38,21 +48,70 @@ export function ColumnPicker({
         Kolumny
       </Button>
       {open && (
-        <div className="absolute right-0 z-20 mt-2 w-64 rounded-lg border border-border bg-surface p-3 shadow-lg">
-          <p className="mb-2 text-xs font-medium text-muted">Widoczne kolumny</p>
-          <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
-            {EQUIPMENT_COLUMNS.map((col) => (
-              <label key={col} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-black/5">
-                <input
-                  type="checkbox"
-                  checked={visible.includes(col)}
-                  onChange={() => toggle(col)}
-                  className="h-4 w-4 rounded border-border text-primary"
-                />
-                {EQUIPMENT_COLUMN_LABELS[col]}
-              </label>
+        <div className="absolute right-0 z-20 mt-2 w-72 rounded-lg border border-border bg-surface p-3 shadow-lg">
+          <p className="mb-2 text-xs font-medium text-muted">
+            Widoczne kolumny — kolejność jak na liście (strzałki zmieniają kolejność)
+          </p>
+          <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
+            {visible.map((col, i) => (
+              <div
+                key={col}
+                className="flex items-center gap-1 rounded px-2 py-1.5 text-sm hover:bg-black/5"
+              >
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    disabled={i === 0}
+                    onClick={() => move(i, -1)}
+                    className="text-muted hover:text-foreground disabled:opacity-20"
+                    aria-label="Przesuń w górę"
+                  >
+                    <ChevronUp size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={i === visible.length - 1}
+                    onClick={() => move(i, 1)}
+                    className="text-muted hover:text-foreground disabled:opacity-20"
+                    aria-label="Przesuń w dół"
+                  >
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
+                <span className="flex-1">{EQUIPMENT_COLUMN_LABELS[col]}</span>
+                <button
+                  type="button"
+                  onClick={() => remove(col)}
+                  className="text-muted hover:text-danger"
+                  aria-label="Ukryj kolumnę"
+                >
+                  <X size={14} />
+                </button>
+              </div>
             ))}
           </div>
+
+          {hidden.length > 0 && (
+            <>
+              <p className="mb-2 mt-3 text-xs font-medium text-muted">Dodaj kolumnę</p>
+              <div className="flex max-h-32 flex-col gap-1 overflow-y-auto">
+                {hidden.map((col) => (
+                  <label
+                    key={col}
+                    className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-black/5"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={false}
+                      onChange={() => add(col)}
+                      className="h-4 w-4 rounded border-border text-primary"
+                    />
+                    {EQUIPMENT_COLUMN_LABELS[col]}
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

@@ -17,8 +17,11 @@ import type {
 import { EQUIPMENT_COLUMN_LABELS } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
+import { EditableCell } from "@/components/equipment/EditableCell";
 import { formatDate } from "@/lib/format";
-import { getActiveAssignment, getCategoryName, getLinkedEquipment } from "@/lib/equipment-helpers";
+import { equipmentToInput, getActiveAssignment, getCategoryName, getLinkedEquipment } from "@/lib/equipment-helpers";
+import { useIsAdmin } from "@/lib/current-user-context";
+import { updateEquipmentAction, type EquipmentInput } from "@/lib/supabase/actions/equipment-actions";
 
 export function EquipmentTable({
   equipment,
@@ -44,11 +47,21 @@ export function EquipmentTable({
   visibleColumns: EquipmentColumnKey[];
 }) {
   const router = useRouter();
+  const isAdmin = useIsAdmin();
+
+  async function saveField(item: Equipment, patch: Partial<EquipmentInput>) {
+    const payload: EquipmentInput = { ...equipmentToInput(item), ...patch };
+    const result = await updateEquipmentAction(item.id, payload);
+    if (result.ok) router.refresh();
+    return result.ok ? { ok: true } : { ok: false, error: result.error };
+  }
+
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-      <table className="w-full min-w-[900px] text-sm">
+      <table className="w-full min-w-[960px] text-sm">
         <thead>
           <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
+            <th className="w-12 px-4 py-3 font-medium">L.p.</th>
             {visibleColumns.map((col) => (
               <th key={col} className="whitespace-nowrap px-4 py-3 font-medium">
                 {EQUIPMENT_COLUMN_LABELS[col]}
@@ -57,7 +70,7 @@ export function EquipmentTable({
           </tr>
         </thead>
         <tbody>
-          {equipment.map((item) => {
+          {equipment.map((item, index) => {
             const activeAssignment = getActiveAssignment(assignments, item.id);
             const employee = activeAssignment
               ? employees.find((e) => e.id === activeAssignment.employeeId)
@@ -82,6 +95,7 @@ export function EquipmentTable({
                 className="cursor-pointer border-b border-border last:border-0 hover:bg-black/[0.02]"
                 onClick={() => router.push(`/sprzet/${item.id}`)}
               >
+                <td className="px-4 py-3 align-top text-muted">{index + 1}</td>
                 {visibleColumns.map((col) => (
                   <td key={col} className="px-4 py-3 align-top">
                     {renderCell(col, item, {
@@ -90,6 +104,9 @@ export function EquipmentTable({
                       activeAssignment,
                       linked,
                       software,
+                      categories,
+                      isAdmin,
+                      onSave: (patch) => saveField(item, patch),
                     })}
                   </td>
                 ))}
@@ -111,17 +128,34 @@ function renderCell(
     activeAssignment?: Assignment;
     linked: Equipment[];
     software: string[];
+    categories: Category[];
+    isAdmin: boolean;
+    onSave: (patch: Partial<EquipmentInput>) => Promise<{ ok: boolean; error?: string }>;
   }
 ) {
   switch (col) {
     case "inventoryNumber":
       return (
-        <Link href={`/sprzet/${item.id}`} className="font-medium text-primary hover:underline">
+        <Link
+          href={`/sprzet/${item.id}`}
+          className="font-medium text-primary hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
           {item.inventoryNumber}
         </Link>
       );
     case "category":
-      return extra.categoryName;
+      if (!extra.isAdmin) return extra.categoryName;
+      return (
+        <EditableCell
+          value={item.categoryId}
+          displayValue={extra.categoryName}
+          options={extra.categories
+            .filter((c) => !c.isArchived || c.id === item.categoryId)
+            .map((c) => ({ value: c.id, label: c.name }))}
+          onSave={(v) => extra.onSave({ categoryId: v })}
+        />
+      );
     case "employee":
       return extra.employeeName ? (
         extra.employeeName
@@ -138,9 +172,17 @@ function renderCell(
         <span className="text-muted">—</span>
       );
     case "name":
-      return item.name;
+      if (!extra.isAdmin) return item.name;
+      return <EditableCell value={item.name} onSave={(v) => extra.onSave({ name: v })} />;
     case "serialNumber":
-      return item.serialNumber ?? <span className="text-muted">—</span>;
+      if (!extra.isAdmin) return item.serialNumber ?? <span className="text-muted">—</span>;
+      return (
+        <EditableCell
+          value={item.serialNumber ?? ""}
+          displayValue={item.serialNumber ?? <span className="text-muted">—</span>}
+          onSave={(v) => extra.onSave({ serialNumber: v || null })}
+        />
+      );
     case "software":
       return <ExpandableList items={extra.software} />;
     case "linkedEquipment":
@@ -148,12 +190,29 @@ function renderCell(
     case "status":
       return <StatusBadge status={item.status} />;
     case "location":
-      return item.location;
+      if (!extra.isAdmin) return item.location;
+      return <EditableCell value={item.location} onSave={(v) => extra.onSave({ location: v })} />;
     case "notes":
-      return item.notes ? (
-        <span className="line-clamp-2 max-w-[220px] text-foreground/80">{item.notes}</span>
-      ) : (
-        <span className="text-muted">—</span>
+      if (!extra.isAdmin) {
+        return item.notes ? (
+          <span className="line-clamp-2 max-w-[220px] text-foreground/80">{item.notes}</span>
+        ) : (
+          <span className="text-muted">—</span>
+        );
+      }
+      return (
+        <EditableCell
+          value={item.notes ?? ""}
+          displayValue={
+            item.notes ? (
+              <span className="line-clamp-2 max-w-[220px] text-foreground/80">{item.notes}</span>
+            ) : (
+              <span className="text-muted">—</span>
+            )
+          }
+          multiline
+          onSave={(v) => extra.onSave({ notes: v || null })}
+        />
       );
     default:
       return null;

@@ -1,4 +1,22 @@
 import type { Assignment, Category, Employee, Equipment, EquipmentLink } from "./types";
+import type { EquipmentInput } from "./supabase/actions/equipment-actions";
+
+export function equipmentToInput(item: Equipment): EquipmentInput {
+  return {
+    inventoryNumber: item.inventoryNumber,
+    categoryId: item.categoryId,
+    name: item.name,
+    manufacturer: item.manufacturer,
+    model: item.model,
+    serialNumber: item.serialNumber,
+    purchaseDate: item.purchaseDate,
+    warrantyEnd: item.warrantyEnd,
+    technicalCondition: item.technicalCondition,
+    purchasePrice: item.purchasePrice,
+    location: item.location,
+    notes: item.notes,
+  };
+}
 
 export function getCategoryName(categories: Category[], categoryId: string): string {
   return categories.find((c) => c.id === categoryId)?.name ?? "—";
