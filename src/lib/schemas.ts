@@ -1,33 +1,45 @@
 import { z } from "zod";
 
-export const equipmentFormSchema = z
-  .object({
-    inventoryNumber: z.string().trim().min(1, "Numer inwentarzowy jest wymagany."),
-    categoryId: z.string().min(1, "Wybierz kategorię."),
-    name: z.string().trim().min(1, "Nazwa sprzętu jest wymagana."),
-    manufacturer: z.string().trim().optional(),
-    model: z.string().trim().optional(),
-    serialNumber: z.string().trim().optional(),
-    purchaseDate: z.string().optional(),
-    warrantyEnd: z.string().optional(),
-    technicalCondition: z
-      .union([z.literal(""), z.enum(["bardzo_dobry", "dobry", "dostateczny", "uszkodzony"])])
-      .optional(),
-    purchasePrice: z
-      .string()
-      .optional()
-      .refine((v) => !v || !Number.isNaN(Number(v)), "Cena musi być liczbą."),
-    notes: z.string().trim().optional(),
-  })
-  .refine(
-    (data) =>
-      !data.purchaseDate || !data.warrantyEnd || data.warrantyEnd >= data.purchaseDate,
-    {
-      message: "Koniec gwarancji nie może być wcześniejszy niż data zakupu.",
-      path: ["warrantyEnd"],
-    }
-  );
+const equipmentBaseSchema = z.object({
+  categoryId: z.string().min(1, "Wybierz kategorię."),
+  name: z.string().trim().min(1, "Nazwa sprzętu jest wymagana."),
+  manufacturer: z.string().trim().optional(),
+  model: z.string().trim().optional(),
+  serialNumber: z.string().trim().optional(),
+  purchaseDate: z.string().optional(),
+  warrantyEnd: z.string().optional(),
+  technicalCondition: z
+    .union([z.literal(""), z.enum(["bardzo_dobry", "dobry", "dostateczny", "uszkodzony"])])
+    .optional(),
+  purchasePrice: z
+    .string()
+    .optional()
+    .refine((v) => !v || !Number.isNaN(Number(v)), "Cena musi być liczbą."),
+  notes: z.string().trim().optional(),
+});
 
+const warrantyRefine = {
+  check: (data: { purchaseDate?: string; warrantyEnd?: string }) =>
+    !data.purchaseDate || !data.warrantyEnd || data.warrantyEnd >= data.purchaseDate,
+  message: {
+    message: "Koniec gwarancji nie może być wcześniejszy niż data zakupu.",
+    path: ["warrantyEnd"] as string[],
+  },
+};
+
+// Formularz dodawania: numer inwentarzowy nadaje się automatycznie, więc nie ma go tutaj.
+export const equipmentAddFormSchema = equipmentBaseSchema.refine(
+  warrantyRefine.check,
+  warrantyRefine.message
+);
+export type EquipmentAddFormValues = z.infer<typeof equipmentAddFormSchema>;
+
+// Formularz edycji: numer inwentarzowy można poprawić ręcznie (np. dopasować do naklejki).
+export const equipmentFormSchema = equipmentBaseSchema
+  .extend({
+    inventoryNumber: z.string().trim().min(1, "Numer inwentarzowy jest wymagany."),
+  })
+  .refine(warrantyRefine.check, warrantyRefine.message);
 export type EquipmentFormValues = z.infer<typeof equipmentFormSchema>;
 
 export const employeeFormSchema = z.object({

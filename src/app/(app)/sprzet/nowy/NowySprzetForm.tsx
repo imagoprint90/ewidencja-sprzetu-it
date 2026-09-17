@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { equipmentFormSchema, type EquipmentFormValues } from "@/lib/schemas";
+import { equipmentAddFormSchema, type EquipmentAddFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
 import { TECHNICAL_CONDITION_LABELS, type Category } from "@/lib/types";
@@ -18,15 +18,14 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<EquipmentFormValues>({
-    resolver: zodResolver(equipmentFormSchema),
+  } = useForm<EquipmentAddFormValues>({
+    resolver: zodResolver(equipmentAddFormSchema),
     defaultValues: { categoryId: categories[0]?.id ?? "" },
   });
 
-  async function onSubmit(values: EquipmentFormValues) {
+  async function onSubmit(values: EquipmentAddFormValues) {
     setSubmitError(null);
     const result = await addEquipmentAction({
-      inventoryNumber: values.inventoryNumber,
       categoryId: values.categoryId,
       name: values.name,
       manufacturer: values.manufacturer || null,
@@ -50,16 +49,15 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
       <div>
         <h1 className="text-xl font-semibold">Dodaj sprzęt</h1>
         <p className="text-sm text-muted">
-          Nowy sprzęt trafia domyślnie do statusu „W magazynie”. Przydzielenie do pracownika
-          wykonasz operacją „Przekaż sprzęt” na karcie sprzętu, w zakładce „Przydziały”.
+          Numer inwentarzowy nadaje się automatycznie (można go później poprawić na karcie
+          sprzętu). Nowy sprzęt trafia domyślnie do statusu „W magazynie”. Przydzielenie do
+          pracownika wykonasz operacją „Przekaż sprzęt” na karcie sprzętu, w zakładce
+          „Przydziały”.
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <FormSection title="Podstawowe informacje">
-          <FormField label="Numer inwentarzowy" htmlFor="inventoryNumber" required error={errors.inventoryNumber?.message}>
-            <input id="inventoryNumber" className={inputClass} {...register("inventoryNumber")} />
-          </FormField>
           <FormField label="Kategoria" htmlFor="categoryId" required error={errors.categoryId?.message}>
             <select id="categoryId" className={inputClass} {...register("categoryId")}>
               {categories

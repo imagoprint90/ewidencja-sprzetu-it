@@ -10,7 +10,9 @@ type ActionResult<T = undefined> =
   | { ok: false; error: string };
 
 export interface EquipmentInput {
-  inventoryNumber: string;
+  // Puste przy dodawaniu — numer nadaje się automatycznie (domyślna wartość w bazie).
+  // Podane przy edycji, gdy admin chce go ręcznie poprawić.
+  inventoryNumber?: string;
   categoryId: string;
   name: string;
   manufacturer: string | null;
@@ -25,7 +27,9 @@ export interface EquipmentInput {
 
 function toRow(input: EquipmentInput) {
   return {
-    inventory_number: input.inventoryNumber.trim(),
+    ...(input.inventoryNumber !== undefined
+      ? { inventory_number: input.inventoryNumber.trim() }
+      : {}),
     category_id: input.categoryId,
     name: input.name.trim(),
     manufacturer: input.manufacturer,
@@ -42,10 +46,6 @@ function toRow(input: EquipmentInput) {
 export async function addEquipmentAction(
   input: EquipmentInput
 ): Promise<ActionResult<Equipment>> {
-  if (!input.inventoryNumber.trim()) {
-    return { ok: false, error: "Numer inwentarzowy jest wymagany." };
-  }
-
   const supabase = await createSupabaseServerClient();
 
   const { data: warehouse } = await supabase
@@ -128,6 +128,26 @@ export async function updateEquipmentStatusAction(
 
   revalidatePath("/sprzet");
   revalidatePath(`/sprzet/${id}`);
+  revalidatePath("/pulpit");
+  return { ok: true, data: undefined };
+}
+
+export async function deleteEquipmentAction(id: string): Promise<ActionResult<undefined>> {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("equipment").delete().eq("id", id);
+
+  if (error) {
+    if (error.code === "23503") {
+      return {
+        ok: false,
+        error:
+          "Nie można usunąć — ten sprzęt ma historię przydziałów lub protokołów. Ustaw status na „Wycofany”, żeby go zarchiwizować zamiast usuwać.",
+      };
+    }
+    return { ok: false, error: "Nie udało się usunąć sprzętu." };
+  }
+
+  revalidatePath("/sprzet");
   revalidatePath("/pulpit");
   return { ok: true, data: undefined };
 }

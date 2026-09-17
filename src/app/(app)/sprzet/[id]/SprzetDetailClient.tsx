@@ -1,9 +1,14 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Tabs } from "@/components/ui/Tabs";
+import { useIsAdmin } from "@/lib/current-user-context";
+import { deleteEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
 import { DetailsTab } from "@/components/equipment/tabs/DetailsTab";
 import { AssignmentsTab } from "@/components/equipment/tabs/AssignmentsTab";
 import { SoftwareTab } from "@/components/equipment/tabs/SoftwareTab";
@@ -53,6 +58,23 @@ export function SprzetDetailClient({
   locations: Location[];
 }) {
   const router = useRouter();
+  const isAdmin = useIsAdmin();
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleDelete() {
+    startTransition(async () => {
+      const result = await deleteEquipmentAction(item.id);
+      if (!result.ok) {
+        setConfirmDeleteOpen(false);
+        setDeleteError(result.error);
+        return;
+      }
+      router.push("/sprzet");
+      router.refresh();
+    });
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -71,8 +93,22 @@ export function SprzetDetailClient({
             {item.inventoryNumber} · {getCategoryName(categories, item.categoryId)}
           </p>
         </div>
-        <StatusBadge status={item.status} />
+        <div className="flex items-center gap-2">
+          <StatusBadge status={item.status} />
+          {isAdmin && (
+            <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteOpen(true)}>
+              <Trash2 size={14} />
+              Usuń sprzęt
+            </Button>
+          )}
+        </div>
       </div>
+
+      {deleteError && (
+        <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
+          {deleteError}
+        </p>
+      )}
 
       <Tabs
         tabs={[
@@ -115,6 +151,17 @@ export function SprzetDetailClient({
           { key: "historia", label: "Historia zmian", content: <HistoryTab equipment={item} /> },
         ]}
       />
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Usunąć ten sprzęt?"
+        description="Tej operacji nie można cofnąć. Jeśli sprzęt ma historię przydziałów lub protokoły, usunięcie zostanie zablokowane — wtedy lepiej ustawić status „Wycofany”."
+        confirmLabel="Usuń"
+        danger
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleDelete}
+      />
+      {isPending && <p className="text-sm text-muted">Usuwanie…</p>}
     </div>
   );
 }
