@@ -4,11 +4,17 @@ Wewnętrzny system inwentaryzacji sprzętu IT: sprzęt, pracownicy, przydziały,
 powiązanego sprzętu, oprogramowanie/licencje i protokoły PDF.
 
 Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
-(baza danych, logowanie, prywatne przechowywanie plików), hosting docelowo na Vercel.
+(baza danych, logowanie, prywatne przechowywanie plików), hosting na Vercel.
 
-## Stan projektu (Etap 1 z 5)
+- **Kod**: https://github.com/imagoprint90/ewidencja-sprzetu-it
+- **Wersja na żywo**: https://ewidencja-sprzetu-it.vercel.app
+
+## Stan projektu (Etap 2 w toku)
 
 **Gotowe i działające:**
+- Logowanie e-mail/hasło przez Supabase Auth, z opcją przypomnienia hasła (link e-mail).
+  Wszystkie strony poza `/logowanie` wymagają zalogowania (wymuszane w middleware/proxy
+  i ponownie sprawdzane po stronie serwera — nie tylko ukrywaniem przycisków).
 - Sprzęt: lista z wyszukiwarką, filtrami, wyborem widocznych kolumn, dodawanie i edycja
   (walidacja unikalności numeru inwentarzowego, spójność dat gwarancji).
 - Kategorie: dodawanie, zmiana nazwy, archiwizacja z blokadą, gdy kategoria jest używana.
@@ -17,18 +23,22 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   (dodawanie/usuwanie powiązań w zestawie), Oprogramowanie/Dokumenty/Historia zmian
   (zakładki informacyjne — pełna funkcjonalność w kolejnych etapach).
 - Układ responsywny (boczne menu chowane na telefonie), polskie daty i komunikaty.
+- Pełny schemat bazy danych i reguły dostępu (RLS) zastosowane w Supabase —
+  `supabase/migrations/`.
 
-**Tryb demonstracyjny:** wszystkie dane (sprzęt, pracownicy, przydziały) żyją wyłącznie
-w pamięci przeglądarki i znikają po odświeżeniu strony. To **nie jest** jeszcze trwały
-system firmowy — trwałość, logowanie i uprawnienia to Etap 2.
+**Ważne zastrzeżenie:** logowanie jest już prawdziwe (Supabase Auth), ale dane sprzętu,
+pracowników i przydziałów **wciąż żyją tylko w pamięci przeglądarki** (pomarańczowy pasek
+„Tryb demonstracyjny”) i znikają po odświeżeniu. Podłączenie tych danych do bazy to kolejny
+krok Etapu 2/3.
 
 **Przygotowane, ale jeszcze niepodłączone:**
-- Pełny schemat bazy danych i reguły dostępu (RLS) dla Supabase — `supabase/migrations/`.
 - Operacja „Przekaż sprzęt” / zwrot do magazynu jako atomowe funkcje SQL — Etap 3.
 - Generowanie protokołów PDF — Etap 4.
 - Katalog oprogramowania i licencji, pulpit z gwarancjami/licencjami — Etap 5.
+- Role „administrator” / „podgląd” (tabela `profiles` i RLS już gotowe w bazie, ale
+  interfejs jeszcze nie ukrywa akcji edycji przed rolą „podgląd”).
 
-## Uruchomienie lokalne (tryb demonstracyjny)
+## Uruchomienie lokalne
 
 Wymagany Node.js 20+ (masz zainstalowane Node 24 — wystarczy).
 
@@ -37,98 +47,83 @@ npm install
 npm run dev
 ```
 
-Aplikacja będzie dostępna pod adresem **http://localhost:3000** (przekierowuje na
-`/pulpit`). Dane są fikcyjne i resetują się po odświeżeniu strony.
+Aplikacja będzie dostępna pod adresem **http://localhost:3000**. Do zalogowania i
+korzystania z aplikacji lokalnie potrzebny jest plik `.env.local` — patrz niżej. Bez niego
+zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 
-## Konfiguracja Supabase (Etap 2 — wymaga Twojego działania)
+## Konfiguracja Supabase
 
-Gdy zdecydujesz się podłączyć trwałą bazę danych, wykonaj kolejno:
+Projekt Supabase jest już utworzony i skonfigurowany (schemat bazy, RLS, dane początkowe).
+Żeby uruchomić aplikację **lokalnie** z prawdziwym logowaniem:
 
-1. **Utwórz projekt** w [supabase.com](https://supabase.com) (jeśli jeszcze go nie masz).
-2. **Zastosuj migracje**: najprościej otwórz `supabase/apply_all.sql` (zbiorczy plik
-   ze wszystkimi migracjami w kolejności), skopiuj całą zawartość, wklej do
-   SQL Editor w panelu Supabase i uruchom (Run). To jednorazowa operacja — kolejne
-   migracje w przyszłości uruchamiaj pojedynczo z `supabase/migrations/`, nie przez
-   ten plik ponownie.
-   Alternatywnie przez [Supabase CLI](https://supabase.com/docs/guides/cli):
-   ```bash
-   supabase link --project-ref <twoj-project-ref>
-   supabase db push
-   ```
-3. **Wgraj dane początkowe** — uruchom `supabase/seed.sql` w SQL Editor (ustawia
-   7 początkowych kategorii i przykładowe dane firmy).
-4. **Skopiuj klucze API**: Project Settings → API. Skopiuj plik `.env.example` do
-   `.env.local` i uzupełnij:
+1. Skopiuj plik `.env.example` do `.env.local`.
+2. W panelu Supabase: **Project Settings → API Keys** skopiuj `Project URL`,
+   `Publishable key` i `Secret key` i wklej je do `.env.local` jako:
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` (tylko do operacji serwerowych, np. generowania PDF)
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (wartość z „Publishable key”)
+   - `SUPABASE_SERVICE_ROLE_KEY` (wartość z „Secret key”)
 
    **Nie wklejaj tych wartości do rozmowy ze mną** — wpisz je bezpośrednio do pliku
-   `.env.local` na swoim komputerze (nie jest on commitowany do repozytorium).
-5. **Włącz logowanie e-mail/hasło** w Authentication → Providers.
-6. **Utwórz pierwsze konto administratora**: zaloguj się raz w aplikacji (po
-   uruchomieniu Etapu 2), a następnie w SQL Editor uruchom:
+   `.env.local` na swoim komputerze (plik nie jest commitowany do repozytorium).
+3. Uruchom ponownie `npm run dev`.
+
+Te same trzy zmienne są już ustawione w Vercelu dla wersji produkcyjnej.
+
+### Zakładanie kont użytkowników
+
+Aplikacja **nie ma publicznej rejestracji** — konta administratorów i osób z dostępem
+tylko do odczytu zakłada się ręcznie w panelu Supabase:
+
+1. **Authentication → Users → Add user** — podaj e-mail i hasło (albo wyślij zaproszenie),
+   zaznacz „Auto Confirm User”, żeby nie trzeba było potwierdzać e-maila.
+2. Skopiuj `UID` nowo utworzonego użytkownika.
+3. W **SQL Editor** uruchom (rola `administrator` — pełny dostęp, lub `podglad` — tylko
+   odczyt, gdy interfejs zacznie to wymuszać w kolejnym etapie):
    ```sql
    insert into public.profiles (id, full_name, role)
-   values ('<uuid-uzytkownika-z-auth.users>', 'Twoje Imię i Nazwisko', 'administrator');
+   values ('<UID-uzytkownika>', 'Imię i Nazwisko', 'administrator');
    ```
-   (RLS celowo nie pozwala nikomu samodzielnie nadać sobie roli administratora —
-   pierwsze konto trzeba założyć ręcznie).
-7. Poinformuj mnie, że baza jest gotowa — podłączę interfejs do rzeczywistych danych
-   zamiast trybu demonstracyjnego.
+   (RLS celowo nie pozwala nikomu samodzielnie nadać sobie roli — każde konto zakłada się
+   w ten sposób).
+4. Ta osoba może się teraz zalogować pod `/logowanie` swoim e-mailem i hasłem, oraz użyć
+   „Nie pamiętasz hasła?”, żeby ustawić je samodzielnie linkiem e-mail.
 
 ## GitHub
 
-Repozytorium Git nie zostało jeszcze zainicjowane w tym folderze — **Git nie jest
-zainstalowany** na tym komputerze. Zainstaluj go (przez winget) i zainicjuj repozytorium:
-
 ```bash
-winget install --id Git.Git -e --source winget
-```
-
-Po instalacji (w nowym oknie terminala, żeby PATH się odświeżył):
-
-```bash
-git init
 git add .
-git commit -m "Etap 1: szkielet aplikacji, dane demonstracyjne, migracje Supabase"
+git commit -m "opis zmiany"
+git push
 ```
 
-Następnie utwórz puste repozytorium na GitHub (bez README/gitignore, żeby uniknąć
-konfliktów) i połącz je:
+Każdy `git push` na branch `main` automatycznie uruchamia nowe wdrożenie na Vercelu.
 
-```bash
-git remote add origin https://github.com/<twoj-login>/<nazwa-repo>.git
-git branch -M main
-git push -u origin main
-```
+## Wdrożenie na Vercel
 
-## Wdrożenie na Vercel (dopiero na Twoje polecenie)
-
-Nie wdrażam aplikacji automatycznie. Gdy będziesz gotów/gotowa:
-
-1. Zaloguj się na [vercel.com](https://vercel.com) i zaimportuj repozytorium z GitHub.
-2. W ustawieniach projektu (Environment Variables) dodaj te same zmienne co w
-   `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`).
-3. Kliknij Deploy.
+Projekt jest połączony z repozytorium GitHub — wdrożenie produkcyjne
+(https://ewidencja-sprzetu-it.vercel.app) aktualizuje się automatycznie po każdym
+`git push` na `main`. Zmienne środowiskowe konfiguruje się w panelu Vercel:
+Project → Settings → Environment Variables.
 
 ## Kopie zapasowe
 
-- **Kod aplikacji** — kopią zapasową jest historia commitów w GitHubie (patrz wyżej).
-- **Dane i dokumenty** — po podłączeniu Supabase kopię zapasową bazy danych i plików
-  (Storage) zapewnia panel Supabase: Project Settings → Database → Backups (kopie
-  automatyczne, zależne od planu) oraz możliwość ręcznego eksportu przez
-  `supabase db dump`. To są dwie osobne kopie zapasowe (kod ≠ dane) — żadna z nich
-  nie zastępuje drugiej.
+- **Kod aplikacji** — kopią zapasową jest historia commitów w GitHubie.
+- **Dane i dokumenty** — kopię zapasową bazy danych i plików (Storage) zapewnia panel
+  Supabase: Project Settings → Database → Backups (kopie automatyczne, zależne od planu)
+  oraz możliwość ręcznego eksportu przez `supabase db dump`. To są dwie osobne kopie
+  zapasowe (kod ≠ dane) — żadna z nich nie zastępuje drugiej.
 
 ## Struktura projektu
 
 ```
-src/app/            strony (App Router) — jedna podfolder na moduł
-src/components/     komponenty UI, pogrupowane wg modułu
-src/lib/            typy, dane demo, magazyn stanu demo, formatowanie, walidacja (zod)
-src/lib/supabase/   klienci Supabase (przeglądarka / serwer) — nieużywane do Etapu 2
-supabase/migrations/ pełny schemat bazy danych, reguły RLS, funkcje operacji na przydziałach
-supabase/seed.sql   dane początkowe (kategorie, dane firmy)
+src/app/(auth)/       strony logowania i resetu hasła (bez bocznego menu)
+src/app/(app)/        chronione strony aplikacji (wymagają zalogowania) — jedna
+                       podfolder na moduł: pulpit, sprzet, pracownicy, kategorie...
+src/app/auth/callback/ wymiana linku e-mail (reset hasła) na sesję
+src/proxy.ts           middleware: wymusza logowanie na chronionych trasach
+src/components/       komponenty UI, pogrupowane wg modułu
+src/lib/               typy, dane demo, magazyn stanu demo, formatowanie, walidacja (zod)
+src/lib/supabase/      klienci Supabase (przeglądarka / serwer), błędy logowania po polsku
+supabase/migrations/  pełny schemat bazy danych, reguły RLS, funkcje operacji na przydziałach
+supabase/seed.sql     dane początkowe (kategorie, dane firmy)
 ```
