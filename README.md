@@ -45,9 +45,12 @@ Aplikacja będzie dostępna pod adresem **http://localhost:3000** (przekierowuje
 Gdy zdecydujesz się podłączyć trwałą bazę danych, wykonaj kolejno:
 
 1. **Utwórz projekt** w [supabase.com](https://supabase.com) (jeśli jeszcze go nie masz).
-2. **Zastosuj migracje** z folderu `supabase/migrations/` w kolejności numerycznej —
-   najprościej przez SQL Editor w panelu Supabase (wklej zawartość każdego pliku
-   `000X_*.sql` po kolei i uruchom), albo przez [Supabase CLI](https://supabase.com/docs/guides/cli):
+2. **Zastosuj migracje**: najprościej otwórz `supabase/apply_all.sql` (zbiorczy plik
+   ze wszystkimi migracjami w kolejności), skopiuj całą zawartość, wklej do
+   SQL Editor w panelu Supabase i uruchom (Run). To jednorazowa operacja — kolejne
+   migracje w przyszłości uruchamiaj pojedynczo z `supabase/migrations/`, nie przez
+   ten plik ponownie.
+   Alternatywnie przez [Supabase CLI](https://supabase.com/docs/guides/cli):
    ```bash
    supabase link --project-ref <twoj-project-ref>
    supabase db push
