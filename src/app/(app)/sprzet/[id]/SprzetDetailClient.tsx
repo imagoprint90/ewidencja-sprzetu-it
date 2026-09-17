@@ -11,7 +11,18 @@ import { LinkedEquipmentTab } from "@/components/equipment/tabs/LinkedEquipmentT
 import { DocumentsTab } from "@/components/equipment/tabs/DocumentsTab";
 import { HistoryTab } from "@/components/equipment/tabs/HistoryTab";
 import { getCategoryName } from "@/lib/equipment-helpers";
-import type { Assignment, Category, Employee, Equipment, EquipmentLink } from "@/lib/types";
+import type {
+  Assignment,
+  Category,
+  Employee,
+  Equipment,
+  EquipmentLink,
+  InstalledSoftware,
+  Protocol,
+  SoftwareLicense,
+  SoftwareLicenseAssignment,
+  SoftwareProduct,
+} from "@/lib/types";
 
 export function SprzetDetailClient({
   item,
@@ -20,6 +31,11 @@ export function SprzetDetailClient({
   employees,
   assignments,
   equipmentLinks,
+  protocols,
+  products,
+  installedSoftware,
+  licenses,
+  licenseAssignments,
 }: {
   item: Equipment;
   allEquipment: Equipment[];
@@ -27,6 +43,11 @@ export function SprzetDetailClient({
   employees: Employee[];
   assignments: Assignment[];
   equipmentLinks: EquipmentLink[];
+  protocols: Protocol[];
+  products: SoftwareProduct[];
+  installedSoftware: InstalledSoftware[];
+  licenses: SoftwareLicense[];
+  licenseAssignments: SoftwareLicenseAssignment[];
 }) {
   const router = useRouter();
 
@@ -62,7 +83,19 @@ export function SprzetDetailClient({
             label: "Przydziały",
             content: <AssignmentsTab equipment={item} assignments={assignments} employees={employees} />,
           },
-          { key: "oprogramowanie", label: "Oprogramowanie", content: <SoftwareTab /> },
+          {
+            key: "oprogramowanie",
+            label: "Oprogramowanie",
+            content: (
+              <SoftwareTab
+                equipment={item}
+                products={products}
+                installedSoftware={installedSoftware}
+                licenses={licenses}
+                licenseAssignments={licenseAssignments}
+              />
+            ),
+          },
           {
             key: "powiazany",
             label: "Powiązany sprzęt",
@@ -75,7 +108,7 @@ export function SprzetDetailClient({
               />
             ),
           },
-          { key: "dokumenty", label: "Dokumenty", content: <DocumentsTab /> },
+          { key: "dokumenty", label: "Dokumenty", content: <DocumentsTab protocols={protocols} /> },
           { key: "historia", label: "Historia zmian", content: <HistoryTab equipment={item} /> },
         ]}
       />

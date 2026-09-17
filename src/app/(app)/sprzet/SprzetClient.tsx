@@ -13,7 +13,15 @@ import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { EQUIPMENT_COLUMNS, type EquipmentColumnKey, type EquipmentStatus } from "@/lib/types";
 import { getActiveAssignment } from "@/lib/equipment-helpers";
-import type { Assignment, Category, Employee, Equipment, EquipmentLink } from "@/lib/types";
+import type {
+  Assignment,
+  Category,
+  Employee,
+  Equipment,
+  EquipmentLink,
+  InstalledSoftware,
+  SoftwareProduct,
+} from "@/lib/types";
 
 const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "inventoryNumber",
@@ -32,12 +40,16 @@ function SprzetPageInner({
   employees,
   assignments,
   equipmentLinks,
+  installedSoftware,
+  softwareProducts,
 }: {
   equipment: Equipment[];
   categories: Category[];
   employees: Employee[];
   assignments: Assignment[];
   equipmentLinks: EquipmentLink[];
+  installedSoftware: InstalledSoftware[];
+  softwareProducts: SoftwareProduct[];
 }) {
   const isAdmin = useIsAdmin();
   const searchParams = useSearchParams();
@@ -133,6 +145,8 @@ function SprzetPageInner({
           employees={employees}
           assignments={assignments}
           links={equipmentLinks}
+          installedSoftware={installedSoftware}
+          softwareProducts={softwareProducts}
           visibleColumns={visibleColumns.length ? visibleColumns : EQUIPMENT_COLUMNS.slice(0, 3)}
         />
       )}
@@ -146,6 +160,8 @@ export function SprzetClient(props: {
   employees: Employee[];
   assignments: Assignment[];
   equipmentLinks: EquipmentLink[];
+  installedSoftware: InstalledSoftware[];
+  softwareProducts: SoftwareProduct[];
 }) {
   return (
     <Suspense>

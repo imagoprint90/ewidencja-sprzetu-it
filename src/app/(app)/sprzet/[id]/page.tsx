@@ -6,6 +6,11 @@ import {
   getEmployees,
   getEquipment,
   getEquipmentLinks,
+  getInstalledSoftware,
+  getLicenseAssignments,
+  getProtocolsForEquipment,
+  getSoftwareLicenses,
+  getSoftwareProducts,
 } from "@/lib/supabase/queries";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
@@ -18,12 +23,28 @@ export default async function SprzetDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
-  const [equipment, categories, employees, assignments, equipmentLinks] = await Promise.all([
+  const [
+    equipment,
+    categories,
+    employees,
+    assignments,
+    equipmentLinks,
+    protocols,
+    products,
+    installedSoftware,
+    licenses,
+    licenseAssignments,
+  ] = await Promise.all([
     getEquipment(supabase),
     getCategories(supabase),
     getEmployees(supabase),
     getAssignments(supabase),
     getEquipmentLinks(supabase),
+    getProtocolsForEquipment(supabase, id),
+    getSoftwareProducts(supabase),
+    getInstalledSoftware(supabase),
+    getSoftwareLicenses(supabase),
+    getLicenseAssignments(supabase),
   ]);
 
   const item = equipment.find((e) => e.id === id);
@@ -50,6 +71,11 @@ export default async function SprzetDetailPage({
       employees={employees}
       assignments={assignments}
       equipmentLinks={equipmentLinks}
+      protocols={protocols}
+      products={products}
+      installedSoftware={installedSoftware}
+      licenses={licenses}
+      licenseAssignments={licenseAssignments}
     />
   );
 }

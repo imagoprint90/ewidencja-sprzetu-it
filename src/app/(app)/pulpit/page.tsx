@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getAssignments, getCategories, getEmployees, getEquipment } from "@/lib/supabase/queries";
+import {
+  getAssignments,
+  getCategories,
+  getEmployees,
+  getEquipment,
+  getSoftwareLicenses,
+  getSoftwareProducts,
+} from "@/lib/supabase/queries";
 import { daysUntil, formatDate } from "@/lib/format";
 import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
 import type { ReactNode } from "react";
@@ -25,11 +32,13 @@ function StatCard({
 
 export default async function PulpitPage(): Promise<ReactNode> {
   const supabase = await createSupabaseServerClient();
-  const [equipment, employees, assignments, categories] = await Promise.all([
+  const [equipment, employees, assignments, categories, licenses, softwareProducts] = await Promise.all([
     getEquipment(supabase),
     getEmployees(supabase),
     getAssignments(supabase),
     getCategories(supabase),
+    getSoftwareLicenses(supabase),
+    getSoftwareProducts(supabase),
   ]);
 
   const counts = {
@@ -46,6 +55,13 @@ export default async function PulpitPage(): Promise<ReactNode> {
       return d !== null && d >= 0 && d <= 60;
     })
     .sort((a, b) => (daysUntil(a.warrantyEnd) ?? 0) - (daysUntil(b.warrantyEnd) ?? 0));
+
+  const expiringLicenses = licenses
+    .filter((l) => {
+      const d = daysUntil(l.validUntil);
+      return d !== null && d >= 0 && d <= 60;
+    })
+    .sort((a, b) => (daysUntil(a.validUntil) ?? 0) - (daysUntil(b.validUntil) ?? 0));
 
   const recentAssignments = [...assignments]
     .sort((a, b) => (a.assignedAt < b.assignedAt ? 1 : a.assignedAt > b.assignedAt ? -1 : (a.id < b.id ? 1 : -1)))
@@ -106,10 +122,21 @@ export default async function PulpitPage(): Promise<ReactNode> {
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-5">
-          <h2 className="text-sm font-semibold">Wygasające licencje</h2>
-          <p className="mt-3 text-sm text-muted">
-            Moduł licencji zostanie uruchomiony w Etapie 5. Na razie brak danych do wyświetlenia.
-          </p>
+          <h2 className="text-sm font-semibold">Wygasające licencje (60 dni)</h2>
+          {expiringLicenses.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">Brak licencji wygasających wkrótce.</p>
+          ) : (
+            <ul className="mt-3 flex flex-col gap-2">
+              {expiringLicenses.map((l) => (
+                <li key={l.id} className="flex items-center justify-between text-sm">
+                  <Link href="/oprogramowanie" className="text-primary hover:underline">
+                    {softwareProducts.find((p) => p.id === l.productId)?.name ?? "Nieznany produkt"}
+                  </Link>
+                  <span className="text-muted">{formatDate(l.validUntil)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

@@ -5,8 +5,25 @@ import {
   mapEmployee,
   mapEquipment,
   mapEquipmentLink,
+  mapInstalledSoftware,
+  mapLicenseAssignment,
+  mapProtocol,
+  mapSoftwareLicense,
+  mapSoftwareProduct,
 } from "./mappers";
-import type { Category, Employee, Equipment, Assignment, EquipmentLink, CompanySettings } from "@/lib/types";
+import type {
+  Category,
+  Employee,
+  Equipment,
+  Assignment,
+  EquipmentLink,
+  CompanySettings,
+  Protocol,
+  SoftwareProduct,
+  SoftwareLicense,
+  SoftwareLicenseAssignment,
+  InstalledSoftware,
+} from "@/lib/types";
 
 export async function getCategories(supabase: SupabaseClient): Promise<Category[]> {
   const { data, error } = await supabase.from("categories").select("*").order("name");
@@ -52,6 +69,57 @@ export async function getCompanySettings(supabase: SupabaseClient): Promise<Comp
     .single();
   if (error) throw new Error(error.message);
   return { name: data.name, address: data.address, nip: data.nip };
+}
+
+export async function getProtocols(supabase: SupabaseClient): Promise<Protocol[]> {
+  const { data, error } = await supabase
+    .from("protocols")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapProtocol);
+}
+
+export async function getProtocolsForEquipment(
+  supabase: SupabaseClient,
+  equipmentId: string
+): Promise<Protocol[]> {
+  const { data, error } = await supabase
+    .from("protocol_items")
+    .select("protocol_id, protocols(*)")
+    .eq("equipment_id", equipmentId);
+  if (error) throw new Error(error.message);
+  return (data ?? [])
+    .map((row) => row.protocols)
+    .filter((p) => p !== null)
+    .map((p) => mapProtocol(p as unknown as Parameters<typeof mapProtocol>[0]))
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export async function getSoftwareProducts(supabase: SupabaseClient): Promise<SoftwareProduct[]> {
+  const { data, error } = await supabase.from("software_products").select("*").order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapSoftwareProduct);
+}
+
+export async function getSoftwareLicenses(supabase: SupabaseClient): Promise<SoftwareLicense[]> {
+  const { data, error } = await supabase.from("software_licenses").select("*");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapSoftwareLicense);
+}
+
+export async function getLicenseAssignments(
+  supabase: SupabaseClient
+): Promise<SoftwareLicenseAssignment[]> {
+  const { data, error } = await supabase.from("software_license_assignments").select("*");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapLicenseAssignment);
+}
+
+export async function getInstalledSoftware(supabase: SupabaseClient): Promise<InstalledSoftware[]> {
+  const { data, error } = await supabase.from("equipment_installed_software").select("*");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapInstalledSoftware);
 }
 
 export interface CurrentProfile {

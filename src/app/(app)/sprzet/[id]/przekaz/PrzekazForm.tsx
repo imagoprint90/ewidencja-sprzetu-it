@@ -9,8 +9,22 @@ import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { StatusBadge } from "@/components/ui/Badge";
 import { formatDate, todayIsoDate } from "@/lib/format";
 import { getActiveAssignment, getCategoryName, getLinkedEquipment } from "@/lib/equipment-helpers";
-import { TECHNICAL_CONDITION_LABELS, type Assignment, type Category, type Employee, type Equipment, type EquipmentLink, type TechnicalCondition } from "@/lib/types";
+import {
+  TECHNICAL_CONDITION_LABELS,
+  type Assignment,
+  type Category,
+  type Employee,
+  type Equipment,
+  type EquipmentLink,
+  type InstalledSoftware,
+  type SoftwareLicense,
+  type SoftwareLicenseAssignment,
+  type SoftwareProduct,
+  type TechnicalCondition,
+} from "@/lib/types";
 import { transferEquipmentSetAction } from "@/lib/supabase/actions/assignment-actions";
+import { createProtocolAction } from "@/lib/supabase/actions/protocol-actions";
+import type { ProtocolType } from "@/lib/types";
 
 type Mode = "przekaz" | "zwrot";
 
@@ -21,6 +35,10 @@ export function PrzekazForm({
   employees,
   assignments,
   equipmentLinks,
+  installedSoftware,
+  products,
+  licenses,
+  licenseAssignments,
 }: {
   item: Equipment;
   allEquipment: Equipment[];
@@ -28,6 +46,10 @@ export function PrzekazForm({
   employees: Employee[];
   assignments: Assignment[];
   equipmentLinks: EquipmentLink[];
+  installedSoftware: InstalledSoftware[];
+  products: SoftwareProduct[];
+  licenses: SoftwareLicense[];
+  licenseAssignments: SoftwareLicenseAssignment[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -39,9 +61,25 @@ export function PrzekazForm({
   const activeEmployees = employees.filter((e) => e.isActive);
   const linked = getLinkedEquipment(equipmentLinks, allEquipment, item.id);
 
+  const deviceSoftwareNames = installedSoftware
+    .filter((s) => s.equipmentId === item.id)
+    .map((s) => products.find((p) => p.id === s.softwareProductId)?.name)
+    .filter((n): n is string => Boolean(n));
+
+  const previousPersonalLicenseNames = activeAssignment
+    ? licenseAssignments
+        .filter((a) => a.employeeId === activeAssignment.employeeId)
+        .map((a) => {
+          const license = licenses.find((l) => l.id === a.licenseId);
+          return license ? products.find((p) => p.id === license.productId)?.name : undefined;
+        })
+        .filter((n): n is string => Boolean(n))
+    : [];
+
   const [mode, setMode] = useState<Mode>(activeAssignment ? "przekaz" : "przekaz");
   const [newEmployeeId, setNewEmployeeId] = useState("");
   const [transferDate, setTransferDate] = useState(todayIsoDate());
+  const [city, setCity] = useState("");
   const [condition, setCondition] = useState<TechnicalCondition | "">("");
   const [notes, setNotes] = useState("");
   const [selectedLinked, setSelectedLinked] = useState<Set<string>>(new Set());
@@ -67,6 +105,7 @@ export function PrzekazForm({
       return "Wybierz pracownika, któremu przekazujesz sprzęt.";
     }
     if (!transferDate) return "Podaj datę przekazania.";
+    if (!city.trim()) return "Podaj miejscowość sporządzenia protokołu.";
     if (!condition) return "Wybierz stan techniczny sprzętu.";
     return null;
   }
@@ -95,6 +134,29 @@ export function PrzekazForm({
         setError(result.error);
         return;
       }
+
+      const protocolType: ProtocolType =
+        mode === "zwrot" ? "zwrot" : activeAssignment ? "przekazanie" : "wydanie";
+
+      const protocolResult = await createProtocolAction({
+        type: protocolType,
+        equipmentIds,
+        previousEmployeeId: activeAssignment?.employeeId ?? null,
+        newEmployeeId: mode === "przekaz" ? newEmployeeId : null,
+        transferDate,
+        city: city.trim(),
+        condition: condition as TechnicalCondition,
+        notes: notes.trim() || null,
+      });
+
+      if (!protocolResult.ok || !protocolResult.data.pdfGenerated) {
+        // Przydział już zapisany — protokół (lub tylko jego PDF) można wygenerować
+        // ponownie z listy Protokołów bez ryzyka duplikatu.
+        router.push("/protokoly");
+        router.refresh();
+        return;
+      }
+
       router.push(`/sprzet/${item.id}`);
       router.refresh();
     });
@@ -129,6 +191,26 @@ export function PrzekazForm({
           )}
         </div>
       </FormSection>
+
+      {(deviceSoftwareNames.length > 0 || previousPersonalLicenseNames.length > 0) && (
+        <div className="rounded-xl border border-border bg-surface p-4 text-sm">
+          <p className="mb-2 font-medium">Oprogramowanie</p>
+          {deviceSoftwareNames.length > 0 && (
+            <p className="mb-1 text-muted">
+              Zainstalowane na urządzeniu (zostaje przy sprzęcie, przechodzi automatycznie):{" "}
+              <span className="text-foreground">{deviceSoftwareNames.join(", ")}</span>
+            </p>
+          )}
+          {previousPersonalLicenseNames.length > 0 && (
+            <p className="text-muted">
+              Licencje osobiste poprzedniego użytkownika (
+              <strong className="text-danger">nie są automatycznie przenoszone</strong>, wymagają
+              osobnej decyzji w module Oprogramowanie):{" "}
+              <span className="text-foreground">{previousPersonalLicenseNames.join(", ")}</span>
+            </p>
+          )}
+        </div>
+      )}
 
       {linked.length > 0 && (
         <FormSection
@@ -229,6 +311,15 @@ export function PrzekazForm({
             onChange={(e) => setTransferDate(e.target.value)}
           />
         </FormField>
+        <FormField label="Miejscowość" htmlFor="city" required>
+          <input
+            id="city"
+            className={inputClass}
+            placeholder="np. Warszawa"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+          />
+        </FormField>
         <FormField label="Stan techniczny" htmlFor="condition" required>
           <select
             id="condition"
@@ -255,6 +346,11 @@ export function PrzekazForm({
         </FormField>
       </FormSection>
 
+      <p className="text-xs text-muted">
+        Po zatwierdzeniu system automatycznie wygeneruje protokół PDF (do pobrania w
+        zakładce „Dokumenty” lub na liście Protokołów).
+      </p>
+
       {error && (
         <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
           {error}
@@ -266,7 +362,11 @@ export function PrzekazForm({
           Anuluj
         </Button>
         <Button type="button" disabled={isPending} onClick={handleOpenConfirm}>
-          {mode === "przekaz" ? "Przekaż sprzęt" : "Zwróć do magazynu"}
+          {isPending
+            ? "Zapisywanie…"
+            : mode === "przekaz"
+              ? "Przekaż sprzęt"
+              : "Zwróć do magazynu"}
         </Button>
       </div>
 
@@ -278,9 +378,9 @@ export function PrzekazForm({
           (mode === "przekaz"
             ? `Od: ${currentEmployee?.fullName ?? "nieprzydzielony"} → Do: ${newEmployee?.fullName ?? "—"}. `
             : `Zwrot do magazynu od: ${currentEmployee?.fullName ?? "—"}. `) +
-          `Data: ${formatDate(transferDate)}. Stan: ${
+          `Data: ${formatDate(transferDate)}, ${city.trim() || "brak miejscowości"}. Stan: ${
             condition ? TECHNICAL_CONDITION_LABELS[condition as TechnicalCondition] : "—"
-          }.`
+          }. Zostanie automatycznie wygenerowany protokół PDF.`
         }
         confirmLabel="Zatwierdź"
         onCancel={() => setConfirmOpen(false)}

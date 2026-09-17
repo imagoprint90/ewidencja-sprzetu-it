@@ -79,6 +79,11 @@ export interface Equipment {
 
 export type LicenseType = "urzadzenie" | "uzytkownik";
 
+export const LICENSE_TYPE_LABELS: Record<LicenseType, string> = {
+  urzadzenie: "Na urządzenie",
+  uzytkownik: "Na użytkownika",
+};
+
 export interface SoftwareProduct {
   id: string;
   name: string;
@@ -114,15 +119,54 @@ export interface InstalledSoftware {
 export type ProtocolType = "wydanie" | "zwrot" | "przekazanie";
 export type ProtocolPdfStatus = "oczekuje" | "wygenerowany" | "blad";
 
+export const PROTOCOL_TYPE_LABELS: Record<ProtocolType, string> = {
+  wydanie: "Wydanie sprzętu",
+  przekazanie: "Przekazanie sprzętu",
+  zwrot: "Zwrot do magazynu",
+};
+
+export const PROTOCOL_STATUS_LABELS: Record<ProtocolPdfStatus, string> = {
+  oczekuje: "Oczekuje",
+  wygenerowany: "Wygenerowany",
+  blad: "Błąd generowania",
+};
+
+export interface ProtocolItemData {
+  name: string;
+  category: string;
+  inventoryNumber: string;
+  serialNumber: string | null;
+}
+
+export interface ProtocolSnapshot {
+  protocolNumber: string;
+  type: ProtocolType;
+  companyName: string;
+  companyAddress: string;
+  companyNip: string | null;
+  city: string;
+  issuedAt: string;
+  issuedByName: string;
+  previousEmployeeName: string | null;
+  newEmployeeName: string | null;
+  technicalConditionLabel: string;
+  notes: string | null;
+  items: ProtocolItemData[];
+}
+
 export interface Protocol {
   id: string;
   protocolNumber: string;
   type: ProtocolType;
-  issuedBy: string;
+  issuedBy: string | null;
+  issuedByName: string;
   issuedAt: string;
   city: string;
+  snapshot: ProtocolSnapshot;
   pdfStatus: ProtocolPdfStatus;
   pdfPath: string | null;
+  pdfError: string | null;
+  signedScanPath: string | null;
   createdAt: string;
 }
 

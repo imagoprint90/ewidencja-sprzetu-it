@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Assignment, Category, Employee, Equipment, EquipmentColumnKey, EquipmentLink } from "@/lib/types";
+import type {
+  Assignment,
+  Category,
+  Employee,
+  Equipment,
+  EquipmentColumnKey,
+  EquipmentLink,
+  InstalledSoftware,
+  SoftwareProduct,
+} from "@/lib/types";
 import { EQUIPMENT_COLUMN_LABELS } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
@@ -15,6 +24,8 @@ export function EquipmentTable({
   employees,
   assignments,
   links,
+  installedSoftware,
+  softwareProducts,
   visibleColumns,
 }: {
   equipment: Equipment[];
@@ -22,6 +33,8 @@ export function EquipmentTable({
   employees: Employee[];
   assignments: Assignment[];
   links: EquipmentLink[];
+  installedSoftware: InstalledSoftware[];
+  softwareProducts: SoftwareProduct[];
   visibleColumns: EquipmentColumnKey[];
 }) {
   const router = useRouter();
@@ -44,6 +57,10 @@ export function EquipmentTable({
               ? employees.find((e) => e.id === activeAssignment.employeeId)
               : undefined;
             const linked = getLinkedEquipment(links, equipment, item.id);
+            const software = installedSoftware
+              .filter((s) => s.equipmentId === item.id)
+              .map((s) => softwareProducts.find((p) => p.id === s.softwareProductId)?.name)
+              .filter((name): name is string => Boolean(name));
 
             return (
               <tr
@@ -58,6 +75,7 @@ export function EquipmentTable({
                       employeeName: employee?.fullName,
                       activeAssignment,
                       linked,
+                      software,
                     })}
                   </td>
                 ))}
@@ -78,6 +96,7 @@ function renderCell(
     employeeName?: string;
     activeAssignment?: Assignment;
     linked: Equipment[];
+    software: string[];
   }
 ) {
   switch (col) {
@@ -109,7 +128,7 @@ function renderCell(
     case "serialNumber":
       return item.serialNumber ?? <span className="text-muted">—</span>;
     case "software":
-      return <span className="text-muted">Etap 5</span>;
+      return <ExpandableList items={extra.software} />;
     case "linkedEquipment":
       return <ExpandableList items={extra.linked.map((l) => l.name)} />;
     case "status":

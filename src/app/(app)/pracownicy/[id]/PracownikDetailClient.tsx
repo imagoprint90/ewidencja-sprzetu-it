@@ -13,16 +13,24 @@ import { useIsAdmin } from "@/lib/current-user-context";
 import type { Assignment, Category, Employee, Equipment } from "@/lib/types";
 import { setEmployeeActiveAction } from "@/lib/supabase/actions/employee-actions";
 
+interface PersonalLicense {
+  assignmentId: string;
+  productName: string;
+  validUntil: string | null;
+}
+
 export function PracownikDetailClient({
   employee,
   equipment,
   categories,
   history,
+  personalLicenses,
 }: {
   employee: Employee;
   equipment: Equipment[];
   categories: Category[];
   history: Assignment[];
+  personalLicenses: PersonalLicense[];
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -119,6 +127,32 @@ export function PracownikDetailClient({
             })}
           </ul>
         )}
+      </section>
+
+      <section className="rounded-xl border border-border bg-surface p-5">
+        <h2 className="mb-3 text-sm font-semibold">Licencje osobiste</h2>
+        {personalLicenses.length === 0 ? (
+          <p className="text-sm text-muted">Brak licencji przypisanych osobiście do tego pracownika.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {personalLicenses.map((l) => (
+              <li key={l.assignmentId} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+                <span>{l.productName}</span>
+                <span className="text-xs text-muted">
+                  ważna do {l.validUntil ? formatDate(l.validUntil) : "bezterminowo"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-2 text-xs text-muted">
+          Licencje osobiste nie są automatycznie przenoszone przy zmianie przydziału sprzętu —
+          zarządzaj nimi w module{" "}
+          <Link href="/oprogramowanie" className="text-primary hover:underline">
+            Oprogramowanie
+          </Link>
+          .
+        </p>
       </section>
 
       <ConfirmDialog

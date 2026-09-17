@@ -1,0 +1,395 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { FormField, FormSection, inputClass } from "@/components/ui/Form";
+import { formatDate } from "@/lib/format";
+import { useIsAdmin } from "@/lib/current-user-context";
+import {
+  LICENSE_TYPE_LABELS,
+  type Employee,
+  type Equipment,
+  type LicenseType,
+  type SoftwareLicense,
+  type SoftwareLicenseAssignment,
+  type SoftwareProduct,
+} from "@/lib/types";
+import {
+  addSoftwareLicenseAction,
+  addSoftwareProductAction,
+  assignLicenseAction,
+  removeLicenseAssignmentAction,
+} from "@/lib/supabase/actions/software-actions";
+
+export function OprogramowanieClient({
+  products,
+  licenses,
+  assignments,
+  equipment,
+  employees,
+}: {
+  products: SoftwareProduct[];
+  licenses: SoftwareLicense[];
+  assignments: SoftwareLicenseAssignment[];
+  equipment: Equipment[];
+  employees: Employee[];
+}) {
+  const router = useRouter();
+  const isAdmin = useIsAdmin();
+  const [isPending, startTransition] = useTransition();
+
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [productName, setProductName] = useState("");
+  const [productVersion, setProductVersion] = useState("");
+  const [productError, setProductError] = useState<string | null>(null);
+
+  const [showAddLicense, setShowAddLicense] = useState(false);
+  const [licenseProductId, setLicenseProductId] = useState("");
+  const [licenseType, setLicenseType] = useState<LicenseType>("urzadzenie");
+  const [seatsTotal, setSeatsTotal] = useState("1");
+  const [validUntil, setValidUntil] = useState("");
+  const [licenseNotes, setLicenseNotes] = useState("");
+  const [licenseError, setLicenseError] = useState<string | null>(null);
+
+  const [expandedLicenseId, setExpandedLicenseId] = useState<string | null>(null);
+  const [assignTarget, setAssignTarget] = useState("");
+  const [assignError, setAssignError] = useState<string | null>(null);
+
+  function handleAddProduct() {
+    startTransition(async () => {
+      const result = await addSoftwareProductAction({
+        name: productName,
+        version: productVersion.trim() || null,
+        notes: null,
+      });
+      if (!result.ok) {
+        setProductError(result.error);
+        return;
+      }
+      setProductName("");
+      setProductVersion("");
+      setProductError(null);
+      setShowAddProduct(false);
+      router.refresh();
+    });
+  }
+
+  function handleAddLicense() {
+    const seats = Number(seatsTotal);
+    if (!licenseProductId) {
+      setLicenseError("Wybierz produkt.");
+      return;
+    }
+    if (!Number.isInteger(seats) || seats < 1) {
+      setLicenseError("Liczba stanowisk musi być liczbą całkowitą większą od zera.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await addSoftwareLicenseAction({
+        productId: licenseProductId,
+        licenseType,
+        seatsTotal: seats,
+        validUntil: validUntil || null,
+        notes: licenseNotes.trim() || null,
+      });
+      if (!result.ok) {
+        setLicenseError(result.error);
+        return;
+      }
+      setLicenseProductId("");
+      setSeatsTotal("1");
+      setValidUntil("");
+      setLicenseNotes("");
+      setLicenseError(null);
+      setShowAddLicense(false);
+      router.refresh();
+    });
+  }
+
+  function handleAssign(license: SoftwareLicense) {
+    if (!assignTarget) {
+      setAssignError("Wybierz cel przypisania.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await assignLicenseAction({
+        licenseId: license.id,
+        equipmentId: license.licenseType === "urzadzenie" ? assignTarget : null,
+        employeeId: license.licenseType === "uzytkownik" ? assignTarget : null,
+      });
+      if (!result.ok) {
+        setAssignError(result.error);
+        return;
+      }
+      setAssignTarget("");
+      setAssignError(null);
+      router.refresh();
+    });
+  }
+
+  function handleRemoveAssignment(id: string) {
+    startTransition(async () => {
+      await removeLicenseAssignmentAction(id);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-xl font-semibold">Oprogramowanie</h1>
+        <p className="text-sm text-muted">
+          Katalog produktów oprogramowania i rejestr licencji. Klucze aktywacyjne nie są
+          przechowywane ani wyświetlane w systemie.
+        </p>
+      </div>
+
+      <section className="rounded-xl border border-border bg-surface p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Produkty</h2>
+          {isAdmin && (
+            <Button size="sm" variant="secondary" onClick={() => setShowAddProduct((v) => !v)}>
+              <Plus size={14} />
+              Dodaj produkt
+            </Button>
+          )}
+        </div>
+
+        {showAddProduct && (
+          <div className="mb-4 flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row">
+            <input
+              className={inputClass}
+              placeholder="Nazwa (np. Microsoft Office)"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+            />
+            <input
+              className={inputClass}
+              placeholder="Wersja (opcjonalnie)"
+              value={productVersion}
+              onChange={(e) => setProductVersion(e.target.value)}
+            />
+            <Button disabled={isPending} onClick={handleAddProduct}>
+              Zapisz
+            </Button>
+          </div>
+        )}
+        {productError && <p className="mb-3 text-sm text-danger">{productError}</p>}
+
+        {products.length === 0 ? (
+          <p className="text-sm text-muted">Brak produktów w katalogu.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {products.map((p) => (
+              <Badge key={p.id}>
+                {p.name}
+                {p.version ? ` ${p.version}` : ""}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-border bg-surface p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Licencje</h2>
+          {isAdmin && (
+            <Button size="sm" variant="secondary" onClick={() => setShowAddLicense((v) => !v)}>
+              <Plus size={14} />
+              Dodaj licencję
+            </Button>
+          )}
+        </div>
+
+        {showAddLicense && (
+          <FormSection title="Nowa licencja">
+            <FormField label="Produkt" htmlFor="licenseProductId" required>
+              <select
+                id="licenseProductId"
+                className={inputClass}
+                value={licenseProductId}
+                onChange={(e) => setLicenseProductId(e.target.value)}
+              >
+                <option value="">Wybierz produkt…</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Typ licencji" htmlFor="licenseType" required>
+              <select
+                id="licenseType"
+                className={inputClass}
+                value={licenseType}
+                onChange={(e) => setLicenseType(e.target.value as LicenseType)}
+              >
+                {Object.entries(LICENSE_TYPE_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Liczba stanowisk" htmlFor="seatsTotal" required>
+              <input
+                id="seatsTotal"
+                type="number"
+                min={1}
+                className={inputClass}
+                value={seatsTotal}
+                onChange={(e) => setSeatsTotal(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Ważna do" htmlFor="validUntil">
+              <input
+                id="validUntil"
+                type="date"
+                className={inputClass}
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Uwagi" htmlFor="licenseNotes" full>
+              <input
+                id="licenseNotes"
+                className={inputClass}
+                value={licenseNotes}
+                onChange={(e) => setLicenseNotes(e.target.value)}
+              />
+            </FormField>
+            {licenseError && <p className="text-sm text-danger sm:col-span-2">{licenseError}</p>}
+            <div className="sm:col-span-2">
+              <Button disabled={isPending} onClick={handleAddLicense}>
+                Zapisz licencję
+              </Button>
+            </div>
+          </FormSection>
+        )}
+
+        {licenses.length === 0 ? (
+          <EmptyState title="Brak zarejestrowanych licencji" />
+        ) : (
+          <div className="mt-4 flex flex-col gap-3">
+            {licenses.map((license) => {
+              const product = products.find((p) => p.id === license.productId);
+              const used = assignments.filter((a) => a.licenseId === license.id);
+              const free = license.seatsTotal - used.length;
+              const expanded = expandedLicenseId === license.id;
+
+              return (
+                <div key={license.id} className="rounded-xl border border-border p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-medium">{product?.name ?? "Nieznany produkt"}</p>
+                      <p className="text-xs text-muted">
+                        {LICENSE_TYPE_LABELS[license.licenseType]} · ważna do{" "}
+                        {license.validUntil ? formatDate(license.validUntil) : "bezterminowo"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge tone={free > 0 ? "success" : "danger"}>
+                        {used.length} / {license.seatsTotal} zajętych
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setExpandedLicenseId(expanded ? null : license.id);
+                          setAssignError(null);
+                          setAssignTarget("");
+                        }}
+                      >
+                        {expanded ? "Zwiń" : "Zarządzaj"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {expanded && (
+                    <div className="mt-3 flex flex-col gap-3 border-t border-border pt-3">
+                      {used.length === 0 ? (
+                        <p className="text-sm text-muted">Brak przypisań tej licencji.</p>
+                      ) : (
+                        <ul className="flex flex-col gap-1">
+                          {used.map((a) => {
+                            const targetName =
+                              license.licenseType === "urzadzenie"
+                                ? equipment.find((e) => e.id === a.equipmentId)?.name
+                                : employees.find((e) => e.id === a.employeeId)?.fullName;
+                            return (
+                              <li
+                                key={a.id}
+                                className="flex items-center justify-between rounded-lg bg-black/[0.02] px-3 py-2 text-sm"
+                              >
+                                <span>{targetName ?? "Nieznany"}</span>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => handleRemoveAssignment(a.id)}
+                                    className="text-muted hover:text-danger"
+                                    aria-label="Usuń przypisanie"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+
+                      {isAdmin && (
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <select
+                            className={inputClass}
+                            value={assignTarget}
+                            onChange={(e) => setAssignTarget(e.target.value)}
+                          >
+                            <option value="">
+                              {license.licenseType === "urzadzenie"
+                                ? "Wybierz urządzenie…"
+                                : "Wybierz pracownika…"}
+                            </option>
+                            {license.licenseType === "urzadzenie"
+                              ? equipment.map((e) => (
+                                  <option key={e.id} value={e.id}>
+                                    {e.name} ({e.inventoryNumber})
+                                  </option>
+                                ))
+                              : employees.map((e) => (
+                                  <option key={e.id} value={e.id}>
+                                    {e.fullName}
+                                  </option>
+                                ))}
+                          </select>
+                          <Button
+                            variant="secondary"
+                            disabled={isPending || free <= 0}
+                            onClick={() => handleAssign(license)}
+                          >
+                            Przypisz
+                          </Button>
+                        </div>
+                      )}
+                      {free <= 0 && (
+                        <p className="text-xs text-danger">
+                          Brak wolnych stanowisk — usuń istniejące przypisanie albo zwiększ
+                          liczbę stanowisk tej licencji.
+                        </p>
+                      )}
+                      {assignError && <p className="text-sm text-danger">{assignError}</p>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

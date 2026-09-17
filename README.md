@@ -9,7 +9,7 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
 - **Kod**: https://github.com/imagoprint90/ewidencja-sprzetu-it
 - **Wersja na żywo**: https://ewidencja-sprzetu-it.vercel.app
 
-## Stan projektu (Etap 3 ukończony)
+## Stan projektu (Etapy 1-5 ukończone)
 
 **Gotowe i działające, z danymi trwałymi w Supabase (nie w przeglądarce):**
 - Logowanie e-mail/hasło przez Supabase Auth, z opcją przypomnienia hasła (link e-mail).
@@ -38,9 +38,25 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   aktywnych przydziałów tego samego sprzętu i walidacja dat są wymuszane w bazie danych, nie
   tylko w interfejsie.
 
-**Przygotowane, ale jeszcze niepodłączone:**
-- Generowanie protokołów PDF przy przekazaniu/zwrocie — Etap 4.
-- Katalog oprogramowania i licencji, pulpit z gwarancjami/licencjami — Etap 5.
+- **Protokoły PDF** (Etap 4): automatyczne generowanie przy każdym przekazaniu/zwrocie —
+  numer dokumentu, dane firmy, strony, lista sprzętu (z powtarzanym nagłówkiem tabeli na
+  kolejnych stronach), stan techniczny, miejsca na podpis. Treść jest zamrożoną migawką
+  (`snapshot` w tabeli `protocols`) — późniejsza edycja danych firmy/pracownika/sprzętu nie
+  zmienia już wystawionych dokumentów. Strona **Protokoły** i zakładka **Dokumenty** na
+  karcie sprzętu pozwalają pobrać PDF (prywatny magazyn plików, link ważny 60 s), ponowić
+  nieudane generowanie (bez duplikowania numeru) i dołączyć podpisany skan.
+- **Oprogramowanie i licencje** (Etap 5): katalog produktów, rejestr licencji (na
+  urządzenie / na użytkownika) z limitem stanowisk wymuszanym w bazie danych, przypisania do
+  sprzętu lub pracowników, lista zainstalowanego oprogramowania na karcie sprzętu. Przy
+  przekazaniu sprzętu system pokazuje, co zostaje przy urządzeniu, a jakie licencje osobiste
+  poprzedniego użytkownika wymagają osobnej decyzji (nie są przenoszone automatycznie).
+  Pulpit pokazuje licencje wygasające w ciągu 60 dni. Klucze aktywacyjne nie są nigdzie
+  przechowywane ani wyświetlane.
+
+**Zostało na później (dodatki, nieblokujące podstawowego procesu):**
+- Import/eksport CSV, etykiety z kodami QR, przegląd inwentaryzacyjny.
+- Pełne ukrycie akcji edycji przed rolą „podgląd” we wszystkich miejscach interfejsu (RLS w
+  bazie już i tak blokuje te operacje niezależnie od interfejsu).
 
 ## Uruchomienie lokalne
 
@@ -60,8 +76,8 @@ zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
 etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
 wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
-co już istnieje. Najnowszy plik do zastosowania: `supabase/migrations/0009_transfer_sets.sql`
-(operacja „Przekaż sprzęt”).
+co już istnieje. Nowy plik do zastosowania: `supabase/migrations/0011_protocol_scan.sql`
+(kolumna na podpisany skan protokołu — pliki 0009 i 0010 zostały już zastosowane).
 
 ## Konfiguracja Supabase
 

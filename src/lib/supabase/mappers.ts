@@ -1,4 +1,16 @@
-import type { Assignment, Category, Employee, Equipment, EquipmentLink } from "@/lib/types";
+import type {
+  Assignment,
+  Category,
+  Employee,
+  Equipment,
+  EquipmentLink,
+  InstalledSoftware,
+  LicenseType,
+  Protocol,
+  SoftwareLicense,
+  SoftwareLicenseAssignment,
+  SoftwareProduct,
+} from "@/lib/types";
 
 // Mapowanie wierszy z bazy (snake_case) na typy używane w interfejsie (camelCase).
 
@@ -95,6 +107,97 @@ export function mapAssignment(row: {
     returnedCondition: row.returned_condition,
     notes: row.notes,
     createdAt: row.created_at,
+  };
+}
+
+export function mapProtocol(row: {
+  id: string;
+  protocol_number: string;
+  type: Protocol["type"];
+  issued_by: string | null;
+  issued_by_name: string;
+  issued_at: string;
+  city: string;
+  snapshot: Protocol["snapshot"];
+  pdf_status: Protocol["pdfStatus"];
+  pdf_path: string | null;
+  pdf_error: string | null;
+  signed_scan_path: string | null;
+  created_at: string;
+}): Protocol {
+  return {
+    id: row.id,
+    protocolNumber: row.protocol_number,
+    type: row.type,
+    issuedBy: row.issued_by,
+    issuedByName: row.issued_by_name,
+    issuedAt: row.issued_at,
+    city: row.city,
+    snapshot: row.snapshot,
+    pdfStatus: row.pdf_status,
+    pdfPath: row.pdf_path,
+    pdfError: row.pdf_error,
+    signedScanPath: row.signed_scan_path,
+    createdAt: row.created_at,
+  };
+}
+
+export function mapSoftwareProduct(row: {
+  id: string;
+  name: string;
+  version: string | null;
+  notes: string | null;
+}): SoftwareProduct {
+  return { id: row.id, name: row.name, version: row.version, notes: row.notes };
+}
+
+export function mapSoftwareLicense(row: {
+  id: string;
+  product_id: string;
+  license_type: LicenseType;
+  seats_total: number;
+  valid_until: string | null;
+  notes: string | null;
+}): SoftwareLicense {
+  return {
+    id: row.id,
+    productId: row.product_id,
+    licenseType: row.license_type,
+    seatsTotal: row.seats_total,
+    validUntil: row.valid_until,
+    notes: row.notes,
+  };
+}
+
+export function mapLicenseAssignment(row: {
+  id: string;
+  license_id: string;
+  equipment_id: string | null;
+  employee_id: string | null;
+  assigned_at: string;
+}): SoftwareLicenseAssignment {
+  return {
+    id: row.id,
+    licenseId: row.license_id,
+    equipmentId: row.equipment_id,
+    employeeId: row.employee_id,
+    assignedAt: row.assigned_at,
+  };
+}
+
+export function mapInstalledSoftware(row: {
+  id: string;
+  equipment_id: string;
+  software_product_id: string;
+  installed_at: string;
+  notes: string | null;
+}): InstalledSoftware {
+  return {
+    id: row.id,
+    equipmentId: row.equipment_id,
+    softwareProductId: row.software_product_id,
+    installedAt: row.installed_at,
+    notes: row.notes,
   };
 }
 

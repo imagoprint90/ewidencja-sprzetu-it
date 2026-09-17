@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getAssignments, getCategories, getEmployees, getEquipment } from "@/lib/supabase/queries";
+import {
+  getAssignments,
+  getCategories,
+  getEmployees,
+  getEquipment,
+  getLicenseAssignments,
+  getSoftwareLicenses,
+  getSoftwareProducts,
+} from "@/lib/supabase/queries";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { PracownikDetailClient } from "./PracownikDetailClient";
@@ -12,12 +20,16 @@ export default async function PracownikDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
-  const [employees, equipment, categories, assignments] = await Promise.all([
-    getEmployees(supabase),
-    getEquipment(supabase),
-    getCategories(supabase),
-    getAssignments(supabase),
-  ]);
+  const [employees, equipment, categories, assignments, licenses, licenseAssignments, products] =
+    await Promise.all([
+      getEmployees(supabase),
+      getEquipment(supabase),
+      getCategories(supabase),
+      getAssignments(supabase),
+      getSoftwareLicenses(supabase),
+      getLicenseAssignments(supabase),
+      getSoftwareProducts(supabase),
+    ]);
 
   const employee = employees.find((e) => e.id === id);
 
@@ -38,12 +50,22 @@ export default async function PracownikDetailPage({
     .filter((a) => a.employeeId === id)
     .sort((a, b) => (a.assignedAt < b.assignedAt ? 1 : -1));
 
+  const personalLicenses = licenseAssignments
+    .filter((a) => a.employeeId === id)
+    .map((a) => {
+      const license = licenses.find((l) => l.id === a.licenseId);
+      const product = license ? products.find((p) => p.id === license.productId) : undefined;
+      return product ? { assignmentId: a.id, productName: product.name, validUntil: license?.validUntil ?? null } : null;
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== null);
+
   return (
     <PracownikDetailClient
       employee={employee}
       equipment={equipment}
       categories={categories}
       history={history}
+      personalLicenses={personalLicenses}
     />
   );
 }

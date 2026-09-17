@@ -6,6 +6,10 @@ import {
   getEmployees,
   getEquipment,
   getEquipmentLinks,
+  getInstalledSoftware,
+  getLicenseAssignments,
+  getSoftwareLicenses,
+  getSoftwareProducts,
 } from "@/lib/supabase/queries";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
@@ -18,12 +22,26 @@ export default async function PrzekazSprzetPage({
 }) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
-  const [equipment, categories, employees, assignments, equipmentLinks] = await Promise.all([
+  const [
+    equipment,
+    categories,
+    employees,
+    assignments,
+    equipmentLinks,
+    installedSoftware,
+    products,
+    licenses,
+    licenseAssignments,
+  ] = await Promise.all([
     getEquipment(supabase),
     getCategories(supabase),
     getEmployees(supabase),
     getAssignments(supabase),
     getEquipmentLinks(supabase),
+    getInstalledSoftware(supabase),
+    getSoftwareProducts(supabase),
+    getSoftwareLicenses(supabase),
+    getLicenseAssignments(supabase),
   ]);
 
   const item = equipment.find((e) => e.id === id);
@@ -49,6 +67,10 @@ export default async function PrzekazSprzetPage({
       employees={employees}
       assignments={assignments}
       equipmentLinks={equipmentLinks}
+      installedSoftware={installedSoftware}
+      products={products}
+      licenses={licenses}
+      licenseAssignments={licenseAssignments}
     />
   );
 }
