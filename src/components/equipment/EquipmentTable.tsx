@@ -15,7 +15,7 @@ import type {
   SoftwareLicenseAssignment,
   SoftwareProduct,
 } from "@/lib/types";
-import { EQUIPMENT_COLUMN_LABELS } from "@/lib/types";
+import { EQUIPMENT_COLUMN_LABELS, EQUIPMENT_STATUS_COLORS, EQUIPMENT_STATUS_LABELS } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
 import { EditableCell } from "@/components/equipment/EditableCell";
@@ -28,7 +28,11 @@ import {
   getLocationName,
 } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
-import { updateEquipmentAction, type EquipmentInput } from "@/lib/supabase/actions/equipment-actions";
+import {
+  updateEquipmentAction,
+  updateEquipmentStatusAction,
+  type EquipmentInput,
+} from "@/lib/supabase/actions/equipment-actions";
 
 export function EquipmentTable({
   equipment,
@@ -63,6 +67,12 @@ export function EquipmentTable({
   async function saveField(item: Equipment, patch: Partial<EquipmentInput>) {
     const payload: EquipmentInput = { ...equipmentToInput(item), ...patch };
     const result = await updateEquipmentAction(item.id, payload);
+    if (result.ok) router.refresh();
+    return result.ok ? { ok: true } : { ok: false, error: result.error };
+  }
+
+  async function saveStatus(item: Equipment, status: string) {
+    const result = await updateEquipmentStatusAction(item.id, status as Equipment["status"]);
     if (result.ok) router.refresh();
     return result.ok ? { ok: true } : { ok: false, error: result.error };
   }
@@ -104,9 +114,10 @@ export function EquipmentTable({
               <tr
                 key={item.id}
                 className="cursor-pointer border-b border-border last:border-0 hover:bg-black/[0.02]"
+                style={{ color: EQUIPMENT_STATUS_COLORS[item.status] }}
                 onClick={() => router.push(`/sprzet/${item.id}`)}
               >
-                <td className="px-4 py-3 align-top text-muted">{index + 1}</td>
+                <td className="px-4 py-3 align-top">{index + 1}</td>
                 {visibleColumns.map((col) => (
                   <td
                     key={col}
@@ -123,6 +134,7 @@ export function EquipmentTable({
                       categories,
                       isAdmin,
                       onSave: (patch) => saveField(item, patch),
+                      onSaveStatus: (status) => saveStatus(item, status),
                     })}
                   </td>
                 ))}
@@ -148,6 +160,7 @@ function renderCell(
     categories: Category[];
     isAdmin: boolean;
     onSave: (patch: Partial<EquipmentInput>) => Promise<{ ok: boolean; error?: string }>;
+    onSaveStatus: (status: string) => Promise<{ ok: boolean; error?: string }>;
   }
 ) {
   switch (col) {
@@ -205,7 +218,15 @@ function renderCell(
     case "linkedEquipment":
       return <ExpandableList items={extra.linked.map((l) => l.name)} />;
     case "status":
-      return <StatusBadge status={item.status} />;
+      if (!extra.isAdmin) return <StatusBadge status={item.status} />;
+      return (
+        <EditableCell
+          value={item.status}
+          displayValue={<StatusBadge status={item.status} />}
+          options={Object.entries(EQUIPMENT_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+          onSave={extra.onSaveStatus}
+        />
+      );
     case "location":
       // Lokalizacja sprzętu jest zarządzana automatycznie (synchronizowana z pracownikiem
       // przy przekazaniu, ustawiana na magazyn przy zwrocie) — nie edytujemy jej ręcznie.

@@ -4,14 +4,27 @@
 export type EquipmentStatus =
   | "w_magazynie"
   | "przydzielony"
-  | "w_serwisie"
+  | "w_naprawie"
+  | "zepsuty"
   | "wycofany";
 
 export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
   w_magazynie: "W magazynie",
   przydzielony: "Przydzielony",
-  w_serwisie: "W serwisie",
+  w_naprawie: "W naprawie",
+  zepsuty: "Zepsuty",
   wycofany: "Wycofany",
+};
+
+// Kolor czcionki całego wiersza sprzętu na liście, zależny od statusu. "W magazynie" i
+// "Przydzielony" są sterowane automatycznie (operacja "Przekaż sprzęt"), pozostałe trzy
+// ustawia się ręcznie na liście sprzętu.
+export const EQUIPMENT_STATUS_COLORS: Record<EquipmentStatus, string> = {
+  w_magazynie: "#1a2332",
+  przydzielony: "#1a2332",
+  w_naprawie: "#d97706",
+  zepsuty: "#dc2626",
+  wycofany: "#6b7280",
 };
 
 export type TechnicalCondition = "bardzo_dobry" | "dobry" | "dostateczny" | "uszkodzony";

@@ -26,8 +26,11 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   domyślnej lokalizacji „Magazyn” (ustawiane w `transfer_equipment_set`). Zmiana lokalizacji
   pracownika aktualizuje też lokalizację jego aktualnie przydzielonego sprzętu.
 - Pracownicy: lista, karta pracownika, dodawanie, edycja, aktywacja/dezaktywacja.
-- Lista sprzętu: edycja wprost w komórkach tabeli (kategoria, nazwa, nr seryjny, uwagi),
-  zmiana kolejności i kolorów tekstu kolumn (zapamiętywane w przeglądarce), numeracja L.p.
+- Lista sprzętu: edycja wprost w komórkach tabeli (kategoria, nazwa, nr seryjny, uwagi,
+  status), zmiana kolejności i kolorów tekstu kolumn (zapamiętywane w przeglądarce),
+  numeracja L.p. Status ma 5 wartości: W magazynie/Przydzielony (automatyczne, sterowane
+  operacją „Przekaż sprzęt”) oraz W naprawie/Zepsuty/Wycofany (ustawiane ręcznie) — cały
+  wiersz przyjmuje kolor odpowiadający statusowi (czarny/pomarańczowy/czerwony/szary).
 - Karta sprzętu z zakładkami: Szczegóły, Przydziały (odczyt historii z bazy), Powiązany
   sprzęt (dodawanie/usuwanie powiązań w zestawie), Oprogramowanie/Dokumenty (informacyjne —
   pełna funkcjonalność w kolejnych etapach), Historia zmian.
@@ -83,10 +86,10 @@ zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
 etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
 wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
-co już istnieje. Nowe pliki do zastosowania, w kolejności: `0012_locations.sql` (tabela
-lokalizacji — **modyfikuje istniejące kolumny** `location` na pracownikach i sprzęcie,
-migrując dotychczasowe wartości tekstowe do nowej tabeli, więc dane się nie utracą) oraz
-`0013_transfer_syncs_location.sql` (synchronizacja lokalizacji przy przekazaniu/zwrocie).
+co już istnieje. Nowy plik do zastosowania: `0014_status_conditions.sql` (zmienia status
+„W serwisie” na „W naprawie” i dodaje nowy status „Zepsuty” — **modyfikuje istniejący typ
+enum**, ale zachowuje dane: dotychczasowe wiersze ze statusem „W serwisie” automatycznie
+staną się „W naprawie”). Pliki 0009–0013 zostały już zastosowane.
 Pliki 0009–0011 zostały już zastosowane.
 
 ## Konfiguracja Supabase

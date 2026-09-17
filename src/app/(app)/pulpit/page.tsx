@@ -44,7 +44,8 @@ export default async function PulpitPage(): Promise<ReactNode> {
   const counts = {
     w_magazynie: 0,
     przydzielony: 0,
-    w_serwisie: 0,
+    w_naprawie: 0,
+    zepsuty: 0,
     wycofany: 0,
   };
   for (const e of equipment) counts[e.status]++;
@@ -78,7 +79,7 @@ export default async function PulpitPage(): Promise<ReactNode> {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Wszystkie urządzenia" value={equipment.length} href="/sprzet" />
         <StatCard
           label={EQUIPMENT_STATUS_LABELS.w_magazynie}
@@ -91,9 +92,14 @@ export default async function PulpitPage(): Promise<ReactNode> {
           href="/sprzet?status=przydzielony"
         />
         <StatCard
-          label={EQUIPMENT_STATUS_LABELS.w_serwisie}
-          value={counts.w_serwisie}
-          href="/sprzet?status=w_serwisie"
+          label={EQUIPMENT_STATUS_LABELS.w_naprawie}
+          value={counts.w_naprawie}
+          href="/sprzet?status=w_naprawie"
+        />
+        <StatCard
+          label={EQUIPMENT_STATUS_LABELS.zepsuty}
+          value={counts.zepsuty}
+          href="/sprzet?status=zepsuty"
         />
         <StatCard
           label={EQUIPMENT_STATUS_LABELS.wycofany}

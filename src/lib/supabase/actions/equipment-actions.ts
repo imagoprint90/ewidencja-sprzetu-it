@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mapEquipment } from "@/lib/supabase/mappers";
-import type { Equipment, TechnicalCondition } from "@/lib/types";
+import type { Equipment, EquipmentStatus, TechnicalCondition } from "@/lib/types";
 
 type ActionResult<T = undefined> =
   | { ok: true; data: T }
@@ -89,6 +89,42 @@ export async function updateEquipmentAction(
     }
     return { ok: false, error: "Nie udało się zapisać zmian." };
   }
+
+  revalidatePath("/sprzet");
+  revalidatePath(`/sprzet/${id}`);
+  revalidatePath("/pulpit");
+  return { ok: true, data: undefined };
+}
+
+export async function updateEquipmentStatusAction(
+  id: string,
+  status: EquipmentStatus
+): Promise<ActionResult<undefined>> {
+  const supabase = await createSupabaseServerClient();
+
+  const { count: activeCount } = await supabase
+    .from("assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("equipment_id", id)
+    .is("returned_at", null);
+
+  const hasActiveAssignment = (activeCount ?? 0) > 0;
+
+  if (status === "przydzielony" && !hasActiveAssignment) {
+    return {
+      ok: false,
+      error: "Ten sprzęt nie ma aktywnego przydziału — użyj operacji „Przekaż sprzęt”, żeby go wydać.",
+    };
+  }
+  if (status === "w_magazynie" && hasActiveAssignment) {
+    return {
+      ok: false,
+      error: "Ten sprzęt ma aktywny przydział — użyj operacji „Przekaż sprzęt” (zwrot do magazynu).",
+    };
+  }
+
+  const { error } = await supabase.from("equipment").update({ status }).eq("id", id);
+  if (error) return { ok: false, error: "Nie udało się zmienić statusu." };
 
   revalidatePath("/sprzet");
   revalidatePath(`/sprzet/${id}`);
