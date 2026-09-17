@@ -37,7 +37,9 @@ export async function transferEquipmentSetAction(
     if (error.message.includes("Brak uprawnień")) {
       return { ok: false, error: "Nie masz uprawnień do wykonania tej operacji." };
     }
-    return { ok: false, error: "Nie udało się zapisać przekazania. Spróbuj ponownie." };
+    // TODO: tymczasowy surowy komunikat do diagnozy — zamienić z powrotem na ogólny
+    // po potwierdzeniu, że operacja działa poprawnie.
+    return { ok: false, error: `Nie udało się zapisać przekazania: ${error.message}` };
   }
 
   for (const id of input.equipmentIds) {
