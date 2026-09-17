@@ -3,7 +3,7 @@ import type { EquipmentStatus } from "@/lib/types";
 import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
 
 const STATUS_CLASSES: Record<EquipmentStatus, string> = {
-  w_magazynie: "bg-slate-100 text-slate-700",
+  w_magazynie: "bg-green-100 text-green-700",
   przydzielony: "bg-blue-100 text-blue-700",
   w_naprawie: "bg-amber-100 text-amber-700",
   zepsuty: "bg-red-100 text-red-700",
