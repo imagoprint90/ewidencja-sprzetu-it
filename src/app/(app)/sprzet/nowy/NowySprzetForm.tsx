@@ -36,7 +36,6 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
       warrantyEnd: values.warrantyEnd || null,
       technicalCondition: values.technicalCondition || null,
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
-      location: values.location,
       notes: values.notes || null,
     });
     if (!result.ok) {
@@ -98,7 +97,10 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
           </FormField>
         </FormSection>
 
-        <FormSection title="Stan i lokalizacja">
+        <FormSection
+          title="Stan"
+          description="Nowy sprzęt trafia automatycznie do lokalizacji „Magazyn” — lokalizacja zmieni się sama po przydzieleniu pracownikowi."
+        >
           <FormField label="Stan techniczny" htmlFor="technicalCondition" error={errors.technicalCondition?.message}>
             <select id="technicalCondition" className={inputClass} {...register("technicalCondition")}>
               <option value="">Nie określono</option>
@@ -108,9 +110,6 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
                 </option>
               ))}
             </select>
-          </FormField>
-          <FormField label="Lokalizacja" htmlFor="location" required error={errors.location?.message}>
-            <input id="location" className={inputClass} placeholder="np. Warszawa, magazyn IT" {...register("location")} />
           </FormField>
           <FormField label="Uwagi" htmlFor="notes" error={errors.notes?.message} full>
             <textarea id="notes" rows={3} className={inputClass} {...register("notes")} />

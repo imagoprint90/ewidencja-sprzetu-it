@@ -17,7 +17,6 @@ export const equipmentFormSchema = z
       .string()
       .optional()
       .refine((v) => !v || !Number.isNaN(Number(v)), "Cena musi być liczbą."),
-    location: z.string().trim().min(1, "Lokalizacja jest wymagana."),
     notes: z.string().trim().optional(),
   })
   .refine(
@@ -39,7 +38,7 @@ export const employeeFormSchema = z.object({
     .optional()
     .refine((v) => !v || z.string().email().safeParse(v).success, "Nieprawidłowy adres e-mail."),
   department: z.string().trim().min(1, "Dział jest wymagany."),
-  location: z.string().trim().min(1, "Lokalizacja jest wymagana."),
+  locationId: z.string().min(1, "Wybierz lokalizację."),
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;

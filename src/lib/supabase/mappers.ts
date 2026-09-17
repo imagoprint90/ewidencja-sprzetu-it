@@ -6,6 +6,7 @@ import type {
   EquipmentLink,
   InstalledSoftware,
   LicenseType,
+  Location,
   Protocol,
   SoftwareLicense,
   SoftwareLicenseAssignment,
@@ -28,12 +29,28 @@ export function mapCategory(row: {
   };
 }
 
+export function mapLocation(row: {
+  id: string;
+  name: string;
+  is_archived: boolean;
+  is_warehouse: boolean;
+  created_at: string;
+}): Location {
+  return {
+    id: row.id,
+    name: row.name,
+    isArchived: row.is_archived,
+    isWarehouse: row.is_warehouse,
+    createdAt: row.created_at,
+  };
+}
+
 export function mapEmployee(row: {
   id: string;
   full_name: string;
   email: string | null;
   department: string;
-  location: string;
+  location_id: string;
   is_active: boolean;
   created_at: string;
 }): Employee {
@@ -42,7 +59,7 @@ export function mapEmployee(row: {
     fullName: row.full_name,
     email: row.email,
     department: row.department,
-    location: row.location,
+    locationId: row.location_id,
     isActive: row.is_active,
     createdAt: row.created_at,
   };
@@ -61,7 +78,7 @@ export function mapEquipment(row: {
   technical_condition: Equipment["technicalCondition"];
   purchase_price: number | string | null;
   status: Equipment["status"];
-  location: string;
+  location_id: string;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -79,7 +96,7 @@ export function mapEquipment(row: {
     technicalCondition: row.technical_condition,
     purchasePrice: row.purchase_price === null ? null : Number(row.purchase_price),
     status: row.status,
-    location: row.location,
+    locationId: row.location_id,
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

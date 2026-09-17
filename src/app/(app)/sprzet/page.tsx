@@ -7,6 +7,7 @@ import {
   getEquipmentLinks,
   getInstalledSoftware,
   getLicenseAssignments,
+  getLocations,
   getSoftwareLicenses,
   getSoftwareProducts,
 } from "@/lib/supabase/queries";
@@ -24,6 +25,7 @@ export default async function SprzetPage() {
     softwareProducts,
     licenses,
     licenseAssignments,
+    locations,
   ] = await Promise.all([
     getEquipment(supabase),
     getCategories(supabase),
@@ -34,6 +36,7 @@ export default async function SprzetPage() {
     getSoftwareProducts(supabase),
     getSoftwareLicenses(supabase),
     getLicenseAssignments(supabase),
+    getLocations(supabase),
   ]);
 
   return (
@@ -47,6 +50,7 @@ export default async function SprzetPage() {
       softwareProducts={softwareProducts}
       licenses={licenses}
       licenseAssignments={licenseAssignments}
+      locations={locations}
     />
   );
 }

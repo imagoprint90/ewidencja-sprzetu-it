@@ -20,6 +20,7 @@ import type {
   Equipment,
   EquipmentLink,
   InstalledSoftware,
+  Location,
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
@@ -46,6 +47,7 @@ function SprzetPageInner({
   softwareProducts,
   licenses,
   licenseAssignments,
+  locations,
 }: {
   equipment: Equipment[];
   categories: Category[];
@@ -56,6 +58,7 @@ function SprzetPageInner({
   softwareProducts: SoftwareProduct[];
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
+  locations: Location[];
 }) {
   const isAdmin = useIsAdmin();
   const searchParams = useSearchParams();
@@ -65,17 +68,16 @@ function SprzetPageInner({
     query: "",
     categoryId: "",
     status: initialStatus,
-    location: "",
+    locationId: "",
     employeeId: "",
   });
   const [visibleColumns, setVisibleColumns] = useLocalStorage<EquipmentColumnKey[]>(
     "sprzet-kolumny",
     DEFAULT_COLUMNS
   );
-
-  const locations = useMemo(
-    () => Array.from(new Set(equipment.map((e) => e.location))).sort(),
-    [equipment]
+  const [columnColors, setColumnColors] = useLocalStorage<Partial<Record<EquipmentColumnKey, string>>>(
+    "sprzet-kolory-kolumn",
+    {}
   );
 
   const filtered = useMemo(() => {
@@ -83,7 +85,7 @@ function SprzetPageInner({
     return equipment.filter((item) => {
       if (filters.categoryId && item.categoryId !== filters.categoryId) return false;
       if (filters.status && item.status !== filters.status) return false;
-      if (filters.location && item.location !== filters.location) return false;
+      if (filters.locationId && item.locationId !== filters.locationId) return false;
       if (filters.employeeId) {
         const active = getActiveAssignment(assignments, item.id);
         if (!active || active.employeeId !== filters.employeeId) return false;
@@ -129,7 +131,12 @@ function SprzetPageInner({
           employees={employees}
           locations={locations}
         />
-        <ColumnPicker visible={visibleColumns} onChange={setVisibleColumns} />
+        <ColumnPicker
+          visible={visibleColumns}
+          onChange={setVisibleColumns}
+          colors={columnColors}
+          onColorsChange={setColumnColors}
+        />
       </div>
 
       {filtered.length === 0 ? (
@@ -155,7 +162,9 @@ function SprzetPageInner({
           softwareProducts={softwareProducts}
           licenses={licenses}
           licenseAssignments={licenseAssignments}
+          locations={locations}
           visibleColumns={visibleColumns.length ? visibleColumns : EQUIPMENT_COLUMNS.slice(0, 3)}
+          columnColors={columnColors}
         />
       )}
     </div>
@@ -172,6 +181,7 @@ export function SprzetClient(props: {
   softwareProducts: SoftwareProduct[];
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
+  locations: Location[];
 }) {
   return (
     <Suspense>

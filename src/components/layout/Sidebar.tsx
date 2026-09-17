@@ -9,6 +9,7 @@ import {
   AppWindow,
   FileText,
   Tags,
+  MapPin,
   Settings,
   X,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/oprogramowanie", label: "Oprogramowanie", icon: AppWindow },
   { href: "/protokoly", label: "Protokoły", icon: FileText },
   { href: "/kategorie", label: "Kategorie", icon: Tags },
+  { href: "/lokalizacje", label: "Lokalizacje", icon: MapPin },
   { href: "/ustawienia", label: "Ustawienia", icon: Settings },
 ];
 

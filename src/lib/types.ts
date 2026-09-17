@@ -30,12 +30,20 @@ export interface Category {
   createdAt: string;
 }
 
+export interface Location {
+  id: string;
+  name: string;
+  isArchived: boolean;
+  isWarehouse: boolean;
+  createdAt: string;
+}
+
 export interface Employee {
   id: string;
   fullName: string;
   email: string | null;
   department: string;
-  location: string;
+  locationId: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -71,7 +79,7 @@ export interface Equipment {
   technicalCondition: TechnicalCondition | null;
   purchasePrice: number | null;
   status: EquipmentStatus;
-  location: string;
+  locationId: string;
   notes: string | null;
   createdAt: string;
   updatedAt: string;

@@ -20,7 +20,6 @@ export interface EquipmentInput {
   warrantyEnd: string | null;
   technicalCondition: TechnicalCondition | null;
   purchasePrice: number | null;
-  location: string;
   notes: string | null;
 }
 
@@ -36,7 +35,6 @@ function toRow(input: EquipmentInput) {
     warranty_end: input.warrantyEnd,
     technical_condition: input.technicalCondition,
     purchase_price: input.purchasePrice,
-    location: input.location.trim(),
     notes: input.notes,
   };
 }
@@ -49,9 +47,20 @@ export async function addEquipmentAction(
   }
 
   const supabase = await createSupabaseServerClient();
+
+  const { data: warehouse } = await supabase
+    .from("locations")
+    .select("id")
+    .eq("is_warehouse", true)
+    .single();
+
+  if (!warehouse) {
+    return { ok: false, error: "Nie znaleziono domyślnej lokalizacji magazynu." };
+  }
+
   const { data, error } = await supabase
     .from("equipment")
-    .insert({ ...toRow(input), status: "w_magazynie" })
+    .insert({ ...toRow(input), status: "w_magazynie", location_id: warehouse.id })
     .select()
     .single();
 

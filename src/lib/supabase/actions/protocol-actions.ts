@@ -71,7 +71,7 @@ export async function createProtocolAction(
       supabase.from("company_settings").select("*").eq("id", true).single(),
       supabase
         .from("equipment")
-        .select("id, name, inventory_number, serial_number, category_id, categories(name)")
+        .select("id, name, manufacturer, model, inventory_number, serial_number, category_id, categories(name)")
         .in("id", input.equipmentIds),
       supabase
         .from("employees")
@@ -90,6 +90,11 @@ export async function createProtocolAction(
   const employeeName = (id: string | null) =>
     id ? employeeRows?.find((e) => e.id === id)?.full_name ?? null : null;
 
+  // Na protokole identyfikujemy sprzęt przez producenta i model (nie wewnętrzną nazwę
+  // ewidencyjną) — numer seryjny jest już osobną kolumną w dokumencie.
+  const equipmentDisplayName = (e: { name: string; manufacturer: string | null; model: string | null }) =>
+    [e.manufacturer, e.model].filter(Boolean).join(" ") || e.name;
+
   const snapshot: ProtocolSnapshot = {
     protocolNumber: "", // uzupełnione po insercie (numer generowany przez bazę)
     type: input.type,
@@ -104,7 +109,7 @@ export async function createProtocolAction(
     technicalConditionLabel: TECHNICAL_CONDITION_LABELS[input.condition],
     notes: input.notes,
     items: equipmentRows.map((e) => ({
-      name: e.name,
+      name: equipmentDisplayName(e),
       category: (e.categories as unknown as { name: string } | null)?.name ?? "—",
       inventoryNumber: e.inventory_number,
       serialNumber: e.serial_number,
@@ -135,7 +140,7 @@ export async function createProtocolAction(
     equipmentRows.map((e) => ({
       protocol_id: protocolRow.id,
       equipment_id: e.id,
-      name_snapshot: e.name,
+      name_snapshot: equipmentDisplayName(e),
       category_snapshot: (e.categories as unknown as { name: string } | null)?.name ?? "—",
       inventory_number_snapshot: e.inventory_number,
       serial_number_snapshot: e.serial_number,

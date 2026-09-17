@@ -18,6 +18,7 @@ import type {
   Equipment,
   EquipmentLink,
   InstalledSoftware,
+  Location,
   Protocol,
   SoftwareLicense,
   SoftwareLicenseAssignment,
@@ -36,6 +37,7 @@ export function SprzetDetailClient({
   installedSoftware,
   licenses,
   licenseAssignments,
+  locations,
 }: {
   item: Equipment;
   allEquipment: Equipment[];
@@ -48,6 +50,7 @@ export function SprzetDetailClient({
   installedSoftware: InstalledSoftware[];
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
+  locations: Location[];
 }) {
   const router = useRouter();
 
@@ -76,7 +79,7 @@ export function SprzetDetailClient({
           {
             key: "szczegoly",
             label: "Szczegóły",
-            content: <DetailsTab equipment={item} categories={categories} />,
+            content: <DetailsTab equipment={item} categories={categories} locations={locations} />,
           },
           {
             key: "przydzialy",

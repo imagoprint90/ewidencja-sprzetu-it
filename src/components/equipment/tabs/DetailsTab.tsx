@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Category, Equipment } from "@/lib/types";
+import type { Category, Equipment, Location } from "@/lib/types";
 import { TECHNICAL_CONDITION_LABELS } from "@/lib/types";
 import { equipmentFormSchema, type EquipmentFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getLocationName } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { updateEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
 
@@ -25,9 +26,11 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 export function DetailsTab({
   equipment,
   categories,
+  locations,
 }: {
   equipment: Equipment;
   categories: Category[];
+  locations: Location[];
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -51,7 +54,6 @@ export function DetailsTab({
       warrantyEnd: equipment.warrantyEnd ?? "",
       technicalCondition: equipment.technicalCondition ?? undefined,
       purchasePrice: equipment.purchasePrice?.toString() ?? "",
-      location: equipment.location,
       notes: equipment.notes ?? "",
     },
   });
@@ -69,7 +71,6 @@ export function DetailsTab({
       warrantyEnd: values.warrantyEnd || null,
       technicalCondition: values.technicalCondition || null,
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
-      location: values.location,
       notes: values.notes || null,
     });
     if (!result.ok) {
@@ -110,7 +111,7 @@ export function DetailsTab({
               }
             />
             <DetailRow label="Cena zakupu" value={formatCurrency(equipment.purchasePrice)} />
-            <DetailRow label="Lokalizacja" value={equipment.location} />
+            <DetailRow label="Lokalizacja" value={getLocationName(locations, equipment.locationId)} />
             <DetailRow label="Uwagi" value={equipment.notes ?? "—"} />
           </dl>
         </div>
@@ -165,7 +166,10 @@ export function DetailsTab({
         </FormField>
       </FormSection>
 
-      <FormSection title="Stan i lokalizacja">
+      <FormSection
+        title="Stan"
+        description={`Lokalizacja (obecnie: ${getLocationName(locations, equipment.locationId)}) zmienia się automatycznie przy przekazaniu lub zwrocie sprzętu.`}
+      >
         <FormField label="Stan techniczny" htmlFor="technicalCondition" error={errors.technicalCondition?.message}>
           <select id="technicalCondition" className={inputClass} {...register("technicalCondition")}>
             <option value="">Nie określono</option>
@@ -175,9 +179,6 @@ export function DetailsTab({
               </option>
             ))}
           </select>
-        </FormField>
-        <FormField label="Lokalizacja" htmlFor="location" required error={errors.location?.message}>
-          <input id="location" className={inputClass} {...register("location")} />
         </FormField>
         <FormField label="Uwagi" htmlFor="notes" error={errors.notes?.message} full>
           <textarea id="notes" rows={3} className={inputClass} {...register("notes")} />

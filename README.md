@@ -20,8 +20,14 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
 - Sprzęt: lista z wyszukiwarką, filtrami, wyborem widocznych kolumn, dodawanie i edycja
   (walidacja unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane
   w bazie.
-- Kategorie: dodawanie, zmiana nazwy, archiwizacja z blokadą, gdy kategoria jest używana.
-- Pracownicy: lista, karta pracownika, dodawanie, aktywacja/dezaktywacja.
+- Kategorie i Lokalizacje: dodawanie, zmiana nazwy, archiwizacja z blokadą, gdy są używane.
+  Lokalizacja **sprzętu nie jest ręcznie edytowalna** — jest zsynchronizowana automatycznie
+  z lokalizacją aktualnie przypisanego pracownika, a przy zwrocie do magazynu wraca do
+  domyślnej lokalizacji „Magazyn” (ustawiane w `transfer_equipment_set`). Zmiana lokalizacji
+  pracownika aktualizuje też lokalizację jego aktualnie przydzielonego sprzętu.
+- Pracownicy: lista, karta pracownika, dodawanie, edycja, aktywacja/dezaktywacja.
+- Lista sprzętu: edycja wprost w komórkach tabeli (kategoria, nazwa, nr seryjny, uwagi),
+  zmiana kolejności i kolorów tekstu kolumn (zapamiętywane w przeglądarce), numeracja L.p.
 - Karta sprzętu z zakładkami: Szczegóły, Przydziały (odczyt historii z bazy), Powiązany
   sprzęt (dodawanie/usuwanie powiązań w zestawie), Oprogramowanie/Dokumenty (informacyjne —
   pełna funkcjonalność w kolejnych etapach), Historia zmian.
@@ -39,8 +45,9 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   tylko w interfejsie.
 
 - **Protokoły PDF** (Etap 4): automatyczne generowanie przy każdym przekazaniu/zwrocie —
-  numer dokumentu, dane firmy, strony, lista sprzętu (z powtarzanym nagłówkiem tabeli na
-  kolejnych stronach), stan techniczny, miejsca na podpis. Treść jest zamrożoną migawką
+  numer dokumentu, dane firmy, strony, lista sprzętu identyfikowanego przez producenta i model
+  (nie wewnętrzną nazwę ewidencyjną) wraz z numerem seryjnym, z powtarzanym nagłówkiem tabeli
+  na kolejnych stronach, stan techniczny, miejsca na podpis. Treść jest zamrożoną migawką
   (`snapshot` w tabeli `protocols`) — późniejsza edycja danych firmy/pracownika/sprzętu nie
   zmienia już wystawionych dokumentów. Strona **Protokoły** i zakładka **Dokumenty** na
   karcie sprzętu pozwalają pobrać PDF (prywatny magazyn plików, link ważny 60 s), ponowić
@@ -76,8 +83,11 @@ zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
 etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
 wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
-co już istnieje. Nowy plik do zastosowania: `supabase/migrations/0011_protocol_scan.sql`
-(kolumna na podpisany skan protokołu — pliki 0009 i 0010 zostały już zastosowane).
+co już istnieje. Nowe pliki do zastosowania, w kolejności: `0012_locations.sql` (tabela
+lokalizacji — **modyfikuje istniejące kolumny** `location` na pracownikach i sprzęcie,
+migrując dotychczasowe wartości tekstowe do nowej tabeli, więc dane się nie utracą) oraz
+`0013_transfer_syncs_location.sql` (synchronizacja lokalizacji przy przekazaniu/zwrocie).
+Pliki 0009–0011 zostały już zastosowane.
 
 ## Konfiguracja Supabase
 

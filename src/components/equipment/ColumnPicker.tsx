@@ -8,9 +8,13 @@ import { Button } from "@/components/ui/Button";
 export function ColumnPicker({
   visible,
   onChange,
+  colors,
+  onColorsChange,
 }: {
   visible: EquipmentColumnKey[];
   onChange: (cols: EquipmentColumnKey[]) => void;
+  colors: Partial<Record<EquipmentColumnKey, string>>;
+  onColorsChange: (colors: Partial<Record<EquipmentColumnKey, string>>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -39,6 +43,16 @@ export function ColumnPicker({
     const next = [...visible];
     [next[index], next[target]] = [next[target], next[index]];
     onChange(next);
+  }
+
+  function setColor(col: EquipmentColumnKey, color: string) {
+    onColorsChange({ ...colors, [col]: color });
+  }
+
+  function resetColor(col: EquipmentColumnKey) {
+    const next = { ...colors };
+    delete next[col];
+    onColorsChange(next);
   }
 
   return (
@@ -79,6 +93,24 @@ export function ColumnPicker({
                   </button>
                 </div>
                 <span className="flex-1">{EQUIPMENT_COLUMN_LABELS[col]}</span>
+                <input
+                  type="color"
+                  value={colors[col] ?? "#1a2332"}
+                  onChange={(e) => setColor(col, e.target.value)}
+                  className="h-5 w-5 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0"
+                  title="Kolor tekstu tej kolumny"
+                  aria-label={`Kolor tekstu: ${EQUIPMENT_COLUMN_LABELS[col]}`}
+                />
+                {colors[col] && (
+                  <button
+                    type="button"
+                    onClick={() => resetColor(col)}
+                    className="text-[10px] text-muted hover:text-foreground"
+                    title="Przywróć domyślny kolor"
+                  >
+                    reset
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => remove(col)}

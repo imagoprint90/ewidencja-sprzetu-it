@@ -11,10 +11,10 @@ import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { formatDate } from "@/lib/format";
-import { getCategoryName } from "@/lib/equipment-helpers";
+import { getCategoryName, getLocationName } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { employeeFormSchema, type EmployeeFormValues } from "@/lib/schemas";
-import type { Assignment, Category, Employee, Equipment } from "@/lib/types";
+import type { Assignment, Category, Employee, Equipment, Location } from "@/lib/types";
 import { setEmployeeActiveAction, updateEmployeeAction } from "@/lib/supabase/actions/employee-actions";
 
 interface PersonalLicense {
@@ -29,12 +29,14 @@ export function PracownikDetailClient({
   categories,
   history,
   personalLicenses,
+  locations,
 }: {
   employee: Employee;
   equipment: Equipment[];
   categories: Category[];
   history: Assignment[];
   personalLicenses: PersonalLicense[];
+  locations: Location[];
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -56,7 +58,7 @@ export function PracownikDetailClient({
       fullName: employee.fullName,
       email: employee.email ?? "",
       department: employee.department,
-      location: employee.location,
+      locationId: employee.locationId,
     },
   });
 
@@ -74,7 +76,7 @@ export function PracownikDetailClient({
       fullName: values.fullName,
       email: values.email || null,
       department: values.department,
-      location: values.location,
+      locationId: values.locationId,
     });
     if (!result.ok) {
       setEditError(result.error);
@@ -106,8 +108,16 @@ export function PracownikDetailClient({
             <FormField label="Dział" htmlFor="department" required error={errors.department?.message}>
               <input id="department" className={inputClass} {...register("department")} />
             </FormField>
-            <FormField label="Lokalizacja" htmlFor="location" required error={errors.location?.message} full>
-              <input id="location" className={inputClass} {...register("location")} />
+            <FormField label="Lokalizacja" htmlFor="locationId" required error={errors.locationId?.message} full>
+              <select id="locationId" className={inputClass} {...register("locationId")}>
+                {locations
+                  .filter((l) => !l.isArchived || l.id === employee.locationId)
+                  .map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+              </select>
             </FormField>
           </FormSection>
           {editError && (
@@ -129,7 +139,7 @@ export function PracownikDetailClient({
           <div>
             <h1 className="text-xl font-semibold">{employee.fullName}</h1>
             <p className="text-sm text-muted">
-              {employee.department} · {employee.location}
+              {employee.department} · {getLocationName(locations, employee.locationId)}
               {employee.email && ` · ${employee.email}`}
             </p>
           </div>

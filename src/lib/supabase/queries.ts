@@ -7,6 +7,7 @@ import {
   mapEquipmentLink,
   mapInstalledSoftware,
   mapLicenseAssignment,
+  mapLocation,
   mapProtocol,
   mapSoftwareLicense,
   mapSoftwareProduct,
@@ -23,12 +24,19 @@ import type {
   SoftwareLicense,
   SoftwareLicenseAssignment,
   InstalledSoftware,
+  Location,
 } from "@/lib/types";
 
 export async function getCategories(supabase: SupabaseClient): Promise<Category[]> {
   const { data, error } = await supabase.from("categories").select("*").order("name");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapCategory);
+}
+
+export async function getLocations(supabase: SupabaseClient): Promise<Location[]> {
+  const { data, error } = await supabase.from("locations").select("*").order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapLocation);
 }
 
 export async function getEmployees(supabase: SupabaseClient): Promise<Employee[]> {

@@ -8,14 +8,17 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useIsAdmin } from "@/lib/current-user-context";
-import type { Employee } from "@/lib/types";
+import { getLocationName } from "@/lib/equipment-helpers";
+import type { Employee, Location } from "@/lib/types";
 
 export function PracownicyClient({
   employees,
   assignedCounts,
+  locations,
 }: {
   employees: Employee[];
   assignedCounts: Record<string, number>;
+  locations: Location[];
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -27,12 +30,12 @@ export function PracownicyClient({
     return employees.filter((e) => {
       if (!showInactive && !e.isActive) return false;
       if (!q) return true;
-      return [e.fullName, e.email ?? "", e.department, e.location]
+      return [e.fullName, e.email ?? "", e.department, getLocationName(locations, e.locationId)]
         .join(" ")
         .toLowerCase()
         .includes(q);
     });
-  }, [employees, query, showInactive]);
+  }, [employees, query, showInactive, locations]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -111,7 +114,7 @@ export function PracownicyClient({
                     {e.email && <p className="text-xs text-muted">{e.email}</p>}
                   </td>
                   <td className="px-4 py-3">{e.department}</td>
-                  <td className="px-4 py-3">{e.location}</td>
+                  <td className="px-4 py-3">{getLocationName(locations, e.locationId)}</td>
                   <td className="px-4 py-3">{assignedCounts[e.id] ?? 0} szt.</td>
                   <td className="px-4 py-3">
                     <Badge tone={e.isActive ? "success" : "default"}>

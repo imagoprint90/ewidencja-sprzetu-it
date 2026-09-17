@@ -6,6 +6,7 @@ import {
   getEmployees,
   getEquipment,
   getLicenseAssignments,
+  getLocations,
   getSoftwareLicenses,
   getSoftwareProducts,
 } from "@/lib/supabase/queries";
@@ -20,7 +21,7 @@ export default async function PracownikDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
-  const [employees, equipment, categories, assignments, licenses, licenseAssignments, products] =
+  const [employees, equipment, categories, assignments, licenses, licenseAssignments, products, locations] =
     await Promise.all([
       getEmployees(supabase),
       getEquipment(supabase),
@@ -29,6 +30,7 @@ export default async function PracownikDetailPage({
       getSoftwareLicenses(supabase),
       getLicenseAssignments(supabase),
       getSoftwareProducts(supabase),
+      getLocations(supabase),
     ]);
 
   const employee = employees.find((e) => e.id === id);
@@ -66,6 +68,7 @@ export default async function PracownikDetailPage({
       categories={categories}
       history={history}
       personalLicenses={personalLicenses}
+      locations={locations}
     />
   );
 }

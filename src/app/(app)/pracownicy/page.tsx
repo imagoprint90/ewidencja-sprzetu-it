@@ -1,12 +1,13 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getAssignments, getEmployees } from "@/lib/supabase/queries";
+import { getAssignments, getEmployees, getLocations } from "@/lib/supabase/queries";
 import { PracownicyClient } from "./PracownicyClient";
 
 export default async function PracownicyPage() {
   const supabase = await createSupabaseServerClient();
-  const [employees, assignments] = await Promise.all([
+  const [employees, assignments, locations] = await Promise.all([
     getEmployees(supabase),
     getAssignments(supabase),
+    getLocations(supabase),
   ]);
 
   const assignedCounts: Record<string, number> = {};
@@ -16,5 +17,5 @@ export default async function PracownicyPage() {
     }
   }
 
-  return <PracownicyClient employees={employees} assignedCounts={assignedCounts} />;
+  return <PracownicyClient employees={employees} assignedCounts={assignedCounts} locations={locations} />;
 }

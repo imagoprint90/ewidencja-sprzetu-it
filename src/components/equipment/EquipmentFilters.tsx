@@ -1,14 +1,14 @@
 "use client";
 
 import { Search } from "lucide-react";
-import type { Category, Employee, EquipmentStatus } from "@/lib/types";
+import type { Category, Employee, EquipmentStatus, Location } from "@/lib/types";
 import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
 
 export interface EquipmentFiltersState {
   query: string;
   categoryId: string;
   status: EquipmentStatus | "";
-  location: string;
+  locationId: string;
   employeeId: string;
 }
 
@@ -23,7 +23,7 @@ export function EquipmentFilters({
   onChange: (next: EquipmentFiltersState) => void;
   categories: Category[];
   employees: Employee[];
-  locations: string[];
+  locations: Location[];
 }) {
   function set<K extends keyof EquipmentFiltersState>(key: K, val: EquipmentFiltersState[K]) {
     onChange({ ...value, [key]: val });
@@ -70,14 +70,14 @@ export function EquipmentFilters({
       </select>
 
       <select
-        value={value.location}
-        onChange={(e) => set("location", e.target.value)}
+        value={value.locationId}
+        onChange={(e) => set("locationId", e.target.value)}
         className="rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-primary"
       >
         <option value="">Wszystkie lokalizacje</option>
         {locations.map((loc) => (
-          <option key={loc} value={loc}>
-            {loc}
+          <option key={loc.id} value={loc.id}>
+            {loc.name}
           </option>
         ))}
       </select>

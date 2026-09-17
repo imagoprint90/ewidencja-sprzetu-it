@@ -10,6 +10,7 @@ import type {
   EquipmentColumnKey,
   EquipmentLink,
   InstalledSoftware,
+  Location,
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
@@ -19,7 +20,13 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
 import { EditableCell } from "@/components/equipment/EditableCell";
 import { formatDate } from "@/lib/format";
-import { equipmentToInput, getActiveAssignment, getCategoryName, getLinkedEquipment } from "@/lib/equipment-helpers";
+import {
+  equipmentToInput,
+  getActiveAssignment,
+  getCategoryName,
+  getLinkedEquipment,
+  getLocationName,
+} from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { updateEquipmentAction, type EquipmentInput } from "@/lib/supabase/actions/equipment-actions";
 
@@ -33,7 +40,9 @@ export function EquipmentTable({
   softwareProducts,
   licenses,
   licenseAssignments,
+  locations,
   visibleColumns,
+  columnColors,
 }: {
   equipment: Equipment[];
   categories: Category[];
@@ -44,7 +53,9 @@ export function EquipmentTable({
   softwareProducts: SoftwareProduct[];
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
+  locations: Location[];
   visibleColumns: EquipmentColumnKey[];
+  columnColors: Partial<Record<EquipmentColumnKey, string>>;
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -97,9 +108,14 @@ export function EquipmentTable({
               >
                 <td className="px-4 py-3 align-top text-muted">{index + 1}</td>
                 {visibleColumns.map((col) => (
-                  <td key={col} className="px-4 py-3 align-top">
+                  <td
+                    key={col}
+                    className="px-4 py-3 align-top"
+                    style={columnColors[col] ? { color: columnColors[col] } : undefined}
+                  >
                     {renderCell(col, item, {
                       categoryName: getCategoryName(categories, item.categoryId),
+                      locationName: getLocationName(locations, item.locationId),
                       employeeName: employee?.fullName,
                       activeAssignment,
                       linked,
@@ -124,6 +140,7 @@ function renderCell(
   item: Equipment,
   extra: {
     categoryName: string;
+    locationName: string;
     employeeName?: string;
     activeAssignment?: Assignment;
     linked: Equipment[];
@@ -190,8 +207,9 @@ function renderCell(
     case "status":
       return <StatusBadge status={item.status} />;
     case "location":
-      if (!extra.isAdmin) return item.location;
-      return <EditableCell value={item.location} onSave={(v) => extra.onSave({ location: v })} />;
+      // Lokalizacja sprzętu jest zarządzana automatycznie (synchronizowana z pracownikiem
+      // przy przekazaniu, ustawiana na magazyn przy zwrocie) — nie edytujemy jej ręcznie.
+      return extra.locationName;
     case "notes":
       if (!extra.isAdmin) {
         return item.notes ? (
