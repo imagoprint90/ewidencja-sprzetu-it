@@ -3,15 +3,19 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { formatDate } from "@/lib/format";
 import { getCategoryName } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
+import { employeeFormSchema, type EmployeeFormValues } from "@/lib/schemas";
 import type { Assignment, Category, Employee, Equipment } from "@/lib/types";
-import { setEmployeeActiveAction } from "@/lib/supabase/actions/employee-actions";
+import { setEmployeeActiveAction, updateEmployeeAction } from "@/lib/supabase/actions/employee-actions";
 
 interface PersonalLicense {
   assignmentId: string;
@@ -35,10 +39,26 @@ export function PracownikDetailClient({
   const router = useRouter();
   const isAdmin = useIsAdmin();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const active = history.filter((a) => a.returnedAt === null);
   const past = history.filter((a) => a.returnedAt !== null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<EmployeeFormValues>({
+    resolver: zodResolver(employeeFormSchema),
+    defaultValues: {
+      fullName: employee.fullName,
+      email: employee.email ?? "",
+      department: employee.department,
+      location: employee.location,
+    },
+  });
 
   function toggleActive() {
     startTransition(async () => {
@@ -46,6 +66,22 @@ export function PracownikDetailClient({
       setConfirmOpen(false);
       router.refresh();
     });
+  }
+
+  async function onSubmitEdit(values: EmployeeFormValues) {
+    setEditError(null);
+    const result = await updateEmployeeAction(employee.id, {
+      fullName: values.fullName,
+      email: values.email || null,
+      department: values.department,
+      location: values.location,
+    });
+    if (!result.ok) {
+      setEditError(result.error);
+      return;
+    }
+    setEditing(false);
+    router.refresh();
   }
 
   return (
@@ -58,25 +94,63 @@ export function PracownikDetailClient({
         Wróć
       </button>
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">{employee.fullName}</h1>
-          <p className="text-sm text-muted">
-            {employee.department} · {employee.location}
-            {employee.email && ` · ${employee.email}`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge tone={employee.isActive ? "success" : "default"}>
-            {employee.isActive ? "Aktywny" : "Nieaktywny"}
-          </Badge>
-          {isAdmin && (
-            <Button size="sm" variant="secondary" onClick={() => setConfirmOpen(true)}>
-              {employee.isActive ? "Dezaktywuj" : "Aktywuj"}
-            </Button>
+      {editing ? (
+        <form onSubmit={handleSubmit(onSubmitEdit)} className="flex flex-col gap-4">
+          <FormSection title="Dane pracownika">
+            <FormField label="Imię i nazwisko" htmlFor="fullName" required error={errors.fullName?.message} full>
+              <input id="fullName" className={inputClass} {...register("fullName")} />
+            </FormField>
+            <FormField label="Adres e-mail" htmlFor="email" error={errors.email?.message}>
+              <input id="email" type="email" className={inputClass} {...register("email")} />
+            </FormField>
+            <FormField label="Dział" htmlFor="department" required error={errors.department?.message}>
+              <input id="department" className={inputClass} {...register("department")} />
+            </FormField>
+            <FormField label="Lokalizacja" htmlFor="location" required error={errors.location?.message} full>
+              <input id="location" className={inputClass} {...register("location")} />
+            </FormField>
+          </FormSection>
+          {editError && (
+            <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
+              {editError}
+            </p>
           )}
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={() => setEditing(false)}>
+              Anuluj
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              Zapisz zmiany
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold">{employee.fullName}</h1>
+            <p className="text-sm text-muted">
+              {employee.department} · {employee.location}
+              {employee.email && ` · ${employee.email}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge tone={employee.isActive ? "success" : "default"}>
+              {employee.isActive ? "Aktywny" : "Nieaktywny"}
+            </Badge>
+            {isAdmin && (
+              <>
+                <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+                  <Pencil size={14} />
+                  Edytuj dane
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setConfirmOpen(true)}>
+                  {employee.isActive ? "Dezaktywuj" : "Aktywuj"}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <section className="rounded-xl border border-border bg-surface p-5">
         <h2 className="mb-3 text-sm font-semibold">Aktualnie przydzielony sprzęt</h2>

@@ -10,6 +10,8 @@ import type {
   EquipmentColumnKey,
   EquipmentLink,
   InstalledSoftware,
+  SoftwareLicense,
+  SoftwareLicenseAssignment,
   SoftwareProduct,
 } from "@/lib/types";
 import { EQUIPMENT_COLUMN_LABELS } from "@/lib/types";
@@ -26,6 +28,8 @@ export function EquipmentTable({
   links,
   installedSoftware,
   softwareProducts,
+  licenses,
+  licenseAssignments,
   visibleColumns,
 }: {
   equipment: Equipment[];
@@ -35,6 +39,8 @@ export function EquipmentTable({
   links: EquipmentLink[];
   installedSoftware: InstalledSoftware[];
   softwareProducts: SoftwareProduct[];
+  licenses: SoftwareLicense[];
+  licenseAssignments: SoftwareLicenseAssignment[];
   visibleColumns: EquipmentColumnKey[];
 }) {
   const router = useRouter();
@@ -57,10 +63,18 @@ export function EquipmentTable({
               ? employees.find((e) => e.id === activeAssignment.employeeId)
               : undefined;
             const linked = getLinkedEquipment(links, equipment, item.id);
-            const software = installedSoftware
+            const installedNames = installedSoftware
               .filter((s) => s.equipmentId === item.id)
               .map((s) => softwareProducts.find((p) => p.id === s.softwareProductId)?.name)
               .filter((name): name is string => Boolean(name));
+            const licensedNames = licenseAssignments
+              .filter((a) => a.equipmentId === item.id)
+              .map((a) => {
+                const license = licenses.find((l) => l.id === a.licenseId);
+                return license ? softwareProducts.find((p) => p.id === license.productId)?.name : undefined;
+              })
+              .filter((name): name is string => Boolean(name));
+            const software = Array.from(new Set([...installedNames, ...licensedNames]));
 
             return (
               <tr

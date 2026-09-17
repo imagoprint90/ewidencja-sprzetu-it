@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -23,6 +23,8 @@ import {
   addSoftwareProductAction,
   assignLicenseAction,
   removeLicenseAssignmentAction,
+  updateSoftwareLicenseAction,
+  updateSoftwareProductAction,
 } from "@/lib/supabase/actions/software-actions";
 
 export function OprogramowanieClient({
@@ -46,6 +48,17 @@ export function OprogramowanieClient({
   const [productName, setProductName] = useState("");
   const [productVersion, setProductVersion] = useState("");
   const [productError, setProductError] = useState<string | null>(null);
+
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editProductName, setEditProductName] = useState("");
+  const [editProductVersion, setEditProductVersion] = useState("");
+  const [editProductError, setEditProductError] = useState<string | null>(null);
+
+  const [editingLicenseId, setEditingLicenseId] = useState<string | null>(null);
+  const [editSeatsTotal, setEditSeatsTotal] = useState("1");
+  const [editValidUntil, setEditValidUntil] = useState("");
+  const [editLicenseNotes, setEditLicenseNotes] = useState("");
+  const [editLicenseError, setEditLicenseError] = useState<string | null>(null);
 
   const [showAddLicense, setShowAddLicense] = useState(false);
   const [licenseProductId, setLicenseProductId] = useState("");
@@ -74,6 +87,58 @@ export function OprogramowanieClient({
       setProductVersion("");
       setProductError(null);
       setShowAddProduct(false);
+      router.refresh();
+    });
+  }
+
+  function startEditProduct(p: SoftwareProduct) {
+    setEditingProductId(p.id);
+    setEditProductName(p.name);
+    setEditProductVersion(p.version ?? "");
+    setEditProductError(null);
+  }
+
+  function handleSaveProduct(id: string) {
+    startTransition(async () => {
+      const result = await updateSoftwareProductAction(id, {
+        name: editProductName,
+        version: editProductVersion.trim() || null,
+        notes: null,
+      });
+      if (!result.ok) {
+        setEditProductError(result.error);
+        return;
+      }
+      setEditingProductId(null);
+      router.refresh();
+    });
+  }
+
+  function startEditLicense(license: SoftwareLicense) {
+    setEditingLicenseId(license.id);
+    setEditSeatsTotal(String(license.seatsTotal));
+    setEditValidUntil(license.validUntil ?? "");
+    setEditLicenseNotes(license.notes ?? "");
+    setEditLicenseError(null);
+  }
+
+  function handleSaveLicense(id: string) {
+    const seats = Number(editSeatsTotal);
+    if (!Number.isInteger(seats) || seats < 1) {
+      setEditLicenseError("Liczba stanowisk musi być liczbą całkowitą większą od zera.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await updateSoftwareLicenseAction(id, {
+        seatsTotal: seats,
+        validUntil: editValidUntil || null,
+        notes: editLicenseNotes.trim() || null,
+      });
+      if (!result.ok) {
+        setEditLicenseError(result.error);
+        return;
+      }
+      setEditingLicenseId(null);
       router.refresh();
     });
   }
@@ -183,14 +248,52 @@ export function OprogramowanieClient({
         {products.length === 0 ? (
           <p className="text-sm text-muted">Brak produktów w katalogu.</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <ul className="flex flex-col gap-2">
             {products.map((p) => (
-              <Badge key={p.id}>
-                {p.name}
-                {p.version ? ` ${p.version}` : ""}
-              </Badge>
+              <li key={p.id} className="rounded-lg border border-border p-3">
+                {editingProductId === p.id ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        className={inputClass}
+                        value={editProductName}
+                        onChange={(e) => setEditProductName(e.target.value)}
+                        placeholder="Nazwa"
+                      />
+                      <input
+                        className={inputClass}
+                        value={editProductVersion}
+                        onChange={(e) => setEditProductVersion(e.target.value)}
+                        placeholder="Wersja"
+                      />
+                    </div>
+                    {editProductError && <p className="text-sm text-danger">{editProductError}</p>}
+                    <div className="flex gap-2">
+                      <Button size="sm" disabled={isPending} onClick={() => handleSaveProduct(p.id)}>
+                        Zapisz
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingProductId(null)}>
+                        Anuluj
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <Badge>
+                      {p.name}
+                      {p.version ? ` ${p.version}` : ""}
+                    </Badge>
+                    {isAdmin && (
+                      <Button size="sm" variant="ghost" onClick={() => startEditProduct(p)}>
+                        <Pencil size={14} />
+                        Edytuj
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </section>
 
@@ -296,6 +399,12 @@ export function OprogramowanieClient({
                       <Badge tone={free > 0 ? "success" : "danger"}>
                         {used.length} / {license.seatsTotal} zajętych
                       </Badge>
+                      {isAdmin && (
+                        <Button size="sm" variant="ghost" onClick={() => startEditLicense(license)}>
+                          <Pencil size={14} />
+                          Edytuj
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="secondary"
@@ -309,6 +418,47 @@ export function OprogramowanieClient({
                       </Button>
                     </div>
                   </div>
+
+                  {editingLicenseId === license.id && (
+                    <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:items-end">
+                      <FormField label="Liczba stanowisk" htmlFor={`seats-${license.id}`}>
+                        <input
+                          id={`seats-${license.id}`}
+                          type="number"
+                          min={1}
+                          className={inputClass}
+                          value={editSeatsTotal}
+                          onChange={(e) => setEditSeatsTotal(e.target.value)}
+                        />
+                      </FormField>
+                      <FormField label="Ważna do" htmlFor={`valid-${license.id}`}>
+                        <input
+                          id={`valid-${license.id}`}
+                          type="date"
+                          className={inputClass}
+                          value={editValidUntil}
+                          onChange={(e) => setEditValidUntil(e.target.value)}
+                        />
+                      </FormField>
+                      <FormField label="Uwagi" htmlFor={`notes-${license.id}`}>
+                        <input
+                          id={`notes-${license.id}`}
+                          className={inputClass}
+                          value={editLicenseNotes}
+                          onChange={(e) => setEditLicenseNotes(e.target.value)}
+                        />
+                      </FormField>
+                      <div className="flex gap-2">
+                        <Button size="sm" disabled={isPending} onClick={() => handleSaveLicense(license.id)}>
+                          Zapisz
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingLicenseId(null)}>
+                          Anuluj
+                        </Button>
+                      </div>
+                      {editLicenseError && <p className="text-sm text-danger sm:basis-full">{editLicenseError}</p>}
+                    </div>
+                  )}
 
                   {expanded && (
                     <div className="mt-3 flex flex-col gap-3 border-t border-border pt-3">

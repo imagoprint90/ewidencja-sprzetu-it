@@ -20,6 +20,8 @@ import type {
   Equipment,
   EquipmentLink,
   InstalledSoftware,
+  SoftwareLicense,
+  SoftwareLicenseAssignment,
   SoftwareProduct,
 } from "@/lib/types";
 
@@ -42,6 +44,8 @@ function SprzetPageInner({
   equipmentLinks,
   installedSoftware,
   softwareProducts,
+  licenses,
+  licenseAssignments,
 }: {
   equipment: Equipment[];
   categories: Category[];
@@ -50,6 +54,8 @@ function SprzetPageInner({
   equipmentLinks: EquipmentLink[];
   installedSoftware: InstalledSoftware[];
   softwareProducts: SoftwareProduct[];
+  licenses: SoftwareLicense[];
+  licenseAssignments: SoftwareLicenseAssignment[];
 }) {
   const isAdmin = useIsAdmin();
   const searchParams = useSearchParams();
@@ -147,6 +153,8 @@ function SprzetPageInner({
           links={equipmentLinks}
           installedSoftware={installedSoftware}
           softwareProducts={softwareProducts}
+          licenses={licenses}
+          licenseAssignments={licenseAssignments}
           visibleColumns={visibleColumns.length ? visibleColumns : EQUIPMENT_COLUMNS.slice(0, 3)}
         />
       )}
@@ -162,6 +170,8 @@ export function SprzetClient(props: {
   equipmentLinks: EquipmentLink[];
   installedSoftware: InstalledSoftware[];
   softwareProducts: SoftwareProduct[];
+  licenses: SoftwareLicense[];
+  licenseAssignments: SoftwareLicenseAssignment[];
 }) {
   return (
     <Suspense>

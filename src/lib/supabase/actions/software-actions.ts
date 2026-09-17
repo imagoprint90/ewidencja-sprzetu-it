@@ -49,6 +49,54 @@ export async function addSoftwareLicenseAction(input: {
   return { ok: true, data: undefined };
 }
 
+export async function updateSoftwareProductAction(
+  id: string,
+  input: { name: string; version: string | null; notes: string | null }
+): Promise<ActionResult<undefined>> {
+  if (!input.name.trim()) return { ok: false, error: "Nazwa produktu jest wymagana." };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("software_products")
+    .update({ name: input.name.trim(), version: input.version, notes: input.notes })
+    .eq("id", id);
+
+  if (error) return { ok: false, error: "Nie udało się zapisać zmian produktu." };
+  revalidatePath("/oprogramowanie");
+  return { ok: true, data: undefined };
+}
+
+export async function updateSoftwareLicenseAction(
+  id: string,
+  input: { seatsTotal: number; validUntil: string | null; notes: string | null }
+): Promise<ActionResult<undefined>> {
+  if (input.seatsTotal < 1) return { ok: false, error: "Liczba stanowisk musi być większa od zera." };
+
+  const supabase = await createSupabaseServerClient();
+
+  const { count } = await supabase
+    .from("software_license_assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("license_id", id);
+
+  if ((count ?? 0) > input.seatsTotal) {
+    return {
+      ok: false,
+      error: `Nie można zmniejszyć liczby stanowisk poniżej liczby aktualnych przypisań (${count}). Usuń najpierw część przypisań.`,
+    };
+  }
+
+  const { error } = await supabase
+    .from("software_licenses")
+    .update({ seats_total: input.seatsTotal, valid_until: input.validUntil, notes: input.notes })
+    .eq("id", id);
+
+  if (error) return { ok: false, error: "Nie udało się zapisać zmian licencji." };
+  revalidatePath("/oprogramowanie");
+  revalidatePath("/pulpit");
+  return { ok: true, data: undefined };
+}
+
 export async function assignLicenseAction(input: {
   licenseId: string;
   equipmentId: string | null;
