@@ -20,7 +20,7 @@ export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
 // "Przydzielony" są sterowane automatycznie (operacja "Przekaż sprzęt"), pozostałe trzy
 // ustawia się ręcznie na liście sprzętu.
 export const EQUIPMENT_STATUS_COLORS: Record<EquipmentStatus, string> = {
-  w_magazynie: "#1a2332",
+  w_magazynie: "#16a34a",
   przydzielony: "#1a2332",
   w_naprawie: "#d97706",
   zepsuty: "#dc2626",

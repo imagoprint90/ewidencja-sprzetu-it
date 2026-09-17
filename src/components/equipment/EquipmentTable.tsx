@@ -168,7 +168,7 @@ function renderCell(
       return (
         <Link
           href={`/sprzet/${item.id}`}
-          className="font-medium text-primary hover:underline"
+          className="font-medium hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           {item.inventoryNumber}

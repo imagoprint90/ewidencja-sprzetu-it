@@ -23,7 +23,7 @@ export function ExpandableList({
       {shown.map((item, i) => (
         <span
           key={i}
-          className="inline-flex rounded bg-black/5 px-1.5 py-0.5 text-xs text-foreground/80"
+          className="inline-flex rounded bg-black/5 px-1.5 py-0.5 text-xs"
         >
           {item}
         </span>
