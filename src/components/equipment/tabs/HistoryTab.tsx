@@ -5,9 +5,9 @@ export function HistoryTab({ equipment }: { equipment: Equipment }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted">
-        Pełny, szczegółowy dziennik zmian (kto, kiedy, co zmienił) będzie zapisywany
-        automatycznie po podłączeniu bazy Supabase (Etap 2) i widoczny tutaj. Poniżej podstawowe
-        znaczniki czasu dostępne już teraz.
+        Baza danych zapisuje już każdą zmianę tego rekordu (kto, kiedy, co) w dzienniku
+        zdarzeń. Czytelny podgląd tego dziennika w tym miejscu pojawi się w kolejnym etapie.
+        Poniżej podstawowe znaczniki czasu dostępne już teraz.
       </p>
       <ul className="flex flex-col gap-2">
         <li className="rounded-xl border border-border bg-surface p-4 text-sm">

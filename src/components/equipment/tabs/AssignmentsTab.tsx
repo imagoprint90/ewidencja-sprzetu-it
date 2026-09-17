@@ -1,14 +1,24 @@
 "use client";
 
-import { useStore } from "@/lib/store";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import type { Equipment } from "@/lib/types";
+import { useIsAdmin } from "@/lib/current-user-context";
+import type { Assignment, Employee, Equipment } from "@/lib/types";
 
-export function AssignmentsTab({ equipment }: { equipment: Equipment }) {
-  const { assignmentsFor, employees } = useStore();
-  const history = assignmentsFor(equipment.id);
+export function AssignmentsTab({
+  equipment,
+  assignments,
+  employees,
+}: {
+  equipment: Equipment;
+  assignments: Assignment[];
+  employees: Employee[];
+}) {
+  const isAdmin = useIsAdmin();
+  const history = assignments
+    .filter((a) => a.equipmentId === equipment.id)
+    .sort((a, b) => (a.assignedAt < b.assignedAt ? 1 : -1));
 
   return (
     <div className="flex flex-col gap-4">
@@ -16,9 +26,11 @@ export function AssignmentsTab({ equipment }: { equipment: Equipment }) {
         <p className="text-sm text-muted">
           Pełna historia przydziałów tego sprzętu, łącznie z poprzednimi użytkownikami.
         </p>
-        <Button size="sm" disabled title="Operacja „Przekaż sprzęt” zostanie uruchomiona w Etapie 3">
-          Przekaż sprzęt
-        </Button>
+        {isAdmin && (
+          <Button size="sm" disabled title="Operacja „Przekaż sprzęt” zostanie uruchomiona w Etapie 3">
+            Przekaż sprzęt
+          </Button>
+        )}
       </div>
 
       {history.length === 0 ? (

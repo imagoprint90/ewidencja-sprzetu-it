@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useStore } from "@/lib/store";
-import type { Equipment } from "@/lib/types";
+import type { Category, Equipment } from "@/lib/types";
 import { TECHNICAL_CONDITION_LABELS } from "@/lib/types";
 import { equipmentFormSchema, type EquipmentFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { useIsAdmin } from "@/lib/current-user-context";
+import { updateEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -20,8 +22,15 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
-export function DetailsTab({ equipment }: { equipment: Equipment }) {
-  const { categories, updateEquipment } = useStore();
+export function DetailsTab({
+  equipment,
+  categories,
+}: {
+  equipment: Equipment;
+  categories: Category[];
+}) {
+  const router = useRouter();
+  const isAdmin = useIsAdmin();
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,9 +56,9 @@ export function DetailsTab({ equipment }: { equipment: Equipment }) {
     },
   });
 
-  function onSubmit(values: EquipmentFormValues) {
+  async function onSubmit(values: EquipmentFormValues) {
     setError(null);
-    const result = updateEquipment(equipment.id, {
+    const result = await updateEquipmentAction(equipment.id, {
       inventoryNumber: values.inventoryNumber,
       categoryId: values.categoryId,
       name: values.name,
@@ -64,21 +73,24 @@ export function DetailsTab({ equipment }: { equipment: Equipment }) {
       notes: values.notes || null,
     });
     if (!result.ok) {
-      setError(result.error ?? "Nie udało się zapisać zmian.");
+      setError(result.error);
       return;
     }
     setEditing(false);
+    router.refresh();
   }
 
   if (!editing) {
     const category = categories.find((c) => c.id === equipment.categoryId);
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex justify-end">
-          <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
-            Edytuj dane
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex justify-end">
+            <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+              Edytuj dane
+            </Button>
+          </div>
+        )}
         <div className="rounded-xl border border-border bg-surface p-5">
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <DetailRow label="Numer inwentarzowy" value={equipment.inventoryNumber} />
@@ -104,7 +116,7 @@ export function DetailsTab({ equipment }: { equipment: Equipment }) {
         </div>
         <div className="rounded-xl border border-dashed border-border bg-surface p-5 text-sm text-muted">
           Załączniki do karty sprzętu (np. faktura zakupu) będą dostępne po podłączeniu
-          prywatnego przechowywania plików w Supabase — patrz zakładka „Dokumenty”.
+          prywatnego przechowywania plików w Supabase Storage — patrz zakładka „Dokumenty”.
         </div>
       </div>
     );

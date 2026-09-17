@@ -9,34 +9,33 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
 - **Kod**: https://github.com/imagoprint90/ewidencja-sprzetu-it
 - **Wersja na żywo**: https://ewidencja-sprzetu-it.vercel.app
 
-## Stan projektu (Etap 2 w toku)
+## Stan projektu (Etap 2 ukończony)
 
-**Gotowe i działające:**
+**Gotowe i działające, z danymi trwałymi w Supabase (nie w przeglądarce):**
 - Logowanie e-mail/hasło przez Supabase Auth, z opcją przypomnienia hasła (link e-mail).
   Wszystkie strony poza `/logowanie` wymagają zalogowania (wymuszane w middleware/proxy
   i ponownie sprawdzane po stronie serwera — nie tylko ukrywaniem przycisków).
+- Role „administrator” (pełny dostęp) i „podgląd” (tylko odczyt) — wymuszane realnie przez
+  reguły RLS w bazie danych, a dodatkowo interfejs ukrywa akcje edycji przed rolą „podgląd”.
 - Sprzęt: lista z wyszukiwarką, filtrami, wyborem widocznych kolumn, dodawanie i edycja
-  (walidacja unikalności numeru inwentarzowego, spójność dat gwarancji).
+  (walidacja unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane
+  w bazie.
 - Kategorie: dodawanie, zmiana nazwy, archiwizacja z blokadą, gdy kategoria jest używana.
 - Pracownicy: lista, karta pracownika, dodawanie, aktywacja/dezaktywacja.
-- Karta sprzętu z zakładkami: Szczegóły, Przydziały (odczyt historii), Powiązany sprzęt
-  (dodawanie/usuwanie powiązań w zestawie), Oprogramowanie/Dokumenty/Historia zmian
-  (zakładki informacyjne — pełna funkcjonalność w kolejnych etapach).
+- Karta sprzętu z zakładkami: Szczegóły, Przydziały (odczyt historii z bazy), Powiązany
+  sprzęt (dodawanie/usuwanie powiązań w zestawie), Oprogramowanie/Dokumenty (informacyjne —
+  pełna funkcjonalność w kolejnych etapach), Historia zmian.
 - Układ responsywny (boczne menu chowane na telefonie), polskie daty i komunikaty.
 - Pełny schemat bazy danych i reguły dostępu (RLS) zastosowane w Supabase —
-  `supabase/migrations/`.
-
-**Ważne zastrzeżenie:** logowanie jest już prawdziwe (Supabase Auth), ale dane sprzętu,
-pracowników i przydziałów **wciąż żyją tylko w pamięci przeglądarki** (pomarańczowy pasek
-„Tryb demonstracyjny”) i znikają po odświeżeniu. Podłączenie tych danych do bazy to kolejny
-krok Etapu 2/3.
+  `supabase/migrations/`. Każda zmiana sprzętu/pracownika/kategorii jest też zapisywana w
+  wewnętrznym dzienniku zdarzeń (`audit_log`) — podgląd tego dziennika w interfejsie to
+  kolejny krok.
 
 **Przygotowane, ale jeszcze niepodłączone:**
-- Operacja „Przekaż sprzęt” / zwrot do magazynu jako atomowe funkcje SQL — Etap 3.
+- Operacja „Przekaż sprzęt” / zwrot do magazynu jako atomowe funkcje SQL (funkcje już są w
+  `supabase/migrations/0003_assignments.sql`, brakuje tylko interfejsu) — Etap 3.
 - Generowanie protokołów PDF — Etap 4.
 - Katalog oprogramowania i licencji, pulpit z gwarancjami/licencjami — Etap 5.
-- Role „administrator” / „podgląd” (tabela `profiles` i RLS już gotowe w bazie, ale
-  interfejs jeszcze nie ukrywa akcji edycji przed rolą „podgląd”).
 
 ## Uruchomienie lokalne
 

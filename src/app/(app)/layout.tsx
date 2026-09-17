@@ -1,8 +1,13 @@
 import { redirect } from "next/navigation";
-import { DemoStoreProvider } from "@/lib/store";
+
+// Wszystkie strony w tej grupie zależą od sesji zalogowanego użytkownika i danych
+// pobieranych na żądanie — nie mogą być statycznie generowane podczas builda.
+export const dynamic = "force-dynamic";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConfigMissing } from "@/components/ui/ConfigMissing";
+import { CurrentUserProvider } from "@/lib/current-user-context";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getCurrentProfile } from "@/lib/supabase/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -19,9 +24,29 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect("/logowanie");
   }
 
+  const profile = await getCurrentProfile(supabase, user.id);
+
+  if (!profile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md rounded-xl border border-warning/30 bg-warning/10 p-6 text-center">
+          <h1 className="text-base font-semibold">Konto bez uprawnień</h1>
+          <p className="mt-2 text-sm text-foreground/80">
+            Twoje konto ({user.email}) zostało utworzone w Supabase Auth, ale nie ma
+            jeszcze przypisanej roli w systemie. Poproś administratora o dodanie wiersza w
+            tabeli <code className="rounded bg-black/10 px-1">profiles</code> (patrz
+            README.md, sekcja „Zakładanie kont użytkowników”).
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <DemoStoreProvider>
+    <CurrentUserProvider
+      value={{ email: user.email ?? "", fullName: profile.fullName, role: profile.role }}
+    >
       <AppShell userEmail={user.email ?? ""}>{children}</AppShell>
-    </DemoStoreProvider>
+    </CurrentUserProvider>
   );
 }

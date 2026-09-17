@@ -1,16 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useStore } from "@/lib/store";
 import { employeeFormSchema, type EmployeeFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
+import { addEmployeeAction } from "@/lib/supabase/actions/employee-actions";
 
 export default function NowyPracownikPage() {
   const router = useRouter();
-  const { addEmployee } = useStore();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
@@ -18,15 +19,19 @@ export default function NowyPracownikPage() {
     formState: { errors, isSubmitting },
   } = useForm<EmployeeFormValues>({ resolver: zodResolver(employeeFormSchema) });
 
-  function onSubmit(values: EmployeeFormValues) {
-    const employee = addEmployee({
+  async function onSubmit(values: EmployeeFormValues) {
+    setSubmitError(null);
+    const result = await addEmployeeAction({
       fullName: values.fullName,
       email: values.email || null,
       department: values.department,
       location: values.location,
-      isActive: true,
     });
-    router.push(`/pracownicy/${employee.id}`);
+    if (!result.ok) {
+      setSubmitError(result.error);
+      return;
+    }
+    router.push(`/pracownicy/${result.data.id}`);
   }
 
   return (
@@ -53,6 +58,12 @@ export default function NowyPracownikPage() {
             <input id="location" className={inputClass} {...register("location")} />
           </FormField>
         </FormSection>
+
+        {submitError && (
+          <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
+            {submitError}
+          </p>
+        )}
 
         <div className="flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={() => router.back()}>

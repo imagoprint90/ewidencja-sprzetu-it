@@ -1,10 +1,9 @@
-"use client";
-
 import Link from "next/link";
-import { useMemo } from "react";
-import { useStore } from "@/lib/store";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAssignments, getCategories, getEmployees, getEquipment } from "@/lib/supabase/queries";
 import { daysUntil, formatDate } from "@/lib/format";
 import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
+import type { ReactNode } from "react";
 
 function StatCard({
   label,
@@ -24,38 +23,33 @@ function StatCard({
   return href ? <Link href={href}>{content}</Link> : content;
 }
 
-export default function PulpitPage() {
-  const { equipment, employees, assignments, categories } = useStore();
+export default async function PulpitPage(): Promise<ReactNode> {
+  const supabase = await createSupabaseServerClient();
+  const [equipment, employees, assignments, categories] = await Promise.all([
+    getEquipment(supabase),
+    getEmployees(supabase),
+    getAssignments(supabase),
+    getCategories(supabase),
+  ]);
 
-  const counts = useMemo(() => {
-    const byStatus = {
-      w_magazynie: 0,
-      przydzielony: 0,
-      w_serwisie: 0,
-      wycofany: 0,
-    };
-    for (const e of equipment) byStatus[e.status]++;
-    return byStatus;
-  }, [equipment]);
+  const counts = {
+    w_magazynie: 0,
+    przydzielony: 0,
+    w_serwisie: 0,
+    wycofany: 0,
+  };
+  for (const e of equipment) counts[e.status]++;
 
-  const expiringWarranties = useMemo(
-    () =>
-      equipment
-        .filter((e) => {
-          const d = daysUntil(e.warrantyEnd);
-          return d !== null && d >= 0 && d <= 60;
-        })
-        .sort((a, b) => (daysUntil(a.warrantyEnd) ?? 0) - (daysUntil(b.warrantyEnd) ?? 0)),
-    [equipment]
-  );
+  const expiringWarranties = equipment
+    .filter((e) => {
+      const d = daysUntil(e.warrantyEnd);
+      return d !== null && d >= 0 && d <= 60;
+    })
+    .sort((a, b) => (daysUntil(a.warrantyEnd) ?? 0) - (daysUntil(b.warrantyEnd) ?? 0));
 
-  const recentAssignments = useMemo(
-    () =>
-      [...assignments]
-        .sort((a, b) => (a.assignedAt < b.assignedAt ? 1 : -1))
-        .slice(0, 5),
-    [assignments]
-  );
+  const recentAssignments = [...assignments]
+    .sort((a, b) => (a.assignedAt < b.assignedAt ? 1 : a.assignedAt > b.assignedAt ? -1 : (a.id < b.id ? 1 : -1)))
+    .slice(0, 5);
 
   return (
     <div className="flex flex-col gap-6">
