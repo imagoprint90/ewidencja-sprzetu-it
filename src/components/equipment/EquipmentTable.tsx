@@ -187,11 +187,7 @@ function renderCell(
         />
       );
     case "employee":
-      return extra.employeeName ? (
-        extra.employeeName
-      ) : (
-        <span className="text-muted">Nieprzydzielony</span>
-      );
+      return extra.employeeName ?? "Nieprzydzielony";
     case "assignmentDates":
       return extra.activeAssignment ? (
         <span className="whitespace-nowrap">
@@ -199,17 +195,17 @@ function renderCell(
           {extra.activeAssignment.returnedAt ? formatDate(extra.activeAssignment.returnedAt) : "obecnie"}
         </span>
       ) : (
-        <span className="text-muted">—</span>
+        <span>—</span>
       );
     case "name":
       if (!extra.isAdmin) return item.name;
       return <EditableCell value={item.name} onSave={(v) => extra.onSave({ name: v })} />;
     case "serialNumber":
-      if (!extra.isAdmin) return item.serialNumber ?? <span className="text-muted">—</span>;
+      if (!extra.isAdmin) return item.serialNumber ?? <span>—</span>;
       return (
         <EditableCell
           value={item.serialNumber ?? ""}
-          displayValue={item.serialNumber ?? <span className="text-muted">—</span>}
+          displayValue={item.serialNumber ?? <span>—</span>}
           onSave={(v) => extra.onSave({ serialNumber: v || null })}
         />
       );
@@ -234,9 +230,9 @@ function renderCell(
     case "notes":
       if (!extra.isAdmin) {
         return item.notes ? (
-          <span className="line-clamp-2 max-w-[220px] text-foreground/80">{item.notes}</span>
+          <span className="line-clamp-2 max-w-[220px]">{item.notes}</span>
         ) : (
-          <span className="text-muted">—</span>
+          <span>—</span>
         );
       }
       return (
@@ -244,9 +240,9 @@ function renderCell(
           value={item.notes ?? ""}
           displayValue={
             item.notes ? (
-              <span className="line-clamp-2 max-w-[220px] text-foreground/80">{item.notes}</span>
+              <span className="line-clamp-2 max-w-[220px]">{item.notes}</span>
             ) : (
-              <span className="text-muted">—</span>
+              <span>—</span>
             )
           }
           multiline
