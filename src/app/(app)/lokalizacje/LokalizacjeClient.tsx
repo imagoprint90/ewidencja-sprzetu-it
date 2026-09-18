@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Archive, Check, X } from "lucide-react";
+import { Plus, Pencil, Archive, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -12,6 +12,7 @@ import type { Location } from "@/lib/types";
 import {
   addLocationAction,
   archiveLocationAction,
+  deleteLocationAction,
   renameLocationAction,
 } from "@/lib/supabase/actions/location-actions";
 
@@ -35,6 +36,8 @@ export function LokalizacjeClient({
   const [editError, setEditError] = useState<string | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<string | null>(null);
   const [archiveError, setArchiveError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Location | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function handleAdd() {
     startTransition(async () => {
@@ -82,6 +85,21 @@ export function LokalizacjeClient({
     });
   }
 
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    startTransition(async () => {
+      const result = await deleteLocationAction(deleteTarget.id);
+      if (!result.ok) {
+        setDeleteError(result.error);
+        setDeleteTarget(null);
+        return;
+      }
+      setDeleteTarget(null);
+      setDeleteError(null);
+      router.refresh();
+    });
+  }
+
   const active = locations.filter((l) => !l.isArchived);
   const archived = locations.filter((l) => l.isArchived);
 
@@ -118,6 +136,11 @@ export function LokalizacjeClient({
       {archiveError && (
         <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
           {archiveError}
+        </p>
+      )}
+      {deleteError && (
+        <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
+          {deleteError}
         </p>
       )}
 
@@ -173,10 +196,16 @@ export function LokalizacjeClient({
                             Zmień nazwę
                           </Button>
                           {!l.isWarehouse && (
-                            <Button size="sm" variant="ghost" onClick={() => setArchiveTarget(l.id)}>
-                              <Archive size={14} />
-                              Archiwizuj
-                            </Button>
+                            <>
+                              <Button size="sm" variant="ghost" onClick={() => setArchiveTarget(l.id)}>
+                                <Archive size={14} />
+                                Archiwizuj
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(l)}>
+                                <Trash2 size={14} />
+                                Usuń
+                              </Button>
+                            </>
                           )}
                         </>
                       )}
@@ -192,9 +221,20 @@ export function LokalizacjeClient({
       {archived.length > 0 && (
         <div>
           <h2 className="mb-2 text-sm font-semibold text-muted">Zarchiwizowane lokalizacje</h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-2">
             {archived.map((l) => (
-              <Badge key={l.id}>{l.name}</Badge>
+              <div
+                key={l.id}
+                className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2"
+              >
+                <Badge>{l.name}</Badge>
+                {isAdmin && (
+                  <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(l)}>
+                    <Trash2 size={14} />
+                    Usuń
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -207,6 +247,20 @@ export function LokalizacjeClient({
         confirmLabel="Archiwizuj"
         onCancel={() => setArchiveTarget(null)}
         onConfirm={confirmArchive}
+      />
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Usunąć lokalizację?"
+        description={
+          deleteTarget
+            ? `„${deleteTarget.name}” zostanie usunięta trwale. Tej operacji nie można cofnąć. Nie można usunąć lokalizacji przypisanej do pracowników lub sprzętu.`
+            : undefined
+        }
+        confirmLabel="Usuń"
+        danger
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
       />
     </div>
   );

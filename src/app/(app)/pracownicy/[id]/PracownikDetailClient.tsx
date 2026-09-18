@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -15,7 +15,11 @@ import { getCategoryName, getLocationName } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { employeeFormSchema, type EmployeeFormValues } from "@/lib/schemas";
 import type { Assignment, Category, Employee, Equipment, Location } from "@/lib/types";
-import { setEmployeeActiveAction, updateEmployeeAction } from "@/lib/supabase/actions/employee-actions";
+import {
+  deleteEmployeeAction,
+  setEmployeeActiveAction,
+  updateEmployeeAction,
+} from "@/lib/supabase/actions/employee-actions";
 
 interface PersonalLicense {
   assignmentId: string;
@@ -44,6 +48,8 @@ export function PracownikDetailClient({
   const [editing, setEditing] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const active = history.filter((a) => a.returnedAt === null);
   const past = history.filter((a) => a.returnedAt !== null);
@@ -66,6 +72,19 @@ export function PracownikDetailClient({
     startTransition(async () => {
       await setEmployeeActiveAction(employee.id, !employee.isActive);
       setConfirmOpen(false);
+      router.refresh();
+    });
+  }
+
+  function handleDelete() {
+    startTransition(async () => {
+      const result = await deleteEmployeeAction(employee.id);
+      if (!result.ok) {
+        setConfirmDeleteOpen(false);
+        setDeleteError(result.error);
+        return;
+      }
+      router.push("/pracownicy");
       router.refresh();
     });
   }
@@ -156,10 +175,20 @@ export function PracownikDetailClient({
                 <Button size="sm" variant="secondary" onClick={() => setConfirmOpen(true)}>
                   {employee.isActive ? "Dezaktywuj" : "Aktywuj"}
                 </Button>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteOpen(true)}>
+                  <Trash2 size={14} />
+                  Usuń pracownika
+                </Button>
               </>
             )}
           </div>
         </div>
+      )}
+
+      {deleteError && (
+        <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
+          {deleteError}
+        </p>
       )}
 
       <section className="rounded-xl border border-border bg-surface p-5">
@@ -251,6 +280,16 @@ export function PracownikDetailClient({
         danger={employee.isActive}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={toggleActive}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Usunąć tego pracownika?"
+        description="Tej operacji nie można cofnąć. Jeśli pracownik ma historię przydziałów sprzętu, usunięcie zostanie zablokowane — użyj wtedy dezaktywacji, żeby zachować historię."
+        confirmLabel="Usuń"
+        danger
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleDelete}
       />
       {isPending && <p className="text-sm text-muted">Zapisywanie…</p>}
     </div>

@@ -101,3 +101,91 @@ export async function setEmployeeActiveAction(
   revalidatePath(`/pracownicy/${id}`);
   return { ok: true, data: undefined };
 }
+
+export async function deleteEmployeeAction(id: string): Promise<ActionResult<undefined>> {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("employees").delete().eq("id", id);
+
+  if (error) {
+    if (error.code === "23503") {
+      return {
+        ok: false,
+        error:
+          "Nie można usunąć — ten pracownik ma historię przydziałów sprzętu. Jeśli chcesz tylko ukryć go z list wyboru, użyj dezaktywacji zamiast usuwania — historia zostanie zachowana.",
+      };
+    }
+    return { ok: false, error: "Nie udało się usunąć pracownika." };
+  }
+
+  revalidatePath("/pracownicy");
+  return { ok: true, data: undefined };
+}
+
+export interface EmployeeCsvRow {
+  fullName: string;
+  email: string;
+  department: string;
+  locationName: string;
+}
+
+export interface EmployeeImportError {
+  row: number;
+  reason: string;
+}
+
+export async function importEmployeesAction(
+  rows: EmployeeCsvRow[]
+): Promise<ActionResult<{ imported: number; errors: EmployeeImportError[] }>> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: locations } = await supabase.from("locations").select("id, name, is_archived");
+  const normalize = (s: string) => s.trim().toLowerCase();
+  const locationByName = new Map(
+    (locations ?? []).filter((l) => !l.is_archived).map((l) => [normalize(l.name), l.id])
+  );
+
+  const errors: EmployeeImportError[] = [];
+  let imported = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNumber = i + 2; // +1 za nagłówek, +1 bo liczymy od 1
+    const fullName = rows[i].fullName.trim();
+    const department = rows[i].department.trim();
+    const locationName = rows[i].locationName.trim();
+    const email = rows[i].email.trim();
+
+    if (!fullName) {
+      errors.push({ row: rowNumber, reason: "brak imienia i nazwiska" });
+      continue;
+    }
+    if (!department) {
+      errors.push({ row: rowNumber, reason: "brak działu" });
+      continue;
+    }
+    if (!locationName) {
+      errors.push({ row: rowNumber, reason: "brak lokalizacji" });
+      continue;
+    }
+    const locationId = locationByName.get(normalize(locationName));
+    if (!locationId) {
+      errors.push({ row: rowNumber, reason: `nieznana lokalizacja „${locationName}”` });
+      continue;
+    }
+
+    const { error } = await supabase.from("employees").insert({
+      full_name: fullName,
+      email: email || null,
+      department,
+      location_id: locationId,
+    });
+
+    if (error) {
+      errors.push({ row: rowNumber, reason: "błąd zapisu w bazie" });
+      continue;
+    }
+    imported += 1;
+  }
+
+  revalidatePath("/pracownicy");
+  return { ok: true, data: { imported, errors } };
+}

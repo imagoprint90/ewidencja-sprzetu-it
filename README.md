@@ -20,12 +20,18 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
 - Sprzęt: lista z wyszukiwarką, filtrami, wyborem widocznych kolumn, dodawanie i edycja
   (walidacja unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane
   w bazie.
-- Kategorie i Lokalizacje: dodawanie, zmiana nazwy, archiwizacja z blokadą, gdy są używane.
-  Lokalizacja **sprzętu nie jest ręcznie edytowalna** — jest zsynchronizowana automatycznie
-  z lokalizacją aktualnie przypisanego pracownika, a przy zwrocie do magazynu wraca do
-  domyślnej lokalizacji „Magazyn” (ustawiane w `transfer_equipment_set`). Zmiana lokalizacji
-  pracownika aktualizuje też lokalizację jego aktualnie przydzielonego sprzętu.
-- Pracownicy: lista, karta pracownika, dodawanie, edycja, aktywacja/dezaktywacja.
+- Kategorie i Lokalizacje: dodawanie, zmiana nazwy, archiwizacja z blokadą, gdy są używane,
+  oraz trwałe usuwanie (też zablokowane, gdy lokalizacja/kategoria jest przypisana do
+  pracowników lub sprzętu). Lokalizacja **sprzętu nie jest ręcznie edytowalna** — jest
+  zsynchronizowana automatycznie z lokalizacją aktualnie przypisanego pracownika, a przy
+  zwrocie do magazynu wraca do domyślnej lokalizacji „Magazyn” (ustawiane w
+  `transfer_equipment_set`). Zmiana lokalizacji pracownika aktualizuje też lokalizację jego
+  aktualnie przydzielonego sprzętu.
+- Pracownicy: lista (z kolumną e-mail), karta pracownika, dodawanie, edycja,
+  aktywacja/dezaktywacja, usuwanie (zablokowane, gdy pracownik ma historię przydziałów
+  sprzętu — wtedy zamiast usuwania używa się dezaktywacji, żeby zachować historię). Import z
+  pliku CSV — przycisk „Importuj CSV” obok listy, patrz sekcja „Import pracowników z CSV”
+  niżej po strukturę pliku.
 - Lista sprzętu: edycja wprost w komórkach tabeli (kategoria, nazwa, nr seryjny, uwagi,
   status), zmiana kolejności i kolorów tekstu kolumn (zapamiętywane w przeglądarce),
   numeracja L.p. Status ma 5 wartości: W magazynie/Przydzielony (automatyczne, sterowane
@@ -78,9 +84,39 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   przechowywane ani wyświetlane.
 
 **Zostało na później (dodatki, nieblokujące podstawowego procesu):**
-- Import/eksport CSV, etykiety z kodami QR, przegląd inwentaryzacyjny.
+- Import CSV sprzętu, eksport CSV, etykiety z kodami QR, przegląd inwentaryzacyjny.
+  (Import CSV pracowników już działa — patrz sekcja „Import pracowników z CSV” niżej.)
 - Pełne ukrycie akcji edycji przed rolą „podgląd” we wszystkich miejscach interfejsu (RLS w
   bazie już i tak blokuje te operacje niezależnie od interfejsu).
+
+## Import pracowników z CSV
+
+Na liście **Pracownicy** przycisk „Importuj CSV” (widoczny tylko dla administratora) wczytuje
+plik CSV i dodaje z niego wielu pracowników naraz.
+
+**Wymagany nagłówek** (pierwszy wiersz pliku) — dokładne nazwy kolumn, wielkość liter i polskie
+znaki nie mają znaczenia:
+
+| Kolumna | Wymagana | Opis |
+|---|---|---|
+| `Imię i nazwisko` | tak | pełne imię i nazwisko pracownika |
+| `Email` | nie | adres e-mail, może być pusty |
+| `Dział` | tak | nazwa działu (dowolny tekst) |
+| `Lokalizacja` | tak | musi dokładnie odpowiadać nazwie istniejącej, niezarchiwizowanej lokalizacji (patrz strona **Lokalizacje**) |
+
+Przykładowy plik (separator przecinek lub średnik — wykrywany automatycznie, więc plik
+wyeksportowany z polskiego Excela ze średnikami też zadziała):
+
+```csv
+Imię i nazwisko,Email,Dział,Lokalizacja
+Jan Kowalski,jan.kowalski@firma.pl,IT,Warszawa
+Anna Nowak,,Księgowość,Kraków
+```
+
+Zapisz plik jako **CSV UTF-8** (w Excelu: Zapisz jako → „CSV UTF-8 (rozdzielany przecinkami)”),
+żeby polskie znaki się nie posypały. Wiersze z brakującymi danymi albo nieznaną lokalizacją są
+pomijane, a system po imporcie pokazuje dokładnie które wiersze i dlaczego — reszta i tak
+zostaje zaimportowana.
 
 ## Uruchomienie lokalne
 
