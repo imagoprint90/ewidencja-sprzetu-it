@@ -43,7 +43,8 @@ export const equipmentFormSchema = equipmentBaseSchema
 export type EquipmentFormValues = z.infer<typeof equipmentFormSchema>;
 
 export const employeeFormSchema = z.object({
-  fullName: z.string().trim().min(1, "Imię i nazwisko są wymagane."),
+  firstName: z.string().trim().min(1, "Imię jest wymagane."),
+  lastName: z.string().trim().min(1, "Nazwisko jest wymagane."),
   email: z
     .string()
     .trim()

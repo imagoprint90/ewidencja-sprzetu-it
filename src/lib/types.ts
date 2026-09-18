@@ -54,7 +54,8 @@ export interface Location {
 
 export interface Employee {
   id: string;
-  fullName: string;
+  firstName: string;
+  lastName: string | null;
   email: string | null;
   phone: string | null;
   department: string | null;

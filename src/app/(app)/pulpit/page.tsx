@@ -11,6 +11,7 @@ import {
 } from "@/lib/supabase/queries";
 import { daysUntil, formatDate } from "@/lib/format";
 import { canViewTab } from "@/lib/access";
+import { employeeFullName } from "@/lib/equipment-helpers";
 import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -190,7 +191,7 @@ export default async function PulpitPage(): Promise<ReactNode> {
                             {eq?.name ?? "—"}
                           </Link>
                         </td>
-                        <td className="py-2 pr-4">{emp?.fullName ?? "—"}</td>
+                        <td className="py-2 pr-4">{emp ? employeeFullName(emp) : "—"}</td>
                         <td className="py-2 pr-4">{formatDate(a.assignedAt)}</td>
                         <td className="py-2">{a.returnedAt ? formatDate(a.returnedAt) : "aktywny"}</td>
                       </tr>

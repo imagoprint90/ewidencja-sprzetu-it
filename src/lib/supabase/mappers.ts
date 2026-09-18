@@ -47,7 +47,8 @@ export function mapLocation(row: {
 
 export function mapEmployee(row: {
   id: string;
-  full_name: string;
+  first_name: string;
+  last_name: string | null;
   email: string | null;
   phone: string | null;
   department: string | null;
@@ -57,7 +58,8 @@ export function mapEmployee(row: {
 }): Employee {
   return {
     id: row.id,
-    fullName: row.full_name,
+    firstName: row.first_name,
+    lastName: row.last_name,
     email: row.email,
     phone: row.phone,
     department: row.department,

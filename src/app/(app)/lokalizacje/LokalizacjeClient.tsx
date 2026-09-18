@@ -10,8 +10,11 @@ import { ExpandableList } from "@/components/ui/ExpandableList";
 import { inputClass } from "@/components/ui/Form";
 import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
 import { ColumnPicker } from "@/components/ui/ColumnPicker";
+import { SortableTh } from "@/components/ui/SortableTh";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import { useSort } from "@/lib/useSort";
+import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
 import type { Location } from "@/lib/types";
 import {
   addLocationAction,
@@ -40,6 +43,8 @@ const LOCATION_COLUMN_LABELS: Record<LocationColumnKey, string> = {
 };
 const DEFAULT_LOCATION_COLUMNS: LocationColumnKey[] = ["isActive", "employees", "equipment"];
 
+type SortKey = "name" | LocationColumnKey;
+
 export function LokalizacjeClient({
   locations,
   employeeNames,
@@ -61,6 +66,7 @@ export function LokalizacjeClient({
     "lokalizacje-kolumny",
     DEFAULT_LOCATION_COLUMNS
   );
+  const { sortKey, sortDir, toggleSort } = useSort<SortKey>("name");
 
   const [newName, setNewName] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
@@ -157,6 +163,16 @@ export function LokalizacjeClient({
     });
   }, [locations, filters]);
 
+  const sorted = useMemo(() => {
+    const comparators: Record<string, (a: Location, b: Location) => number> = {
+      name: (a, b) => compareStrings(a.name, b.name),
+      isActive: (a, b) => compareNumbers(Number(!a.isArchived), Number(!b.isArchived)),
+      employees: (a, b) => compareNumbers((employeeNames[a.id] ?? []).length, (employeeNames[b.id] ?? []).length),
+      equipment: (a, b) => compareNumbers((equipmentNames[a.id] ?? []).length, (equipmentNames[b.id] ?? []).length),
+    };
+    return applySort(filtered, sortKey, sortDir, comparators);
+  }, [filtered, sortKey, sortDir, employeeNames, equipmentNames]);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -235,17 +251,22 @@ export function LokalizacjeClient({
         <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
-              <th className="px-4 py-3 font-medium">Nazwa</th>
+              <SortableTh label="Nazwa" sortKey="name" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
               {visibleColumns.map((col) => (
-                <th key={col} className="px-4 py-3 font-medium">
-                  {LOCATION_COLUMN_LABELS[col]}
-                </th>
+                <SortableTh
+                  key={col}
+                  label={LOCATION_COLUMN_LABELS[col]}
+                  sortKey={col}
+                  currentKey={sortKey}
+                  direction={sortDir}
+                  onSort={(k) => toggleSort(k as SortKey)}
+                />
               ))}
               {isAdmin && <th className="px-4 py-3 font-medium text-right">Działania</th>}
             </tr>
           </thead>
           <tbody>
-            {filtered.map((l) => (
+            {sorted.map((l) => (
               <tr key={l.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3">
                   {editingId === l.id ? (

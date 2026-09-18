@@ -25,7 +25,8 @@ export function NowyPracownikForm({ locations }: { locations: Location[] }) {
   async function onSubmit(values: EmployeeFormValues) {
     setSubmitError(null);
     const result = await addEmployeeAction({
-      fullName: values.fullName,
+      firstName: values.firstName,
+      lastName: values.lastName,
       email: values.email || null,
       phone: values.phone || null,
       department: values.department || null,
@@ -49,8 +50,11 @@ export function NowyPracownikForm({ locations }: { locations: Location[] }) {
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <FormSection title="Dane pracownika">
-          <FormField label="Imię i nazwisko" htmlFor="fullName" required error={errors.fullName?.message} full>
-            <input id="fullName" className={inputClass} {...register("fullName")} />
+          <FormField label="Imię" htmlFor="firstName" required error={errors.firstName?.message}>
+            <input id="firstName" className={inputClass} {...register("firstName")} />
+          </FormField>
+          <FormField label="Nazwisko" htmlFor="lastName" required error={errors.lastName?.message}>
+            <input id="lastName" className={inputClass} {...register("lastName")} />
           </FormField>
           <FormField label="Adres e-mail" htmlFor="email" error={errors.email?.message}>
             <input id="email" type="email" className={inputClass} {...register("email")} />

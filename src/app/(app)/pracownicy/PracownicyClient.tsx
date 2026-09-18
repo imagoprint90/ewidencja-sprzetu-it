@@ -9,8 +9,11 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EditableCell } from "@/components/ui/EditableCell";
 import { ColumnPicker } from "@/components/ui/ColumnPicker";
+import { SortableTh } from "@/components/ui/SortableTh";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import { useSort } from "@/lib/useSort";
+import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
 import { getLocationName } from "@/lib/equipment-helpers";
 import { parseCsv, normalizeHeader } from "@/lib/csv";
 import {
@@ -25,13 +28,22 @@ import {
 } from "@/lib/supabase/actions/employee-actions";
 import type { Employee, Location } from "@/lib/types";
 
-const FULL_NAME_ALIASES = ["imie i nazwisko", "imie nazwisko", "pracownik"];
+const FIRST_NAME_ALIASES = ["imie"];
+const LAST_NAME_ALIASES = ["nazwisko"];
 const EMAIL_ALIASES = ["email", "e-mail", "adres e-mail", "adres email"];
 const PHONE_ALIASES = ["telefon", "nr telefonu", "numer telefonu", "tel"];
 const DEPARTMENT_ALIASES = ["dzial"];
 const LOCATION_ALIASES = ["lokalizacja"];
 
-type EmployeeColumnKey = "email" | "phone" | "department" | "location" | "assignedEquipment" | "status";
+type EmployeeColumnKey =
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "phone"
+  | "department"
+  | "location"
+  | "assignedEquipment"
+  | "status";
 
 const EMPLOYEE_COLUMNS: EmployeeColumnKey[] = [
   "email",
@@ -42,6 +54,8 @@ const EMPLOYEE_COLUMNS: EmployeeColumnKey[] = [
   "status",
 ];
 const EMPLOYEE_COLUMN_LABELS: Record<EmployeeColumnKey, string> = {
+  firstName: "Imię",
+  lastName: "Nazwisko",
   email: "Email",
   phone: "Telefon",
   department: "Dział",
@@ -77,6 +91,7 @@ export function PracownicyClient({
     "pracownicy-kolumny",
     DEFAULT_EMPLOYEE_COLUMNS
   );
+  const { sortKey, sortDir, toggleSort } = useSort<EmployeeColumnKey>("lastName");
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<string | null>(null);
   const [isImporting, startImportTransition] = useTransition();
@@ -87,7 +102,8 @@ export function PracownicyClient({
     patch: Partial<{ email: string | null; phone: string | null; department: string | null }>
   ) {
     const result = await updateEmployeeAction(item.id, {
-      fullName: item.fullName,
+      firstName: item.firstName,
+      lastName: item.lastName,
       email: patch.email !== undefined ? patch.email : item.email,
       phone: patch.phone !== undefined ? patch.phone : item.phone,
       department: patch.department !== undefined ? patch.department : item.department,
@@ -117,12 +133,27 @@ export function PracownicyClient({
       if (filters.departments.length > 0 && (!e.department || !filters.departments.includes(e.department)))
         return false;
       if (!q) return true;
-      return [e.fullName, e.email ?? "", e.phone ?? "", e.department ?? "", getLocationName(locations, e.locationId)]
+      return [e.firstName, e.lastName ?? "", e.email ?? "", e.phone ?? "", e.department ?? "", getLocationName(locations, e.locationId)]
         .join(" ")
         .toLowerCase()
         .includes(q);
     });
   }, [employees, filters, locations]);
+
+  const sorted = useMemo(() => {
+    const comparators: Record<string, (a: Employee, b: Employee) => number> = {
+      firstName: (a, b) => compareStrings(a.firstName, b.firstName),
+      lastName: (a, b) => compareStrings(a.lastName ?? "", b.lastName ?? ""),
+      email: (a, b) => compareStrings(a.email ?? "", b.email ?? ""),
+      phone: (a, b) => compareStrings(a.phone ?? "", b.phone ?? ""),
+      department: (a, b) => compareStrings(a.department ?? "", b.department ?? ""),
+      location: (a, b) =>
+        compareStrings(getLocationName(locations, a.locationId), getLocationName(locations, b.locationId)),
+      assignedEquipment: (a, b) => compareNumbers(assignedCounts[a.id] ?? 0, assignedCounts[b.id] ?? 0),
+      status: (a, b) => compareNumbers(Number(a.isActive), Number(b.isActive)),
+    };
+    return applySort(filtered, sortKey, sortDir, comparators);
+  }, [filtered, sortKey, sortDir, locations, assignedCounts]);
 
   function handleFilePicked(file: File) {
     setImportError(null);
@@ -138,15 +169,16 @@ export function PracownicyClient({
 
       const [header, ...dataRows] = rows;
       const normalizedHeader = header.map(normalizeHeader);
-      const nameIdx = normalizedHeader.findIndex((h) => FULL_NAME_ALIASES.includes(h));
+      const firstNameIdx = normalizedHeader.findIndex((h) => FIRST_NAME_ALIASES.includes(h));
+      const lastNameIdx = normalizedHeader.findIndex((h) => LAST_NAME_ALIASES.includes(h));
       const emailIdx = normalizedHeader.findIndex((h) => EMAIL_ALIASES.includes(h));
       const phoneIdx = normalizedHeader.findIndex((h) => PHONE_ALIASES.includes(h));
       const deptIdx = normalizedHeader.findIndex((h) => DEPARTMENT_ALIASES.includes(h));
       const locIdx = normalizedHeader.findIndex((h) => LOCATION_ALIASES.includes(h));
 
-      if (nameIdx === -1) {
+      if (firstNameIdx === -1 || lastNameIdx === -1) {
         setImportError(
-          'Nagłówek pliku musi zawierać kolumnę "Imię i nazwisko" (kolumny "Email", "Telefon", "Dział" i "Lokalizacja" są opcjonalne).'
+          'Nagłówek pliku musi zawierać kolumny "Imię" i "Nazwisko" (kolumny "Email", "Telefon", "Dział" i "Lokalizacja" są opcjonalne).'
         );
         return;
       }
@@ -154,7 +186,8 @@ export function PracownicyClient({
       const parsedRows: EmployeeCsvRow[] = dataRows
         .filter((r) => r.some((cell) => cell.trim() !== ""))
         .map((r) => ({
-          fullName: r[nameIdx] ?? "",
+          firstName: r[firstNameIdx] ?? "",
+          lastName: r[lastNameIdx] ?? "",
           email: emailIdx !== -1 ? r[emailIdx] ?? "" : "",
           phone: phoneIdx !== -1 ? r[phoneIdx] ?? "" : "",
           department: deptIdx !== -1 ? r[deptIdx] ?? "" : "",
@@ -261,16 +294,22 @@ export function PracownicyClient({
           <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-4 py-3 font-medium">Imię i nazwisko</th>
+                <SortableTh label="Imię" sortKey="firstName" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as EmployeeColumnKey)} />
+                <SortableTh label="Nazwisko" sortKey="lastName" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as EmployeeColumnKey)} />
                 {visibleColumns.map((col) => (
-                  <th key={col} className="px-4 py-3 font-medium">
-                    {EMPLOYEE_COLUMN_LABELS[col]}
-                  </th>
+                  <SortableTh
+                    key={col}
+                    label={EMPLOYEE_COLUMN_LABELS[col]}
+                    sortKey={col}
+                    currentKey={sortKey}
+                    direction={sortDir}
+                    onSort={(k) => toggleSort(k as EmployeeColumnKey)}
+                  />
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((e) => (
+              {sorted.map((e) => (
                 <tr
                   key={e.id}
                   className="cursor-pointer border-b border-border last:border-0 hover:bg-black/[0.02]"
@@ -278,7 +317,12 @@ export function PracownicyClient({
                 >
                   <td className="px-4 py-3">
                     <Link href={`/pracownicy/${e.id}`} className="font-medium text-primary hover:underline">
-                      {e.fullName}
+                      {e.firstName}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link href={`/pracownicy/${e.id}`} className="font-medium text-primary hover:underline">
+                      {e.lastName ?? "—"}
                     </Link>
                   </td>
                   {visibleColumns.map((col) => (

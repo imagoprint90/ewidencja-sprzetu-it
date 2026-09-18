@@ -40,7 +40,11 @@ export async function getLocations(supabase: SupabaseClient): Promise<Location[]
 }
 
 export async function getEmployees(supabase: SupabaseClient): Promise<Employee[]> {
-  const { data, error } = await supabase.from("employees").select("*").order("full_name");
+  const { data, error } = await supabase
+    .from("employees")
+    .select("*")
+    .order("first_name")
+    .order("last_name");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapEmployee);
 }

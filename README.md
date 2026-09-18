@@ -38,15 +38,21 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   przypisanego pracownika, a przy zwrocie do magazynu wraca do domyślnej lokalizacji
   „Magazyn” (ustawiane w `transfer_equipment_set`). Zmiana lokalizacji pracownika aktualizuje
   też lokalizację jego aktualnie przydzielonego sprzętu.
-- Pracownicy: lista z filtrami wielokrotnego wyboru (lokalizacja, dział, status —
-  zapamiętywane jak w Sprzęcie), wyborem widocznych kolumn i ich kolejności (przycisk
-  „Kolumny”, tak jak w Sprzęcie) oraz edycją wprost w komórkach tabeli (e-mail, telefon,
-  dział — bez wchodzenia na kartę pracownika). Karta pracownika: dodawanie, edycja,
-  aktywacja/dezaktywacja, usuwanie (zablokowane, gdy pracownik ma historię przydziałów
-  sprzętu — wtedy zamiast usuwania używa się dezaktywacji, żeby zachować historię). Dział i
-  lokalizacja są opcjonalne — nie każdy pracownik musi je mieć uzupełnione. Import z
-  pliku CSV — przycisk „Importuj CSV” obok listy, patrz sekcja „Import pracowników z CSV”
-  niżej po strukturę pliku.
+- Pracownicy: imię i nazwisko to dwie osobne kolumny (nie jedno pole) — dotyczy listy,
+  karty pracownika, formularzy i importu CSV. Lista ma filtry wielokrotnego wyboru
+  (lokalizacja, dział, status — zapamiętywane jak w Sprzęcie), wybór widocznych kolumn i ich
+  kolejności (przycisk „Kolumny”, tak jak w Sprzęcie) oraz edycję wprost w komórkach tabeli
+  (e-mail, telefon, dział — bez wchodzenia na kartę pracownika). Karta pracownika: dodawanie,
+  edycja, aktywacja/dezaktywacja, usuwanie (zablokowane, gdy pracownik ma historię
+  przydziałów sprzętu — wtedy zamiast usuwania używa się dezaktywacji, żeby zachować
+  historię). Dział i lokalizacja są opcjonalne — nie każdy pracownik musi je mieć
+  uzupełnione. Import z pliku CSV — przycisk „Importuj CSV” obok listy, patrz sekcja
+  „Import pracowników z CSV” niżej po strukturę pliku.
+- **Sortowanie list kliknięciem w nagłówek kolumny** — działa na wszystkich tabelach
+  w aplikacji (Sprzęt, Pracownicy, Lokalizacje, Kategorie, Protokoły, Użytkownicy). Pierwsze
+  kliknięcie sortuje rosnąco, drugie na tym samym nagłówku — malejąco, strzałka przy
+  nagłówku pokazuje aktualny kierunek. Sortowanie nie jest zapamiętywane między
+  przeładowaniami strony (w przeciwieństwie do filtrów i widoczności kolumn).
 - Lista sprzętu: edycja wprost w komórkach tabeli (kategoria, nazwa, nr seryjny, uwagi,
   status), zmiana kolejności i kolorów tekstu kolumn (zapamiętywane w przeglądarce),
   numeracja L.p. Status ma 5 wartości: W magazynie/Przydzielony (automatyczne, sterowane
@@ -114,28 +120,29 @@ znaki nie mają znaczenia:
 
 | Kolumna | Wymagana | Opis |
 |---|---|---|
-| `Imię i nazwisko` | tak | pełne imię i nazwisko pracownika |
+| `Imię` | tak | imię pracownika |
+| `Nazwisko` | tak | nazwisko pracownika |
 | `Email` | nie | adres e-mail, może być pusty |
 | `Telefon` | nie | numer telefonu, może być pusty |
 | `Dział` | nie | nazwa działu (dowolny tekst), może być pusta |
 | `Lokalizacja` | nie | jeśli podana, musi dokładnie odpowiadać nazwie istniejącej, niezarchiwizowanej lokalizacji (patrz strona **Lokalizacje**) — pusta komórka po prostu zostawia pracownika bez lokalizacji |
 
 Kolumny `Email`, `Telefon`, `Dział` i `Lokalizacja` można też całkiem pominąć w pliku, jeśli
-nie są potrzebne — jedyna wymagana kolumna to `Imię i nazwisko`.
+nie są potrzebne — wymagane są tylko `Imię` i `Nazwisko`.
 
 Przykładowy plik (separator przecinek lub średnik — wykrywany automatycznie, więc plik
 wyeksportowany z polskiego Excela ze średnikami też zadziała):
 
 ```csv
-Imię i nazwisko,Email,Telefon,Dział,Lokalizacja
-Jan Kowalski,jan.kowalski@firma.pl,+48 600 000 000,IT,Warszawa
-Anna Nowak,,,Księgowość,Kraków
-Piotr Zieliński,,,,
+Imię,Nazwisko,Email,Telefon,Dział,Lokalizacja
+Jan,Kowalski,jan.kowalski@firma.pl,+48 600 000 000,IT,Warszawa
+Anna,Nowak,,,Księgowość,Kraków
+Piotr,Zieliński,,,,
 ```
 
 Zapisz plik jako **CSV UTF-8** (w Excelu: Zapisz jako → „CSV UTF-8 (rozdzielany przecinkami)”),
-żeby polskie znaki się nie posypały. Wiersz bez imienia i nazwiska albo z nierozpoznaną
-lokalizacją (literówka w nazwie) jest pomijany, a system po imporcie pokazuje dokładnie które
+żeby polskie znaki się nie posypały. Wiersz bez imienia albo nazwiska, albo z nierozpoznaną
+lokalizacją (literówka w nazwie), jest pomijany, a system po imporcie pokazuje dokładnie które
 wiersze i dlaczego — reszta i tak zostaje zaimportowana.
 
 ## Uruchomienie lokalne
@@ -156,9 +163,8 @@ zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
 etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
 wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
-co już istnieje. Nowy plik do zastosowania: `0021_employee_phone_optional_fields.sql` (dodaje
-numer telefonu i znosi wymóg podawania działu/lokalizacji u pracownika). Pliki 0009–0020
-zostały już zastosowane.
+co już istnieje. Nowy plik do zastosowania: `0022_employee_first_last_name.sql` (rozdziela
+imię i nazwisko pracownika na dwie kolumny). Pliki 0009–0021 zostały już zastosowane.
 
 ## Konfiguracja Supabase
 

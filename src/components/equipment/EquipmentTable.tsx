@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { ArrowRightLeft, FileText, Pencil, Trash2 } from "lucide-react";
@@ -24,8 +24,12 @@ import { EQUIPMENT_COLUMN_LABELS, EQUIPMENT_STATUS_COLORS, EQUIPMENT_STATUS_LABE
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
 import { EditableCell } from "@/components/ui/EditableCell";
+import { SortableTh } from "@/components/ui/SortableTh";
 import { formatDate } from "@/lib/format";
+import { useSort } from "@/lib/useSort";
+import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
 import {
+  employeeFullName,
   equipmentToInput,
   getActiveAssignment,
   getCategoryName,
@@ -86,6 +90,7 @@ export function EquipmentTable({
   const [deleteTarget, setDeleteTarget] = useState<Equipment | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
+  const { sortKey, sortDir, toggleSort } = useSort<EquipmentColumnKey>();
 
   function handleDeleteConfirm() {
     if (!deleteTarget) return;
@@ -131,6 +136,65 @@ export function EquipmentTable({
     if (result.ok) window.open(result.data.url, "_blank", "noopener,noreferrer");
   }
 
+  const rows = useMemo(() => {
+    return equipment.map((item) => {
+      const activeAssignment = getActiveAssignment(assignments, item.id);
+      const employee = activeAssignment
+        ? employees.find((e) => e.id === activeAssignment.employeeId)
+        : undefined;
+      const linked = getLinkedEquipment(links, equipment, item.id);
+      const installedNames = installedSoftware
+        .filter((s) => s.equipmentId === item.id)
+        .map((s) => softwareProducts.find((p) => p.id === s.softwareProductId)?.name)
+        .filter((name): name is string => Boolean(name));
+      const licensedNames = licenseAssignments
+        .filter((a) => a.equipmentId === item.id)
+        .map((a) => {
+          const license = licenses.find((l) => l.id === a.licenseId);
+          return license ? softwareProducts.find((p) => p.id === license.productId)?.name : undefined;
+        })
+        .filter((name): name is string => Boolean(name));
+      const software = Array.from(new Set([...installedNames, ...licensedNames]));
+      const lastProtocol = getLastProtocol(item.id);
+      const categoryName = getCategoryName(categories, item.categoryId);
+      const locationName = getLocationName(locations, item.locationId);
+      const employeeName = employee ? employeeFullName(employee) : undefined;
+
+      return {
+        item,
+        activeAssignment,
+        employee,
+        employeeName,
+        linked,
+        software,
+        lastProtocol,
+        categoryName,
+        locationName,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [equipment, assignments, employees, links, installedSoftware, softwareProducts, licenseAssignments, licenses, protocolItemLinks, protocols, categories, locations]);
+
+  const sortedRows = useMemo(() => {
+    type Row = (typeof rows)[number];
+    const comparators: Record<string, (a: Row, b: Row) => number> = {
+      inventoryNumber: (a, b) => compareStrings(a.item.inventoryNumber, b.item.inventoryNumber),
+      category: (a, b) => compareStrings(a.categoryName, b.categoryName),
+      employee: (a, b) => compareStrings(a.employeeName ?? "", b.employeeName ?? ""),
+      assignmentDates: (a, b) =>
+        compareStrings(a.activeAssignment?.assignedAt ?? "", b.activeAssignment?.assignedAt ?? ""),
+      name: (a, b) => compareStrings(a.item.name, b.item.name),
+      serialNumber: (a, b) => compareStrings(a.item.serialNumber ?? "", b.item.serialNumber ?? ""),
+      software: (a, b) => compareNumbers(a.software.length, b.software.length),
+      linkedEquipment: (a, b) => compareNumbers(a.linked.length, b.linked.length),
+      status: (a, b) => compareStrings(EQUIPMENT_STATUS_LABELS[a.item.status], EQUIPMENT_STATUS_LABELS[b.item.status]),
+      location: (a, b) => compareStrings(a.locationName, b.locationName),
+      notes: (a, b) => compareStrings(a.item.notes ?? "", b.item.notes ?? ""),
+      lastProtocol: (a, b) => compareStrings(a.lastProtocol?.createdAt ?? "", b.lastProtocol?.createdAt ?? ""),
+    };
+    return applySort(rows, sortKey, sortDir, comparators);
+  }, [rows, sortKey, sortDir]);
+
   return (
     <div className="flex flex-col gap-3">
       {deleteError && (
@@ -155,34 +219,21 @@ export function EquipmentTable({
             )}
             <th className="w-10 px-3 py-2.5 font-medium">L.p.</th>
             {visibleColumns.map((col) => (
-              <th key={col} className="whitespace-nowrap px-3 py-2.5 font-medium">
-                {EQUIPMENT_COLUMN_LABELS[col]}
-              </th>
+              <SortableTh
+                key={col}
+                label={EQUIPMENT_COLUMN_LABELS[col]}
+                sortKey={col}
+                currentKey={sortKey}
+                direction={sortDir}
+                onSort={(k) => toggleSort(k as EquipmentColumnKey)}
+                className="whitespace-nowrap px-3 py-2.5 font-medium"
+              />
             ))}
             {isAdmin && <th className="whitespace-nowrap px-3 py-2.5 font-medium">Akcje</th>}
           </tr>
         </thead>
         <tbody>
-          {equipment.map((item, index) => {
-            const activeAssignment = getActiveAssignment(assignments, item.id);
-            const employee = activeAssignment
-              ? employees.find((e) => e.id === activeAssignment.employeeId)
-              : undefined;
-            const linked = getLinkedEquipment(links, equipment, item.id);
-            const installedNames = installedSoftware
-              .filter((s) => s.equipmentId === item.id)
-              .map((s) => softwareProducts.find((p) => p.id === s.softwareProductId)?.name)
-              .filter((name): name is string => Boolean(name));
-            const licensedNames = licenseAssignments
-              .filter((a) => a.equipmentId === item.id)
-              .map((a) => {
-                const license = licenses.find((l) => l.id === a.licenseId);
-                return license ? softwareProducts.find((p) => p.id === license.productId)?.name : undefined;
-              })
-              .filter((name): name is string => Boolean(name));
-            const software = Array.from(new Set([...installedNames, ...licensedNames]));
-            const lastProtocol = getLastProtocol(item.id);
-
+          {sortedRows.map(({ item, activeAssignment, employeeName, linked, software, lastProtocol, categoryName, locationName }, index) => {
             return (
               <tr
                 key={item.id}
@@ -212,9 +263,9 @@ export function EquipmentTable({
                     style={columnColors[col] ? { color: columnColors[col] } : undefined}
                   >
                     {renderCell(col, item, {
-                      categoryName: getCategoryName(categories, item.categoryId),
-                      locationName: getLocationName(locations, item.locationId),
-                      employeeName: employee?.fullName,
+                      categoryName,
+                      locationName,
+                      employeeName,
                       activeAssignment,
                       linked,
                       software,

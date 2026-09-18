@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import type { Category, Employee, EquipmentStatus, Location } from "@/lib/types";
 import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
 import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
+import { employeeFullName } from "@/lib/equipment-helpers";
 
 export interface EquipmentFiltersState {
   query: string;
@@ -73,7 +74,7 @@ export function EquipmentFilters({
 
       <MultiSelectFilter
         label="Pracownik"
-        options={employees.map((e) => ({ value: e.id, label: e.fullName }))}
+        options={employees.map((e) => ({ value: e.id, label: employeeFullName(e) }))}
         selected={value.employeeIds}
         onChange={(v) => set("employeeIds", v)}
       />

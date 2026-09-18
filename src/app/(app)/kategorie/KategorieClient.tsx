@@ -1,19 +1,24 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Archive, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { SortableTh } from "@/components/ui/SortableTh";
 import { inputClass } from "@/components/ui/Form";
 import { useIsAdmin } from "@/lib/current-user-context";
+import { useSort } from "@/lib/useSort";
+import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
 import type { Category } from "@/lib/types";
 import {
   addCategoryAction,
   archiveCategoryAction,
   renameCategoryAction,
 } from "@/lib/supabase/actions/category-actions";
+
+type SortKey = "name" | "count";
 
 export function KategorieClient({
   categories,
@@ -25,6 +30,7 @@ export function KategorieClient({
   const router = useRouter();
   const isAdmin = useIsAdmin();
   const [isPending, startTransition] = useTransition();
+  const { sortKey, sortDir, toggleSort } = useSort<SortKey>("name");
 
   const [newName, setNewName] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
@@ -83,6 +89,14 @@ export function KategorieClient({
   const active = categories.filter((c) => !c.isArchived);
   const archived = categories.filter((c) => c.isArchived);
 
+  const sortedActive = useMemo(() => {
+    const comparators: Record<string, (a: Category, b: Category) => number> = {
+      name: (a, b) => compareStrings(a.name, b.name),
+      count: (a, b) => compareNumbers(equipmentCounts[a.id] ?? 0, equipmentCounts[b.id] ?? 0),
+    };
+    return applySort(active, sortKey, sortDir, comparators);
+  }, [active, sortKey, sortDir, equipmentCounts]);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -122,13 +136,13 @@ export function KategorieClient({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
-              <th className="px-4 py-3 font-medium">Nazwa</th>
-              <th className="px-4 py-3 font-medium">Liczba sprzętu</th>
+              <SortableTh label="Nazwa" sortKey="name" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
+              <SortableTh label="Liczba sprzętu" sortKey="count" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
               {isAdmin && <th className="px-4 py-3 font-medium text-right">Działania</th>}
             </tr>
           </thead>
           <tbody>
-            {active.map((c) => (
+            {sortedActive.map((c) => (
               <tr key={c.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3">
                   {editingId === c.id ? (

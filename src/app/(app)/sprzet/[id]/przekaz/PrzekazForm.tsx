@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { StatusBadge } from "@/components/ui/Badge";
 import { formatDate, todayIsoDate } from "@/lib/format";
-import { getActiveAssignment, getCategoryName, getLinkedEquipment } from "@/lib/equipment-helpers";
+import { employeeFullName, getActiveAssignment, getCategoryName, getLinkedEquipment } from "@/lib/equipment-helpers";
 import {
   TECHNICAL_CONDITION_LABELS,
   type Assignment,
@@ -200,7 +200,8 @@ export function PrzekazForm({
         <div className="sm:col-span-2">
           {activeAssignment ? (
             <p className="text-sm">
-              Aktualnie przydzielony: <strong>{currentEmployee?.fullName ?? "nieznany pracownik"}</strong>{" "}
+              Aktualnie przydzielony:{" "}
+              <strong>{currentEmployee ? employeeFullName(currentEmployee) : "nieznany pracownik"}</strong>{" "}
               (od {formatDate(activeAssignment.assignedAt)})
             </p>
           ) : (
@@ -264,7 +265,7 @@ export function PrzekazForm({
                     </div>
                     <p className="text-xs text-muted">
                       {l.inventoryNumber} ·{" "}
-                      {lEmployee ? `obecnie: ${lEmployee.fullName}` : "nieprzydzielony"}
+                      {lEmployee ? `obecnie: ${employeeFullName(lEmployee)}` : "nieprzydzielony"}
                     </p>
                     {unavailable && (
                       <p className="text-xs text-danger">Sprzęt wycofany — nie można przekazać.</p>
@@ -314,7 +315,7 @@ export function PrzekazForm({
                 .filter((e) => e.id !== activeAssignment?.employeeId)
                 .map((e) => (
                   <option key={e.id} value={e.id}>
-                    {e.department ? `${e.fullName} (${e.department})` : e.fullName}
+                    {e.department ? `${employeeFullName(e)} (${e.department})` : employeeFullName(e)}
                   </option>
                 ))}
             </select>
@@ -397,8 +398,10 @@ export function PrzekazForm({
         description={
           `Sprzęt: ${[item, ...selectedLinkedItems].map((e) => e.name).join(", ")}. ` +
           (mode === "przekaz"
-            ? `Od: ${currentEmployee?.fullName ?? "nieprzydzielony"} → Do: ${newEmployee?.fullName ?? "—"}. `
-            : `Zwrot do magazynu od: ${currentEmployee?.fullName ?? "—"}. `) +
+            ? `Od: ${currentEmployee ? employeeFullName(currentEmployee) : "nieprzydzielony"} → Do: ${
+                newEmployee ? employeeFullName(newEmployee) : "—"
+              }. `
+            : `Zwrot do magazynu od: ${currentEmployee ? employeeFullName(currentEmployee) : "—"}. `) +
           `Data: ${formatDate(transferDate)}, ${city.trim() || "brak miejscowości"}. Stan: ${
             condition ? TECHNICAL_CONDITION_LABELS[condition as TechnicalCondition] : "—"
           }. Zostanie automatycznie wygenerowany protokół PDF.`

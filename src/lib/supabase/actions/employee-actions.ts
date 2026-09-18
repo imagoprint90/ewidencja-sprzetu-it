@@ -10,7 +10,8 @@ type ActionResult<T = undefined> =
   | { ok: false; error: string };
 
 export async function addEmployeeAction(input: {
-  fullName: string;
+  firstName: string;
+  lastName: string | null;
   email: string | null;
   phone: string | null;
   department: string | null;
@@ -20,7 +21,8 @@ export async function addEmployeeAction(input: {
   const { data, error } = await supabase
     .from("employees")
     .insert({
-      full_name: input.fullName.trim(),
+      first_name: input.firstName.trim(),
+      last_name: input.lastName,
       email: input.email,
       phone: input.phone,
       department: input.department,
@@ -40,7 +42,8 @@ export async function addEmployeeAction(input: {
 export async function updateEmployeeAction(
   id: string,
   input: {
-    fullName: string;
+    firstName: string;
+    lastName: string | null;
     email: string | null;
     phone: string | null;
     department: string | null;
@@ -58,7 +61,8 @@ export async function updateEmployeeAction(
   const { error } = await supabase
     .from("employees")
     .update({
-      full_name: input.fullName.trim(),
+      first_name: input.firstName.trim(),
+      last_name: input.lastName,
       email: input.email,
       phone: input.phone,
       department: input.department,
@@ -133,7 +137,8 @@ export async function deleteEmployeeAction(id: string): Promise<ActionResult<und
 }
 
 export interface EmployeeCsvRow {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   department: string;
@@ -161,14 +166,19 @@ export async function importEmployeesAction(
 
   for (let i = 0; i < rows.length; i++) {
     const rowNumber = i + 2; // +1 za nagłówek, +1 bo liczymy od 1
-    const fullName = rows[i].fullName.trim();
+    const firstName = rows[i].firstName.trim();
+    const lastName = rows[i].lastName.trim();
     const department = rows[i].department.trim();
     const locationName = rows[i].locationName.trim();
     const email = rows[i].email.trim();
     const phone = rows[i].phone.trim();
 
-    if (!fullName) {
-      errors.push({ row: rowNumber, reason: "brak imienia i nazwiska" });
+    if (!firstName) {
+      errors.push({ row: rowNumber, reason: "brak imienia" });
+      continue;
+    }
+    if (!lastName) {
+      errors.push({ row: rowNumber, reason: "brak nazwiska" });
       continue;
     }
 
@@ -186,7 +196,8 @@ export async function importEmployeesAction(
     }
 
     const { error } = await supabase.from("employees").insert({
-      full_name: fullName,
+      first_name: firstName,
+      last_name: lastName,
       email: email || null,
       phone: phone || null,
       department: department || null,

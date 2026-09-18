@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { formatDate } from "@/lib/format";
+import { employeeFullName } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
 import {
   LICENSE_TYPE_LABELS,
@@ -470,7 +471,10 @@ export function OprogramowanieClient({
                             const targetName =
                               license.licenseType === "urzadzenie"
                                 ? equipment.find((e) => e.id === a.equipmentId)?.name
-                                : employees.find((e) => e.id === a.employeeId)?.fullName;
+                                : (() => {
+                                    const emp = employees.find((e) => e.id === a.employeeId);
+                                    return emp ? employeeFullName(emp) : undefined;
+                                  })();
                             return (
                               <li
                                 key={a.id}
@@ -512,7 +516,7 @@ export function OprogramowanieClient({
                                 ))
                               : employees.map((e) => (
                                   <option key={e.id} value={e.id}>
-                                    {e.fullName}
+                                    {employeeFullName(e)}
                                   </option>
                                 ))}
                           </select>

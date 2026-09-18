@@ -1,14 +1,17 @@
 "use client";
 
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, ChevronDown, ChevronUp, Trash2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { SortableTh } from "@/components/ui/SortableTh";
 import { inputClass } from "@/components/ui/Form";
 import { useCurrentUser } from "@/lib/current-user-context";
+import { useSort } from "@/lib/useSort";
+import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
 import { ASSIGNABLE_TABS } from "@/lib/access";
 import { formatDateTime } from "@/lib/format";
 import type { UserProfile } from "@/lib/supabase/queries";
@@ -18,9 +21,12 @@ import {
   updateUserPermissionsAction,
 } from "@/lib/supabase/actions/user-actions";
 
+type SortKey = "fullName" | "email" | "role" | "tabs" | "createdAt";
+
 export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
   const router = useRouter();
   const currentUser = useCurrentUser();
+  const { sortKey, sortDir, toggleSort } = useSort<SortKey>("fullName");
   const [isPending, startTransition] = useTransition();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState<"administrator" | "podglad">("podglad");
@@ -96,6 +102,17 @@ export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
     });
   }
 
+  const sorted = useMemo(() => {
+    const comparators: Record<string, (a: UserProfile, b: UserProfile) => number> = {
+      fullName: (a, b) => compareStrings(a.fullName, b.fullName),
+      email: (a, b) => compareStrings(a.email ?? "", b.email ?? ""),
+      role: (a, b) => compareStrings(a.role, b.role),
+      tabs: (a, b) => compareNumbers(a.visibleTabs?.length ?? ASSIGNABLE_TABS.length, b.visibleTabs?.length ?? ASSIGNABLE_TABS.length),
+      createdAt: (a, b) => compareStrings(a.createdAt, b.createdAt),
+    };
+    return applySort(profiles, sortKey, sortDir, comparators);
+  }, [profiles, sortKey, sortDir]);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -124,16 +141,16 @@ export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
         <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
-              <th className="px-4 py-3 font-medium">Imię i nazwisko</th>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Rola</th>
-              <th className="px-4 py-3 font-medium">Zakładki</th>
-              <th className="px-4 py-3 font-medium">Utworzono</th>
+              <SortableTh label="Imię i nazwisko" sortKey="fullName" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
+              <SortableTh label="Email" sortKey="email" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
+              <SortableTh label="Rola" sortKey="role" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
+              <SortableTh label="Zakładki" sortKey="tabs" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
+              <SortableTh label="Utworzono" sortKey="createdAt" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
               <th className="px-4 py-3 font-medium text-right">Działania</th>
             </tr>
           </thead>
           <tbody>
-            {profiles.map((p) => {
+            {sorted.map((p) => {
               const isSelf = p.id === currentUser.id;
               const expanded = expandedId === p.id;
               return (

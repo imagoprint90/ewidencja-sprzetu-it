@@ -11,7 +11,7 @@ import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { formatDate } from "@/lib/format";
-import { getCategoryName, getLocationName } from "@/lib/equipment-helpers";
+import { employeeFullName, getCategoryName, getLocationName } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { employeeFormSchema, type EmployeeFormValues } from "@/lib/schemas";
 import type { Assignment, Category, Employee, Equipment, Location } from "@/lib/types";
@@ -61,7 +61,8 @@ export function PracownikDetailClient({
   } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
-      fullName: employee.fullName,
+      firstName: employee.firstName,
+      lastName: employee.lastName ?? "",
       email: employee.email ?? "",
       phone: employee.phone ?? "",
       department: employee.department ?? "",
@@ -93,7 +94,8 @@ export function PracownikDetailClient({
   async function onSubmitEdit(values: EmployeeFormValues) {
     setEditError(null);
     const result = await updateEmployeeAction(employee.id, {
-      fullName: values.fullName,
+      firstName: values.firstName,
+      lastName: values.lastName,
       email: values.email || null,
       phone: values.phone || null,
       department: values.department || null,
@@ -120,8 +122,11 @@ export function PracownikDetailClient({
       {editing ? (
         <form onSubmit={handleSubmit(onSubmitEdit)} className="flex flex-col gap-4">
           <FormSection title="Dane pracownika">
-            <FormField label="Imię i nazwisko" htmlFor="fullName" required error={errors.fullName?.message} full>
-              <input id="fullName" className={inputClass} {...register("fullName")} />
+            <FormField label="Imię" htmlFor="firstName" required error={errors.firstName?.message}>
+              <input id="firstName" className={inputClass} {...register("firstName")} />
+            </FormField>
+            <FormField label="Nazwisko" htmlFor="lastName" required error={errors.lastName?.message}>
+              <input id="lastName" className={inputClass} {...register("lastName")} />
             </FormField>
             <FormField label="Adres e-mail" htmlFor="email" error={errors.email?.message}>
               <input id="email" type="email" className={inputClass} {...register("email")} />
@@ -162,7 +167,7 @@ export function PracownikDetailClient({
       ) : (
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold">{employee.fullName}</h1>
+            <h1 className="text-xl font-semibold">{employeeFullName(employee)}</h1>
             <p className="text-sm text-muted">
               {[
                 employee.department ?? "bez działu",

@@ -43,7 +43,15 @@ export function getLinkedEquipment(
   return equipmentList.filter((e) => linkedIds.includes(e.id));
 }
 
+// Pracownik ma osobne pola imię/nazwisko w bazie (nie jedno pole "pełne imię i nazwisko") —
+// to jedyne miejsce, które je łączy do wyświetlenia. Używać wszędzie tam, gdzie wcześniej
+// było employee.fullName.
+export function employeeFullName(employee: { firstName: string; lastName: string | null }): string {
+  return [employee.firstName, employee.lastName].filter(Boolean).join(" ");
+}
+
 export function getEmployeeName(employees: Employee[], employeeId: string | undefined): string {
   if (!employeeId) return "—";
-  return employees.find((e) => e.id === employeeId)?.fullName ?? "—";
+  const employee = employees.find((e) => e.id === employeeId);
+  return employee ? employeeFullName(employee) : "—";
 }

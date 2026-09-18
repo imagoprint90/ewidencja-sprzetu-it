@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { employeeFullName } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
 import type { Assignment, Employee, Equipment } from "@/lib/types";
 
@@ -45,7 +46,9 @@ export function AssignmentsTab({
             return (
               <li key={a.id} className="rounded-xl border border-border bg-surface p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-medium">{employee?.fullName ?? "Nieznany pracownik"}</span>
+                  <span className="font-medium">
+                    {employee ? employeeFullName(employee) : "Nieznany pracownik"}
+                  </span>
                   {a.returnedAt === null ? (
                     <Badge tone="success">Aktywny przydział</Badge>
                   ) : (

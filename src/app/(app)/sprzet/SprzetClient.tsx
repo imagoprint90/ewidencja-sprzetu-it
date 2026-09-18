@@ -17,7 +17,7 @@ import { EquipmentTable } from "@/components/equipment/EquipmentTable";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { EQUIPMENT_COLUMNS, type EquipmentColumnKey, type EquipmentStatus } from "@/lib/types";
-import { getActiveAssignment } from "@/lib/equipment-helpers";
+import { employeeFullName, getActiveAssignment } from "@/lib/equipment-helpers";
 import { deleteEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
 import type {
   Assignment,
@@ -115,9 +115,8 @@ function SprzetPageInner({
       }
       if (q) {
         const active = getActiveAssignment(assignments, item.id);
-        const employeeName = active
-          ? employees.find((e) => e.id === active.employeeId)?.fullName ?? ""
-          : "";
+        const activeEmployee = active ? employees.find((e) => e.id === active.employeeId) : undefined;
+        const employeeName = activeEmployee ? employeeFullName(activeEmployee) : "";
         const haystack = [item.name, item.serialNumber ?? "", item.inventoryNumber, employeeName]
           .join(" ")
           .toLowerCase();

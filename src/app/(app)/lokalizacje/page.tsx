@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireTabAccess } from "@/lib/supabase/require-tab";
 import { getEmployees, getEquipment, getLocations } from "@/lib/supabase/queries";
+import { employeeFullName } from "@/lib/equipment-helpers";
 import { LokalizacjeClient } from "./LokalizacjeClient";
 
 export default async function LokalizacjePage() {
@@ -15,7 +16,7 @@ export default async function LokalizacjePage() {
   const employeeNames: Record<string, string[]> = {};
   const equipmentNames: Record<string, string[]> = {};
   for (const l of locations) {
-    employeeNames[l.id] = employees.filter((e) => e.locationId === l.id).map((e) => e.fullName);
+    employeeNames[l.id] = employees.filter((e) => e.locationId === l.id).map(employeeFullName);
     equipmentNames[l.id] = equipment.filter((e) => e.locationId === l.id).map((e) => e.name);
   }
 

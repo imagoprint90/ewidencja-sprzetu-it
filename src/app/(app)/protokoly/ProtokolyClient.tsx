@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ExpandableList } from "@/components/ui/ExpandableList";
+import { SortableTh } from "@/components/ui/SortableTh";
 import { formatDateTime } from "@/lib/format";
+import { useSort } from "@/lib/useSort";
+import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { PROTOCOL_STATUS_LABELS, PROTOCOL_TYPE_LABELS, type Protocol } from "@/lib/types";
 import {
@@ -31,6 +34,8 @@ function statusTone(status: Protocol["pdfStatus"]) {
   return "warning" as const;
 }
 
+type SortKey = "number" | "type" | "equipment" | "equipmentName" | "parties" | "date" | "status";
+
 export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -40,6 +45,7 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
   const [query, setQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const { sortKey, sortDir, toggleSort } = useSort<SortKey>("date", "desc");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -61,6 +67,19 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
       return haystack.includes(q);
     });
   }, [protocols, query]);
+
+  const sorted = useMemo(() => {
+    const comparators: Record<string, (a: Protocol, b: Protocol) => number> = {
+      number: (a, b) => compareStrings(a.protocolNumber, b.protocolNumber),
+      type: (a, b) => compareStrings(PROTOCOL_TYPE_LABELS[a.type], PROTOCOL_TYPE_LABELS[b.type]),
+      equipment: (a, b) => compareNumbers(a.snapshot.items.length, b.snapshot.items.length),
+      equipmentName: (a, b) => compareNumbers(a.snapshot.items.length, b.snapshot.items.length),
+      parties: (a, b) => compareStrings(partySummary(a), partySummary(b)),
+      date: (a, b) => compareStrings(a.createdAt, b.createdAt),
+      status: (a, b) => compareStrings(PROTOCOL_STATUS_LABELS[a.pdfStatus], PROTOCOL_STATUS_LABELS[b.pdfStatus]),
+    };
+    return applySort(filtered, sortKey, sortDir, comparators);
+  }, [filtered, sortKey, sortDir]);
 
   function handleDownload(path: string | null) {
     if (!path) return;
@@ -164,18 +183,18 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
           <table className="w-full min-w-[1080px] text-sm">
             <thead>
               <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-3 py-2.5 font-medium">Numer</th>
-                <th className="px-3 py-2.5 font-medium">Typ</th>
-                <th className="px-3 py-2.5 font-medium">Sprzęt</th>
-                <th className="px-3 py-2.5 font-medium">Nazwa sprzętu</th>
-                <th className="px-3 py-2.5 font-medium">Strony</th>
-                <th className="px-3 py-2.5 font-medium">Data</th>
-                <th className="px-3 py-2.5 font-medium">Status</th>
+                <SortableTh label="Numer" sortKey="number" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} className="px-3 py-2.5 font-medium" />
+                <SortableTh label="Typ" sortKey="type" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} className="px-3 py-2.5 font-medium" />
+                <SortableTh label="Sprzęt" sortKey="equipment" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} className="px-3 py-2.5 font-medium" />
+                <SortableTh label="Nazwa sprzętu" sortKey="equipmentName" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} className="px-3 py-2.5 font-medium" />
+                <SortableTh label="Strony" sortKey="parties" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} className="px-3 py-2.5 font-medium" />
+                <SortableTh label="Data" sortKey="date" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} className="px-3 py-2.5 font-medium" />
+                <SortableTh label="Status" sortKey="status" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} className="px-3 py-2.5 font-medium" />
                 <th className="px-3 py-2.5 font-medium text-right">Działania</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
+              {sorted.map((p) => (
                 <tr key={p.id} className="border-b border-border last:border-0">
                   <td className="px-3 py-2 align-middle font-medium">{p.protocolNumber}</td>
                   <td className="px-3 py-2 align-middle">{PROTOCOL_TYPE_LABELS[p.type]}</td>

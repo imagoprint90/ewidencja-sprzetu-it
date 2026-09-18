@@ -75,7 +75,7 @@ export async function createProtocolAction(
         .in("id", input.equipmentIds),
       supabase
         .from("employees")
-        .select("id, full_name")
+        .select("id, first_name, last_name")
         .in(
           "id",
           [input.previousEmployeeId, input.newEmployeeId].filter((v): v is string => Boolean(v))
@@ -87,8 +87,11 @@ export async function createProtocolAction(
     return { ok: false, error: "Nie znaleziono sprzętu do protokołu." };
   }
 
-  const employeeName = (id: string | null) =>
-    id ? employeeRows?.find((e) => e.id === id)?.full_name ?? null : null;
+  const employeeName = (id: string | null) => {
+    if (!id) return null;
+    const row = employeeRows?.find((e) => e.id === id);
+    return row ? [row.first_name, row.last_name].filter(Boolean).join(" ") : null;
+  };
 
   // Na protokole identyfikujemy sprzęt przez producenta i model (nie wewnętrzną nazwę
   // ewidencyjną) — numer seryjny jest już osobną kolumną w dokumencie.
