@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ColumnPicker } from "@/components/equipment/ColumnPicker";
-import { EquipmentFilters, type EquipmentFiltersState } from "@/components/equipment/EquipmentFilters";
+import {
+  EMPTY_EQUIPMENT_FILTERS,
+  EquipmentFilters,
+  type EquipmentFiltersState,
+} from "@/components/equipment/EquipmentFilters";
 import { EquipmentTable } from "@/components/equipment/EquipmentTable";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useIsAdmin } from "@/lib/current-user-context";
@@ -72,15 +76,20 @@ function SprzetPageInner({
   const isAdmin = useIsAdmin();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialStatus = (searchParams.get("status") as EquipmentStatus | null) ?? "";
+  const urlStatus = searchParams.get("status") as EquipmentStatus | null;
 
-  const [filters, setFilters] = useState<EquipmentFiltersState>({
-    query: "",
-    categoryId: "",
-    status: initialStatus,
-    locationId: "",
-    employeeId: "",
-  });
+  const [storedFilters, setStoredFilters] = useLocalStorage<EquipmentFiltersState>(
+    "sprzet-filtry",
+    EMPTY_EQUIPMENT_FILTERS
+  );
+  // Link z pulpitu (np. ?status=w_naprawie) zawsze wygrywa z zapamiętanym filtrem statusu,
+  // ale dopóki użytkownik czegoś nie zmieni, nie nadpisujemy tym zapisanych filtrów.
+  const filters: EquipmentFiltersState = useMemo(
+    () => (urlStatus ? { ...storedFilters, statuses: [urlStatus] } : storedFilters),
+    [storedFilters, urlStatus]
+  );
+  const setFilters = setStoredFilters;
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
@@ -97,12 +106,12 @@ function SprzetPageInner({
   const filtered = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
     return equipment.filter((item) => {
-      if (filters.categoryId && item.categoryId !== filters.categoryId) return false;
-      if (filters.status && item.status !== filters.status) return false;
-      if (filters.locationId && item.locationId !== filters.locationId) return false;
-      if (filters.employeeId) {
+      if (filters.categoryIds.length > 0 && !filters.categoryIds.includes(item.categoryId)) return false;
+      if (filters.statuses.length > 0 && !filters.statuses.includes(item.status)) return false;
+      if (filters.locationIds.length > 0 && !filters.locationIds.includes(item.locationId)) return false;
+      if (filters.employeeIds.length > 0) {
         const active = getActiveAssignment(assignments, item.id);
-        if (!active || active.employeeId !== filters.employeeId) return false;
+        if (!active || !filters.employeeIds.includes(active.employeeId)) return false;
       }
       if (q) {
         const active = getActiveAssignment(assignments, item.id);

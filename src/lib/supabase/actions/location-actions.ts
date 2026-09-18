@@ -76,6 +76,15 @@ export async function archiveLocationAction(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+export async function unarchiveLocationAction(id: string): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from("locations").update({ is_archived: false }).eq("id", id);
+  if (error) return { ok: false, error: "Nie udało się przywrócić lokalizacji." };
+
+  revalidatePath("/lokalizacje");
+  return { ok: true };
+}
+
 export async function deleteLocationAction(id: string): Promise<ActionResult> {
   const supabase = await createSupabaseServerClient();
 

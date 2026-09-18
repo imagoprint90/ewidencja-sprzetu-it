@@ -1,20 +1,32 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Archive, Check, X, Trash2 } from "lucide-react";
+import { Plus, Pencil, Archive, ArchiveRestore, Check, X, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { inputClass } from "@/components/ui/Form";
+import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
 import { useIsAdmin } from "@/lib/current-user-context";
+import { useLocalStorage } from "@/lib/useLocalStorage";
 import type { Location } from "@/lib/types";
 import {
   addLocationAction,
   archiveLocationAction,
   deleteLocationAction,
   renameLocationAction,
+  unarchiveLocationAction,
 } from "@/lib/supabase/actions/location-actions";
+
+type StatusFilter = "aktywna" | "nieaktywna";
+
+interface LocationFiltersState {
+  query: string;
+  statuses: StatusFilter[];
+}
+
+const DEFAULT_FILTERS: LocationFiltersState = { query: "", statuses: [] };
 
 export function LokalizacjeClient({
   locations,
@@ -28,6 +40,11 @@ export function LokalizacjeClient({
   const router = useRouter();
   const isAdmin = useIsAdmin();
   const [isPending, startTransition] = useTransition();
+
+  const [filters, setFilters] = useLocalStorage<LocationFiltersState>(
+    "lokalizacje-filtry",
+    DEFAULT_FILTERS
+  );
 
   const [newName, setNewName] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
@@ -85,6 +102,18 @@ export function LokalizacjeClient({
     });
   }
 
+  function handleUnarchive(id: string) {
+    startTransition(async () => {
+      const result = await unarchiveLocationAction(id);
+      if (!result.ok) {
+        setArchiveError(result.error);
+        return;
+      }
+      setArchiveError(null);
+      router.refresh();
+    });
+  }
+
   function confirmDelete() {
     if (!deleteTarget) return;
     startTransition(async () => {
@@ -100,8 +129,17 @@ export function LokalizacjeClient({
     });
   }
 
-  const active = locations.filter((l) => !l.isArchived);
-  const archived = locations.filter((l) => l.isArchived);
+  const filtered = useMemo(() => {
+    const q = filters.query.trim().toLowerCase();
+    return locations.filter((l) => {
+      if (filters.statuses.length > 0) {
+        const status: StatusFilter = l.isArchived ? "nieaktywna" : "aktywna";
+        if (!filters.statuses.includes(status)) return false;
+      }
+      if (q && !l.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [locations, filters]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -110,7 +148,8 @@ export function LokalizacjeClient({
         <p className="text-sm text-muted">
           Lokalizacje pracowników i sprzętu. Lokalizacja sprzętu jest ustawiana automatycznie
           — zmienia się razem z przydzielonym pracownikiem, a przy zwrocie do magazynu
-          wraca do lokalizacji „Magazyn”.
+          wraca do lokalizacji „Magazyn”. Nieaktywna lokalizacja nie jest proponowana przy
+          wyborze lokalizacji pracownika.
         </p>
       </div>
 
@@ -144,18 +183,43 @@ export function LokalizacjeClient({
         </p>
       )}
 
-      <div className="rounded-xl border border-border bg-surface">
-        <table className="w-full text-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative flex-1 sm:min-w-[240px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <input
+            value={filters.query}
+            onChange={(e) => setFilters({ ...filters, query: e.target.value })}
+            placeholder="Szukaj lokalizacji…"
+            className="w-full rounded-lg border border-border bg-surface py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary"
+          />
+        </div>
+        <MultiSelectFilter
+          label="Aktywna"
+          options={[
+            { value: "aktywna", label: "Tak" },
+            { value: "nieaktywna", label: "Nie" },
+          ]}
+          selected={filters.statuses}
+          onChange={(v) => setFilters({ ...filters, statuses: v as StatusFilter[] })}
+        />
+        <span className="text-xs text-muted">
+          {filtered.length} z {locations.length} pozycji
+        </span>
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-3 font-medium">Nazwa</th>
+              <th className="px-4 py-3 font-medium">Aktywna</th>
               <th className="px-4 py-3 font-medium">Pracownicy</th>
               <th className="px-4 py-3 font-medium">Sprzęt</th>
               {isAdmin && <th className="px-4 py-3 font-medium text-right">Działania</th>}
             </tr>
           </thead>
           <tbody>
-            {active.map((l) => (
+            {filtered.map((l) => (
               <tr key={l.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3">
                   {editingId === l.id ? (
@@ -174,6 +238,11 @@ export function LokalizacjeClient({
                       {l.isWarehouse && <Badge tone="default">domyślny magazyn</Badge>}
                     </span>
                   )}
+                </td>
+                <td className="px-4 py-3">
+                  <Badge tone={l.isArchived ? "default" : "success"}>
+                    {l.isArchived ? "Nie" : "Tak"}
+                  </Badge>
                 </td>
                 <td className="px-4 py-3">{employeeCounts[l.id] ?? 0}</td>
                 <td className="px-4 py-3">{equipmentCounts[l.id] ?? 0}</td>
@@ -197,10 +266,22 @@ export function LokalizacjeClient({
                           </Button>
                           {!l.isWarehouse && (
                             <>
-                              <Button size="sm" variant="ghost" onClick={() => setArchiveTarget(l.id)}>
-                                <Archive size={14} />
-                                Archiwizuj
-                              </Button>
+                              {l.isArchived ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={isPending}
+                                  onClick={() => handleUnarchive(l.id)}
+                                >
+                                  <ArchiveRestore size={14} />
+                                  Aktywuj
+                                </Button>
+                              ) : (
+                                <Button size="sm" variant="ghost" onClick={() => setArchiveTarget(l.id)}>
+                                  <Archive size={14} />
+                                  Dezaktywuj
+                                </Button>
+                              )}
                               <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(l)}>
                                 <Trash2 size={14} />
                                 Usuń
@@ -218,33 +299,11 @@ export function LokalizacjeClient({
         </table>
       </div>
 
-      {archived.length > 0 && (
-        <div>
-          <h2 className="mb-2 text-sm font-semibold text-muted">Zarchiwizowane lokalizacje</h2>
-          <div className="flex flex-col gap-2">
-            {archived.map((l) => (
-              <div
-                key={l.id}
-                className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2"
-              >
-                <Badge>{l.name}</Badge>
-                {isAdmin && (
-                  <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(l)}>
-                    <Trash2 size={14} />
-                    Usuń
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <ConfirmDialog
         open={archiveTarget !== null}
-        title="Zarchiwizować lokalizację?"
-        description="Zarchiwizowana lokalizacja nie będzie proponowana przy dodawaniu nowego pracownika. Nie można zarchiwizować lokalizacji, która jest w użyciu."
-        confirmLabel="Archiwizuj"
+        title="Dezaktywować lokalizację?"
+        description="Nieaktywna lokalizacja nie będzie proponowana przy wyborze lokalizacji pracownika. Nie można dezaktywować lokalizacji, która jest w użyciu."
+        confirmLabel="Dezaktywuj"
         onCancel={() => setArchiveTarget(null)}
         onConfirm={confirmArchive}
       />

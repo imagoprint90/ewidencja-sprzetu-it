@@ -3,14 +3,23 @@
 import { Search } from "lucide-react";
 import type { Category, Employee, EquipmentStatus, Location } from "@/lib/types";
 import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
+import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
 
 export interface EquipmentFiltersState {
   query: string;
-  categoryId: string;
-  status: EquipmentStatus | "";
-  locationId: string;
-  employeeId: string;
+  categoryIds: string[];
+  statuses: EquipmentStatus[];
+  locationIds: string[];
+  employeeIds: string[];
 }
+
+export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
+  query: "",
+  categoryIds: [],
+  statuses: [],
+  locationIds: [],
+  employeeIds: [],
+};
 
 export function EquipmentFilters({
   value,
@@ -41,59 +50,33 @@ export function EquipmentFilters({
         />
       </div>
 
-      <select
-        value={value.categoryId}
-        onChange={(e) => set("categoryId", e.target.value)}
-        className="rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-primary"
-      >
-        <option value="">Wszystkie kategorie</option>
-        {categories
-          .filter((c) => !c.isArchived)
-          .map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-      </select>
+      <MultiSelectFilter
+        label="Kategoria"
+        options={categories.filter((c) => !c.isArchived).map((c) => ({ value: c.id, label: c.name }))}
+        selected={value.categoryIds}
+        onChange={(v) => set("categoryIds", v)}
+      />
 
-      <select
-        value={value.status}
-        onChange={(e) => set("status", e.target.value as EquipmentStatus | "")}
-        className="rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-primary"
-      >
-        <option value="">Wszystkie statusy</option>
-        {Object.entries(EQUIPMENT_STATUS_LABELS).map(([key, label]) => (
-          <option key={key} value={key}>
-            {label}
-          </option>
-        ))}
-      </select>
+      <MultiSelectFilter
+        label="Status"
+        options={Object.entries(EQUIPMENT_STATUS_LABELS).map(([key, label]) => ({ value: key, label }))}
+        selected={value.statuses}
+        onChange={(v) => set("statuses", v as EquipmentStatus[])}
+      />
 
-      <select
-        value={value.locationId}
-        onChange={(e) => set("locationId", e.target.value)}
-        className="rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-primary"
-      >
-        <option value="">Wszystkie lokalizacje</option>
-        {locations.map((loc) => (
-          <option key={loc.id} value={loc.id}>
-            {loc.name}
-          </option>
-        ))}
-      </select>
+      <MultiSelectFilter
+        label="Lokalizacja"
+        options={locations.map((l) => ({ value: l.id, label: l.name }))}
+        selected={value.locationIds}
+        onChange={(v) => set("locationIds", v)}
+      />
 
-      <select
-        value={value.employeeId}
-        onChange={(e) => set("employeeId", e.target.value)}
-        className="rounded-lg border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-primary"
-      >
-        <option value="">Wszyscy pracownicy</option>
-        {employees.map((e) => (
-          <option key={e.id} value={e.id}>
-            {e.fullName}
-          </option>
-        ))}
-      </select>
+      <MultiSelectFilter
+        label="Pracownik"
+        options={employees.map((e) => ({ value: e.id, label: e.fullName }))}
+        selected={value.employeeIds}
+        onChange={(v) => set("employeeIds", v)}
+      />
     </div>
   );
 }

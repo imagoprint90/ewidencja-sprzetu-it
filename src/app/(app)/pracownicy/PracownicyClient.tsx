@@ -3,13 +3,19 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Upload } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useIsAdmin } from "@/lib/current-user-context";
+import { useLocalStorage } from "@/lib/useLocalStorage";
 import { getLocationName } from "@/lib/equipment-helpers";
 import { parseCsv, normalizeHeader } from "@/lib/csv";
+import {
+  DEFAULT_EMPLOYEE_FILTERS,
+  EmployeeFilters,
+  type EmployeeFiltersState,
+} from "@/components/employees/EmployeeFilters";
 import {
   importEmployeesAction,
   type EmployeeCsvRow,
@@ -32,24 +38,36 @@ export function PracownicyClient({
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
-  const [query, setQuery] = useState("");
-  const [showInactive, setShowInactive] = useState(false);
+  const [filters, setFilters] = useLocalStorage<EmployeeFiltersState>(
+    "pracownicy-filtry",
+    DEFAULT_EMPLOYEE_FILTERS
+  );
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<string | null>(null);
   const [isImporting, startImportTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const departments = useMemo(
+    () => Array.from(new Set(employees.map((e) => e.department))).sort((a, b) => a.localeCompare(b)),
+    [employees]
+  );
+
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = filters.query.trim().toLowerCase();
     return employees.filter((e) => {
-      if (!showInactive && !e.isActive) return false;
+      if (filters.statuses.length > 0) {
+        const status = e.isActive ? "aktywny" : "nieaktywny";
+        if (!filters.statuses.includes(status)) return false;
+      }
+      if (filters.locationIds.length > 0 && !filters.locationIds.includes(e.locationId)) return false;
+      if (filters.departments.length > 0 && !filters.departments.includes(e.department)) return false;
       if (!q) return true;
       return [e.fullName, e.email ?? "", e.department, getLocationName(locations, e.locationId)]
         .join(" ")
         .toLowerCase()
         .includes(q);
     });
-  }, [employees, query, showInactive, locations]);
+  }, [employees, filters, locations]);
 
   function handleFilePicked(file: File) {
     setImportError(null);
@@ -160,26 +178,7 @@ export function PracownicyClient({
         <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">{importResult}</p>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 sm:max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Szukaj pracownika…"
-            className="w-full rounded-lg border border-border bg-surface py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary"
-          />
-        </div>
-        <label className="flex items-center gap-2 text-sm text-muted">
-          <input
-            type="checkbox"
-            checked={showInactive}
-            onChange={(e) => setShowInactive(e.target.checked)}
-            className="h-4 w-4 rounded border-border text-primary"
-          />
-          Pokaż nieaktywnych
-        </label>
-      </div>
+      <EmployeeFilters value={filters} onChange={setFilters} locations={locations} departments={departments} />
 
       {filtered.length === 0 ? (
         <EmptyState

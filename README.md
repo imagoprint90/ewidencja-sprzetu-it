@@ -21,17 +21,22 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   usuwanie i reset hasła kont bezpośrednio z aplikacji (przez Supabase Admin API), zmiana roli
   oraz — dla roli „podgląd” — wybór, które zakładki dane konto widzi. Patrz sekcja „Zakładanie
   kont użytkowników” niżej.
-- Sprzęt: lista z wyszukiwarką, filtrami, wyborem widocznych kolumn, dodawanie i edycja
-  (walidacja unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane
-  w bazie.
-- Kategorie i Lokalizacje: dodawanie, zmiana nazwy, archiwizacja z blokadą, gdy są używane,
-  oraz trwałe usuwanie (też zablokowane, gdy lokalizacja/kategoria jest przypisana do
-  pracowników lub sprzętu). Lokalizacja **sprzętu nie jest ręcznie edytowalna** — jest
-  zsynchronizowana automatycznie z lokalizacją aktualnie przypisanego pracownika, a przy
-  zwrocie do magazynu wraca do domyślnej lokalizacji „Magazyn” (ustawiane w
-  `transfer_equipment_set`). Zmiana lokalizacji pracownika aktualizuje też lokalizację jego
-  aktualnie przydzielonego sprzętu.
-- Pracownicy: lista (z kolumną e-mail), karta pracownika, dodawanie, edycja,
+- Sprzęt: lista z wyszukiwarką, filtrami wielokrotnego wyboru (checkboxy — np. kilka statusów
+  albo kilka lokalizacji naraz), wyborem widocznych kolumn, dodawanie i edycja (walidacja
+  unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane w bazie.
+  Filtry są zapamiętywane w przeglądarce (localStorage) i odtwarzane po przeładowaniu strony;
+  link z pulpitu (np. „W naprawie”) zawsze nadpisuje zapamiętany filtr statusu.
+- Kategorie i Lokalizacje: dodawanie, zmiana nazwy, oraz trwałe usuwanie (zablokowane, gdy
+  lokalizacja/kategoria jest przypisana do pracowników lub sprzętu). Lokalizacje mają kolumnę
+  **Aktywna: Tak/Nie** (przycisk Dezaktywuj/Aktywuj) — nieaktywna lokalizacja nie jest
+  proponowana przy wyborze lokalizacji pracownika, ale zostaje widoczna na liście z filtrem
+  po statusie (zamiast osobnej sekcji „zarchiwizowane”). Lokalizacja **sprzętu nie jest
+  ręcznie edytowalna** — jest zsynchronizowana automatycznie z lokalizacją aktualnie
+  przypisanego pracownika, a przy zwrocie do magazynu wraca do domyślnej lokalizacji
+  „Magazyn” (ustawiane w `transfer_equipment_set`). Zmiana lokalizacji pracownika aktualizuje
+  też lokalizację jego aktualnie przydzielonego sprzętu.
+- Pracownicy: lista (z kolumną e-mail) z filtrami wielokrotnego wyboru (lokalizacja, dział,
+  status — zapamiętywane jak w Sprzęcie), karta pracownika, dodawanie, edycja,
   aktywacja/dezaktywacja, usuwanie (zablokowane, gdy pracownik ma historię przydziałów
   sprzętu — wtedy zamiast usuwania używa się dezaktywacji, żeby zachować historię). Import z
   pliku CSV — przycisk „Importuj CSV” obok listy, patrz sekcja „Import pracowników z CSV”
