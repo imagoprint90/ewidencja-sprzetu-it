@@ -12,18 +12,18 @@ export default async function LokalizacjePage() {
     getEquipment(supabase),
   ]);
 
-  const employeeCounts: Record<string, number> = {};
-  const equipmentCounts: Record<string, number> = {};
+  const employeeNames: Record<string, string[]> = {};
+  const equipmentNames: Record<string, string[]> = {};
   for (const l of locations) {
-    employeeCounts[l.id] = employees.filter((e) => e.locationId === l.id).length;
-    equipmentCounts[l.id] = equipment.filter((e) => e.locationId === l.id).length;
+    employeeNames[l.id] = employees.filter((e) => e.locationId === l.id).map((e) => e.fullName);
+    equipmentNames[l.id] = equipment.filter((e) => e.locationId === l.id).map((e) => e.name);
   }
 
   return (
     <LokalizacjeClient
       locations={locations}
-      employeeCounts={employeeCounts}
-      equipmentCounts={equipmentCounts}
+      employeeNames={employeeNames}
+      equipmentNames={equipmentNames}
     />
   );
 }

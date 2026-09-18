@@ -6,8 +6,10 @@ import { Plus, Pencil, Archive, ArchiveRestore, Check, X, Trash2, Search } from 
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ExpandableList } from "@/components/ui/ExpandableList";
 import { inputClass } from "@/components/ui/Form";
 import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
+import { ColumnPicker } from "@/components/ui/ColumnPicker";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import type { Location } from "@/lib/types";
@@ -28,14 +30,24 @@ interface LocationFiltersState {
 
 const DEFAULT_FILTERS: LocationFiltersState = { query: "", statuses: [] };
 
+type LocationColumnKey = "isActive" | "employees" | "equipment";
+
+const LOCATION_COLUMNS: LocationColumnKey[] = ["isActive", "employees", "equipment"];
+const LOCATION_COLUMN_LABELS: Record<LocationColumnKey, string> = {
+  isActive: "Aktywna",
+  employees: "Pracownicy",
+  equipment: "Sprzęt",
+};
+const DEFAULT_LOCATION_COLUMNS: LocationColumnKey[] = ["isActive", "employees", "equipment"];
+
 export function LokalizacjeClient({
   locations,
-  employeeCounts,
-  equipmentCounts,
+  employeeNames,
+  equipmentNames,
 }: {
   locations: Location[];
-  employeeCounts: Record<string, number>;
-  equipmentCounts: Record<string, number>;
+  employeeNames: Record<string, string[]>;
+  equipmentNames: Record<string, string[]>;
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -44,6 +56,10 @@ export function LokalizacjeClient({
   const [filters, setFilters] = useLocalStorage<LocationFiltersState>(
     "lokalizacje-filtry",
     DEFAULT_FILTERS
+  );
+  const [visibleColumns, setVisibleColumns] = useLocalStorage<LocationColumnKey[]>(
+    "lokalizacje-kolumny",
+    DEFAULT_LOCATION_COLUMNS
   );
 
   const [newName, setNewName] = useState("");
@@ -205,6 +221,14 @@ export function LokalizacjeClient({
         <span className="text-xs text-muted">
           {filtered.length} z {locations.length} pozycji
         </span>
+        <div className="sm:ml-auto">
+          <ColumnPicker
+            allColumns={LOCATION_COLUMNS}
+            labels={LOCATION_COLUMN_LABELS}
+            visible={visibleColumns}
+            onChange={setVisibleColumns}
+          />
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
@@ -212,9 +236,11 @@ export function LokalizacjeClient({
           <thead>
             <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-3 font-medium">Nazwa</th>
-              <th className="px-4 py-3 font-medium">Aktywna</th>
-              <th className="px-4 py-3 font-medium">Pracownicy</th>
-              <th className="px-4 py-3 font-medium">Sprzęt</th>
+              {visibleColumns.map((col) => (
+                <th key={col} className="px-4 py-3 font-medium">
+                  {LOCATION_COLUMN_LABELS[col]}
+                </th>
+              ))}
               {isAdmin && <th className="px-4 py-3 font-medium text-right">Działania</th>}
             </tr>
           </thead>
@@ -239,13 +265,17 @@ export function LokalizacjeClient({
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3">
-                  <Badge tone={l.isArchived ? "default" : "success"}>
-                    {l.isArchived ? "Nie" : "Tak"}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3">{employeeCounts[l.id] ?? 0}</td>
-                <td className="px-4 py-3">{equipmentCounts[l.id] ?? 0}</td>
+                {visibleColumns.map((col) => (
+                  <td key={col} className="px-4 py-3">
+                    {col === "isActive" && (
+                      <Badge tone={l.isArchived ? "default" : "success"}>
+                        {l.isArchived ? "Nie" : "Tak"}
+                      </Badge>
+                    )}
+                    {col === "employees" && <ExpandableList items={employeeNames[l.id] ?? []} />}
+                    {col === "equipment" && <ExpandableList items={equipmentNames[l.id] ?? []} />}
+                  </td>
+                ))}
                 {isAdmin && (
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">

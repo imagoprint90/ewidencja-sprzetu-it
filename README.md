@@ -30,7 +30,10 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   lokalizacja/kategoria jest przypisana do pracowników lub sprzętu). Lokalizacje mają kolumnę
   **Aktywna: Tak/Nie** (przycisk Dezaktywuj/Aktywuj) — nieaktywna lokalizacja nie jest
   proponowana przy wyborze lokalizacji pracownika, ale zostaje widoczna na liście z filtrem
-  po statusie (zamiast osobnej sekcji „zarchiwizowane”). Lokalizacja **sprzętu nie jest
+  po statusie (zamiast osobnej sekcji „zarchiwizowane”). Kolumny „Pracownicy” i „Sprzęt”
+  pokazują konkretne imiona i nazwiska / nazwy sprzętu przypisane do danej lokalizacji (nie
+  tylko liczbę), a wybór widocznych kolumn i ich kolejności (przycisk „Kolumny”) działa tak
+  samo jak na liście Sprzęt. Lokalizacja **sprzętu nie jest
   ręcznie edytowalna** — jest zsynchronizowana automatycznie z lokalizacją aktualnie
   przypisanego pracownika, a przy zwrocie do magazynu wraca do domyślnej lokalizacji
   „Magazyn” (ustawiane w `transfer_equipment_set`). Zmiana lokalizacji pracownika aktualizuje
