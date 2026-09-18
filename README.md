@@ -62,9 +62,7 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   karcie sprzętu pozwalają pobrać PDF (prywatny magazyn plików, link ważny 60 s), ponowić
   nieudane generowanie (bez duplikowania numeru), dołączyć podpisany skan, wyszukiwać po
   numerze/sprzęcie/pracowniku/miejscowości i usunąć protokół (nieodwracalnie, razem z PDF).
-  Lista sprzętu ma kolumnę z ikoną otwierającą ostatni protokół danego sprzętu. Tabela w
-  protokole pokazuje nazwę ewidencyjną sprzętu, a producenta/model jako mniejszy opis pod
-  nazwą.
+  Lista sprzętu ma kolumnę z ikoną otwierającą ostatni protokół danego sprzętu.
 - **Usuwanie sprzętu**: dostępne na karcie sprzętu. Zablokowane, dopóki istnieją powiązane
   protokoły (`protocol_items.equipment_id` ma teraz `ON DELETE RESTRICT`) — po ich usunięciu
   usunięcie sprzętu kasuje kaskadowo też jego historię przydziałów.

@@ -90,10 +90,10 @@ export async function createProtocolAction(
   const employeeName = (id: string | null) =>
     id ? employeeRows?.find((e) => e.id === id)?.full_name ?? null : null;
 
-  // Na protokole sprzęt jest identyfikowany wewnętrzną nazwą ewidencyjną, a producent/model
-  // wyświetlane są jako dodatkowy opis pod nazwą (numer seryjny to osobna kolumna).
-  const equipmentDetails = (e: { manufacturer: string | null; model: string | null }) =>
-    [e.manufacturer, e.model].filter(Boolean).join(" ") || null;
+  // Na protokole identyfikujemy sprzęt przez producenta i model (nie wewnętrzną nazwę
+  // ewidencyjną) — numer seryjny jest już osobną kolumną w dokumencie.
+  const equipmentDisplayName = (e: { name: string; manufacturer: string | null; model: string | null }) =>
+    [e.manufacturer, e.model].filter(Boolean).join(" ") || e.name;
 
   const snapshot: ProtocolSnapshot = {
     protocolNumber: "", // uzupełnione po insercie (numer generowany przez bazę)
@@ -109,8 +109,7 @@ export async function createProtocolAction(
     technicalConditionLabel: TECHNICAL_CONDITION_LABELS[input.condition],
     notes: input.notes,
     items: equipmentRows.map((e) => ({
-      name: e.name,
-      details: equipmentDetails(e),
+      name: equipmentDisplayName(e),
       quantity: 1,
       inventoryNumber: e.inventory_number,
       serialNumber: e.serial_number,
@@ -141,7 +140,7 @@ export async function createProtocolAction(
     equipmentRows.map((e) => ({
       protocol_id: protocolRow.id,
       equipment_id: e.id,
-      name_snapshot: e.name,
+      name_snapshot: equipmentDisplayName(e),
       category_snapshot: "—",
       inventory_number_snapshot: e.inventory_number,
       serial_number_snapshot: e.serial_number,

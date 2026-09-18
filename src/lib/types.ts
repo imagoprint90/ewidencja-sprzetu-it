@@ -154,7 +154,6 @@ export const PROTOCOL_STATUS_LABELS: Record<ProtocolPdfStatus, string> = {
 
 export interface ProtocolItemData {
   name: string;
-  details: string | null;
   quantity: number;
   inventoryNumber: string;
   serialNumber: string | null;

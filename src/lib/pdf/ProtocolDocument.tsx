@@ -54,7 +54,6 @@ const styles = StyleSheet.create({
   colSerial: { flex: 2, paddingHorizontal: 4 },
   th: { fontSize: 9, fontWeight: "bold" },
   td: { fontSize: 9 },
-  tdSub: { fontSize: 7.5, color: "#5b6472", marginTop: 1 },
   notesBox: {
     marginTop: 10,
     borderWidth: 1,
@@ -164,10 +163,7 @@ export function ProtocolDocument({ snapshot }: { snapshot: ProtocolSnapshot }) {
           </View>
           {snapshot.items.map((item, i) => (
             <View style={styles.tableRow} key={i} wrap={false}>
-              <View style={styles.colName}>
-                <Text style={styles.td}>{item.name}</Text>
-                {item.details && <Text style={styles.tdSub}>{item.details}</Text>}
-              </View>
+              <Text style={[styles.colName, styles.td]}>{item.name}</Text>
               <Text style={[styles.colQty, styles.td]}>{item.quantity}</Text>
               <Text style={[styles.colInv, styles.td]}>{item.inventoryNumber}</Text>
               <Text style={[styles.colSerial, styles.td]}>{item.serialNumber ?? "—"}</Text>
