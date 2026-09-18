@@ -17,7 +17,7 @@ export function equipmentToInput(item: Equipment): EquipmentInput {
   };
 }
 
-export function getLocationName(locations: Location[], locationId: string): string {
+export function getLocationName(locations: Location[], locationId: string | null): string {
   return locations.find((l) => l.id === locationId)?.name ?? "—";
 }
 

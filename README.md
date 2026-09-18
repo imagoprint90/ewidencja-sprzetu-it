@@ -38,10 +38,11 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   przypisanego pracownika, a przy zwrocie do magazynu wraca do domyślnej lokalizacji
   „Magazyn” (ustawiane w `transfer_equipment_set`). Zmiana lokalizacji pracownika aktualizuje
   też lokalizację jego aktualnie przydzielonego sprzętu.
-- Pracownicy: lista (z kolumną e-mail) z filtrami wielokrotnego wyboru (lokalizacja, dział,
-  status — zapamiętywane jak w Sprzęcie), karta pracownika, dodawanie, edycja,
+- Pracownicy: lista (z kolumnami e-mail i telefon) z filtrami wielokrotnego wyboru (lokalizacja,
+  dział, status — zapamiętywane jak w Sprzęcie), karta pracownika, dodawanie, edycja,
   aktywacja/dezaktywacja, usuwanie (zablokowane, gdy pracownik ma historię przydziałów
-  sprzętu — wtedy zamiast usuwania używa się dezaktywacji, żeby zachować historię). Import z
+  sprzętu — wtedy zamiast usuwania używa się dezaktywacji, żeby zachować historię). Dział i
+  lokalizacja są opcjonalne — nie każdy pracownik musi je mieć uzupełnione. Import z
   pliku CSV — przycisk „Importuj CSV” obok listy, patrz sekcja „Import pracowników z CSV”
   niżej po strukturę pliku.
 - Lista sprzętu: edycja wprost w komórkach tabeli (kategoria, nazwa, nr seryjny, uwagi,
@@ -113,22 +114,27 @@ znaki nie mają znaczenia:
 |---|---|---|
 | `Imię i nazwisko` | tak | pełne imię i nazwisko pracownika |
 | `Email` | nie | adres e-mail, może być pusty |
-| `Dział` | tak | nazwa działu (dowolny tekst) |
-| `Lokalizacja` | tak | musi dokładnie odpowiadać nazwie istniejącej, niezarchiwizowanej lokalizacji (patrz strona **Lokalizacje**) |
+| `Telefon` | nie | numer telefonu, może być pusty |
+| `Dział` | nie | nazwa działu (dowolny tekst), może być pusta |
+| `Lokalizacja` | nie | jeśli podana, musi dokładnie odpowiadać nazwie istniejącej, niezarchiwizowanej lokalizacji (patrz strona **Lokalizacje**) — pusta komórka po prostu zostawia pracownika bez lokalizacji |
+
+Kolumny `Email`, `Telefon`, `Dział` i `Lokalizacja` można też całkiem pominąć w pliku, jeśli
+nie są potrzebne — jedyna wymagana kolumna to `Imię i nazwisko`.
 
 Przykładowy plik (separator przecinek lub średnik — wykrywany automatycznie, więc plik
 wyeksportowany z polskiego Excela ze średnikami też zadziała):
 
 ```csv
-Imię i nazwisko,Email,Dział,Lokalizacja
-Jan Kowalski,jan.kowalski@firma.pl,IT,Warszawa
-Anna Nowak,,Księgowość,Kraków
+Imię i nazwisko,Email,Telefon,Dział,Lokalizacja
+Jan Kowalski,jan.kowalski@firma.pl,+48 600 000 000,IT,Warszawa
+Anna Nowak,,,Księgowość,Kraków
+Piotr Zieliński,,,,
 ```
 
 Zapisz plik jako **CSV UTF-8** (w Excelu: Zapisz jako → „CSV UTF-8 (rozdzielany przecinkami)”),
-żeby polskie znaki się nie posypały. Wiersze z brakującymi danymi albo nieznaną lokalizacją są
-pomijane, a system po imporcie pokazuje dokładnie które wiersze i dlaczego — reszta i tak
-zostaje zaimportowana.
+żeby polskie znaki się nie posypały. Wiersz bez imienia i nazwiska albo z nierozpoznaną
+lokalizacją (literówka w nazwie) jest pomijany, a system po imporcie pokazuje dokładnie które
+wiersze i dlaczego — reszta i tak zostaje zaimportowana.
 
 ## Uruchomienie lokalne
 
@@ -148,8 +154,8 @@ zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
 etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
 wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
-co już istnieje. Nowy plik do zastosowania: `0020_user_management.sql` (dodaje kolumny
-`email` i `visible_tabs` do `profiles`, potrzebne dla zakładki Użytkownicy). Pliki 0009–0019
+co już istnieje. Nowy plik do zastosowania: `0021_employee_phone_optional_fields.sql` (dodaje
+numer telefonu i znosi wymóg podawania działu/lokalizacji u pracownika). Pliki 0009–0020
 zostały już zastosowane.
 
 ## Konfiguracja Supabase

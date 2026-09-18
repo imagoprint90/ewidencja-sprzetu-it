@@ -49,8 +49,9 @@ export function mapEmployee(row: {
   id: string;
   full_name: string;
   email: string | null;
-  department: string;
-  location_id: string;
+  phone: string | null;
+  department: string | null;
+  location_id: string | null;
   is_active: boolean;
   created_at: string;
 }): Employee {
@@ -58,6 +59,7 @@ export function mapEmployee(row: {
     id: row.id,
     fullName: row.full_name,
     email: row.email,
+    phone: row.phone,
     department: row.department,
     locationId: row.location_id,
     isActive: row.is_active,

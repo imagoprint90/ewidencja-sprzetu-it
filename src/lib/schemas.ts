@@ -49,8 +49,9 @@ export const employeeFormSchema = z.object({
     .trim()
     .optional()
     .refine((v) => !v || z.string().email().safeParse(v).success, "Nieprawidłowy adres e-mail."),
-  department: z.string().trim().min(1, "Dział jest wymagany."),
-  locationId: z.string().min(1, "Wybierz lokalizację."),
+  phone: z.string().trim().optional(),
+  department: z.string().trim().optional(),
+  locationId: z.string().optional(),
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;

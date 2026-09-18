@@ -12,8 +12,9 @@ type ActionResult<T = undefined> =
 export async function addEmployeeAction(input: {
   fullName: string;
   email: string | null;
-  department: string;
-  locationId: string;
+  phone: string | null;
+  department: string | null;
+  locationId: string | null;
 }): Promise<ActionResult<Employee>> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -21,7 +22,8 @@ export async function addEmployeeAction(input: {
     .insert({
       full_name: input.fullName.trim(),
       email: input.email,
-      department: input.department.trim(),
+      phone: input.phone,
+      department: input.department,
       location_id: input.locationId,
     })
     .select()
@@ -37,7 +39,13 @@ export async function addEmployeeAction(input: {
 
 export async function updateEmployeeAction(
   id: string,
-  input: { fullName: string; email: string | null; department: string; locationId: string }
+  input: {
+    fullName: string;
+    email: string | null;
+    phone: string | null;
+    department: string | null;
+    locationId: string | null;
+  }
 ): Promise<ActionResult<undefined>> {
   const supabase = await createSupabaseServerClient();
 
@@ -52,7 +60,8 @@ export async function updateEmployeeAction(
     .update({
       full_name: input.fullName.trim(),
       email: input.email,
-      department: input.department.trim(),
+      phone: input.phone,
+      department: input.department,
       location_id: input.locationId,
     })
     .eq("id", id);
@@ -61,9 +70,11 @@ export async function updateEmployeeAction(
     return { ok: false, error: "Nie udało się zapisać zmian." };
   }
 
-  // Lokalizacja sprzętu podąża za lokalizacją pracownika — jeśli lokalizacja się zmieniła,
-  // aktualizujemy też sprzęt aktualnie mu przydzielony, żeby dane pozostały spójne.
-  if (before && before.location_id !== input.locationId) {
+  // Lokalizacja sprzętu podąża za lokalizacją pracownika — jeśli lokalizacja się zmieniła na
+  // inną konkretną lokalizację, aktualizujemy też sprzęt aktualnie mu przydzielony. Gdy nową
+  // wartością jest "brak lokalizacji", celowo nie ruszamy lokalizacji sprzętu (nie ma na co
+  // ją zmienić — sprzęt zawsze musi mieć jakąś lokalizację).
+  if (input.locationId && before && before.location_id !== input.locationId) {
     const { data: activeAssignments } = await supabase
       .from("assignments")
       .select("equipment_id")
@@ -124,6 +135,7 @@ export async function deleteEmployeeAction(id: string): Promise<ActionResult<und
 export interface EmployeeCsvRow {
   fullName: string;
   email: string;
+  phone: string;
   department: string;
   locationName: string;
 }
@@ -153,29 +165,31 @@ export async function importEmployeesAction(
     const department = rows[i].department.trim();
     const locationName = rows[i].locationName.trim();
     const email = rows[i].email.trim();
+    const phone = rows[i].phone.trim();
 
     if (!fullName) {
       errors.push({ row: rowNumber, reason: "brak imienia i nazwiska" });
       continue;
     }
-    if (!department) {
-      errors.push({ row: rowNumber, reason: "brak działu" });
-      continue;
-    }
-    if (!locationName) {
-      errors.push({ row: rowNumber, reason: "brak lokalizacji" });
-      continue;
-    }
-    const locationId = locationByName.get(normalize(locationName));
-    if (!locationId) {
-      errors.push({ row: rowNumber, reason: `nieznana lokalizacja „${locationName}”` });
-      continue;
+
+    // Dział i lokalizacja są opcjonalne — puste pole po prostu zostaje bez wartości.
+    // Podaną, ale nierozpoznaną lokalizację traktujemy jako błąd (żeby literówka w nazwie
+    // nie zniknęła bez śladu), a nie jako "brak lokalizacji".
+    let locationId: string | null = null;
+    if (locationName) {
+      const found = locationByName.get(normalize(locationName));
+      if (!found) {
+        errors.push({ row: rowNumber, reason: `nieznana lokalizacja „${locationName}”` });
+        continue;
+      }
+      locationId = found;
     }
 
     const { error } = await supabase.from("employees").insert({
       full_name: fullName,
       email: email || null,
-      department,
+      phone: phone || null,
+      department: department || null,
       location_id: locationId,
     });
 

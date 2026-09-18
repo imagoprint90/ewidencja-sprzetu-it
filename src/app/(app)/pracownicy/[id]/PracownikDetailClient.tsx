@@ -63,8 +63,9 @@ export function PracownikDetailClient({
     defaultValues: {
       fullName: employee.fullName,
       email: employee.email ?? "",
-      department: employee.department,
-      locationId: employee.locationId,
+      phone: employee.phone ?? "",
+      department: employee.department ?? "",
+      locationId: employee.locationId ?? "",
     },
   });
 
@@ -94,8 +95,9 @@ export function PracownikDetailClient({
     const result = await updateEmployeeAction(employee.id, {
       fullName: values.fullName,
       email: values.email || null,
-      department: values.department,
-      locationId: values.locationId,
+      phone: values.phone || null,
+      department: values.department || null,
+      locationId: values.locationId || null,
     });
     if (!result.ok) {
       setEditError(result.error);
@@ -124,11 +126,15 @@ export function PracownikDetailClient({
             <FormField label="Adres e-mail" htmlFor="email" error={errors.email?.message}>
               <input id="email" type="email" className={inputClass} {...register("email")} />
             </FormField>
-            <FormField label="Dział" htmlFor="department" required error={errors.department?.message}>
+            <FormField label="Telefon" htmlFor="phone" error={errors.phone?.message}>
+              <input id="phone" type="tel" className={inputClass} {...register("phone")} />
+            </FormField>
+            <FormField label="Dział" htmlFor="department" error={errors.department?.message}>
               <input id="department" className={inputClass} {...register("department")} />
             </FormField>
-            <FormField label="Lokalizacja" htmlFor="locationId" required error={errors.locationId?.message} full>
+            <FormField label="Lokalizacja" htmlFor="locationId" error={errors.locationId?.message} full>
               <select id="locationId" className={inputClass} {...register("locationId")}>
+                <option value="">Brak lokalizacji</option>
                 {locations
                   .filter((l) => !l.isArchived || l.id === employee.locationId)
                   .map((l) => (
@@ -158,8 +164,14 @@ export function PracownikDetailClient({
           <div>
             <h1 className="text-xl font-semibold">{employee.fullName}</h1>
             <p className="text-sm text-muted">
-              {employee.department} · {getLocationName(locations, employee.locationId)}
-              {employee.email && ` · ${employee.email}`}
+              {[
+                employee.department ?? "bez działu",
+                getLocationName(locations, employee.locationId),
+                employee.email,
+                employee.phone,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           </div>
           <div className="flex items-center gap-2">

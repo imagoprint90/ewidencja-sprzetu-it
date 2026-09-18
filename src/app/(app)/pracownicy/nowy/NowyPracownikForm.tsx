@@ -20,7 +20,6 @@ export function NowyPracownikForm({ locations }: { locations: Location[] }) {
     formState: { errors, isSubmitting },
   } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
-    defaultValues: { locationId: locations.find((l) => !l.isArchived)?.id ?? "" },
   });
 
   async function onSubmit(values: EmployeeFormValues) {
@@ -28,8 +27,9 @@ export function NowyPracownikForm({ locations }: { locations: Location[] }) {
     const result = await addEmployeeAction({
       fullName: values.fullName,
       email: values.email || null,
-      department: values.department,
-      locationId: values.locationId,
+      phone: values.phone || null,
+      department: values.department || null,
+      locationId: values.locationId || null,
     });
     if (!result.ok) {
       setSubmitError(result.error);
@@ -55,11 +55,15 @@ export function NowyPracownikForm({ locations }: { locations: Location[] }) {
           <FormField label="Adres e-mail" htmlFor="email" error={errors.email?.message}>
             <input id="email" type="email" className={inputClass} {...register("email")} />
           </FormField>
-          <FormField label="Dział" htmlFor="department" required error={errors.department?.message}>
+          <FormField label="Telefon" htmlFor="phone" error={errors.phone?.message}>
+            <input id="phone" type="tel" className={inputClass} {...register("phone")} />
+          </FormField>
+          <FormField label="Dział" htmlFor="department" error={errors.department?.message}>
             <input id="department" className={inputClass} {...register("department")} />
           </FormField>
-          <FormField label="Lokalizacja" htmlFor="locationId" required error={errors.locationId?.message} full>
+          <FormField label="Lokalizacja" htmlFor="locationId" error={errors.locationId?.message} full>
             <select id="locationId" className={inputClass} {...register("locationId")}>
+              <option value="">Brak lokalizacji</option>
               {locations
                 .filter((l) => !l.isArchived)
                 .map((l) => (

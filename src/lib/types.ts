@@ -56,8 +56,9 @@ export interface Employee {
   id: string;
   fullName: string;
   email: string | null;
-  department: string;
-  locationId: string;
+  phone: string | null;
+  department: string | null;
+  locationId: string | null;
   isActive: boolean;
   createdAt: string;
 }

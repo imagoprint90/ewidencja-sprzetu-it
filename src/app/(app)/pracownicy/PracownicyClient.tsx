@@ -24,6 +24,7 @@ import type { Employee, Location } from "@/lib/types";
 
 const FULL_NAME_ALIASES = ["imie i nazwisko", "imie nazwisko", "pracownik"];
 const EMAIL_ALIASES = ["email", "e-mail", "adres e-mail", "adres email"];
+const PHONE_ALIASES = ["telefon", "nr telefonu", "numer telefonu", "tel"];
 const DEPARTMENT_ALIASES = ["dzial"];
 const LOCATION_ALIASES = ["lokalizacja"];
 
@@ -48,7 +49,10 @@ export function PracownicyClient({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const departments = useMemo(
-    () => Array.from(new Set(employees.map((e) => e.department))).sort((a, b) => a.localeCompare(b)),
+    () =>
+      Array.from(new Set(employees.map((e) => e.department).filter((d): d is string => Boolean(d)))).sort(
+        (a, b) => a.localeCompare(b)
+      ),
     [employees]
   );
 
@@ -59,10 +63,12 @@ export function PracownicyClient({
         const status = e.isActive ? "aktywny" : "nieaktywny";
         if (!filters.statuses.includes(status)) return false;
       }
-      if (filters.locationIds.length > 0 && !filters.locationIds.includes(e.locationId)) return false;
-      if (filters.departments.length > 0 && !filters.departments.includes(e.department)) return false;
+      if (filters.locationIds.length > 0 && (!e.locationId || !filters.locationIds.includes(e.locationId)))
+        return false;
+      if (filters.departments.length > 0 && (!e.department || !filters.departments.includes(e.department)))
+        return false;
       if (!q) return true;
-      return [e.fullName, e.email ?? "", e.department, getLocationName(locations, e.locationId)]
+      return [e.fullName, e.email ?? "", e.phone ?? "", e.department ?? "", getLocationName(locations, e.locationId)]
         .join(" ")
         .toLowerCase()
         .includes(q);
@@ -85,12 +91,13 @@ export function PracownicyClient({
       const normalizedHeader = header.map(normalizeHeader);
       const nameIdx = normalizedHeader.findIndex((h) => FULL_NAME_ALIASES.includes(h));
       const emailIdx = normalizedHeader.findIndex((h) => EMAIL_ALIASES.includes(h));
+      const phoneIdx = normalizedHeader.findIndex((h) => PHONE_ALIASES.includes(h));
       const deptIdx = normalizedHeader.findIndex((h) => DEPARTMENT_ALIASES.includes(h));
       const locIdx = normalizedHeader.findIndex((h) => LOCATION_ALIASES.includes(h));
 
-      if (nameIdx === -1 || deptIdx === -1 || locIdx === -1) {
+      if (nameIdx === -1) {
         setImportError(
-          'Nagłówek pliku musi zawierać kolumny "Imię i nazwisko", "Dział" i "Lokalizacja" (kolumna "Email" jest opcjonalna).'
+          'Nagłówek pliku musi zawierać kolumnę "Imię i nazwisko" (kolumny "Email", "Telefon", "Dział" i "Lokalizacja" są opcjonalne).'
         );
         return;
       }
@@ -100,8 +107,9 @@ export function PracownicyClient({
         .map((r) => ({
           fullName: r[nameIdx] ?? "",
           email: emailIdx !== -1 ? r[emailIdx] ?? "" : "",
-          department: r[deptIdx] ?? "",
-          locationName: r[locIdx] ?? "",
+          phone: phoneIdx !== -1 ? r[phoneIdx] ?? "" : "",
+          department: deptIdx !== -1 ? r[deptIdx] ?? "" : "",
+          locationName: locIdx !== -1 ? r[locIdx] ?? "" : "",
         }));
 
       if (parsedRows.length === 0) {
@@ -193,11 +201,12 @@ export function PracownicyClient({
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full min-w-[760px] text-sm">
+          <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">Imię i nazwisko</th>
                 <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Telefon</th>
                 <th className="px-4 py-3 font-medium">Dział</th>
                 <th className="px-4 py-3 font-medium">Lokalizacja</th>
                 <th className="px-4 py-3 font-medium">Przydzielony sprzęt</th>
@@ -217,7 +226,8 @@ export function PracownicyClient({
                     </Link>
                   </td>
                   <td className="px-4 py-3">{e.email ?? "—"}</td>
-                  <td className="px-4 py-3">{e.department}</td>
+                  <td className="px-4 py-3">{e.phone ?? "—"}</td>
+                  <td className="px-4 py-3">{e.department ?? "—"}</td>
                   <td className="px-4 py-3">{getLocationName(locations, e.locationId)}</td>
                   <td className="px-4 py-3">{assignedCounts[e.id] ?? 0} szt.</td>
                   <td className="px-4 py-3">

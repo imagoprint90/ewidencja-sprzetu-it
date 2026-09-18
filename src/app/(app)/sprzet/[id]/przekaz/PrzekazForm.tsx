@@ -314,7 +314,7 @@ export function PrzekazForm({
                 .filter((e) => e.id !== activeAssignment?.employeeId)
                 .map((e) => (
                   <option key={e.id} value={e.id}>
-                    {e.fullName} ({e.department})
+                    {e.department ? `${e.fullName} (${e.department})` : e.fullName}
                   </option>
                 ))}
             </select>
