@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -30,7 +30,7 @@ import type {
   SoftwareProduct,
 } from "@/lib/types";
 
-export function SprzetDetailClient({
+function SprzetDetailClientInner({
   item,
   allEquipment,
   categories,
@@ -59,6 +59,8 @@ export function SprzetDetailClient({
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
+  const searchParams = useSearchParams();
+  const startInEdit = searchParams.get("edit") === "1";
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -115,7 +117,14 @@ export function SprzetDetailClient({
           {
             key: "szczegoly",
             label: "Szczegóły",
-            content: <DetailsTab equipment={item} categories={categories} locations={locations} />,
+            content: (
+              <DetailsTab
+                equipment={item}
+                categories={categories}
+                locations={locations}
+                startInEdit={startInEdit}
+              />
+            ),
           },
           {
             key: "przydzialy",
@@ -163,5 +172,26 @@ export function SprzetDetailClient({
       />
       {isPending && <p className="text-sm text-muted">Usuwanie…</p>}
     </div>
+  );
+}
+
+export function SprzetDetailClient(props: {
+  item: Equipment;
+  allEquipment: Equipment[];
+  categories: Category[];
+  employees: Employee[];
+  assignments: Assignment[];
+  equipmentLinks: EquipmentLink[];
+  protocols: Protocol[];
+  products: SoftwareProduct[];
+  installedSoftware: InstalledSoftware[];
+  licenses: SoftwareLicense[];
+  licenseAssignments: SoftwareLicenseAssignment[];
+  locations: Location[];
+}) {
+  return (
+    <Suspense>
+      <SprzetDetailClientInner {...props} />
+    </Suspense>
   );
 }

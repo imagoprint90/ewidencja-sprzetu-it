@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -52,14 +52,31 @@ export function PrzekazForm({
   licenseAssignments: SoftwareLicenseAssignment[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+
+  // Pozwala przekazać kilka zaznaczonych na liście sprzętu pozycji w jednej operacji —
+  // nie muszą być formalnie powiązane w zestaw, wystarczy że użytkownik zaznaczył je razem.
+  const extraIds = useMemo(() => {
+    const raw = searchParams.get("extra");
+    return raw ? raw.split(",").filter((id) => id && id !== item.id) : [];
+  }, [searchParams, item.id]);
 
   const activeAssignment = getActiveAssignment(assignments, item.id);
   const currentEmployee = activeAssignment
     ? employees.find((e) => e.id === activeAssignment.employeeId)
     : undefined;
   const activeEmployees = employees.filter((e) => e.isActive);
-  const linked = getLinkedEquipment(equipmentLinks, allEquipment, item.id);
+  const formallyLinked = getLinkedEquipment(equipmentLinks, allEquipment, item.id);
+  const linked = useMemo(() => {
+    const map = new Map<string, Equipment>();
+    for (const e of formallyLinked) map.set(e.id, e);
+    for (const id of extraIds) {
+      const e = allEquipment.find((eq) => eq.id === id);
+      if (e) map.set(e.id, e);
+    }
+    return Array.from(map.values());
+  }, [formallyLinked, extraIds, allEquipment]);
 
   const deviceSoftwareNames = installedSoftware
     .filter((s) => s.equipmentId === item.id)
@@ -82,7 +99,7 @@ export function PrzekazForm({
   const [city, setCity] = useState("");
   const [condition, setCondition] = useState<TechnicalCondition | "">("");
   const [notes, setNotes] = useState("");
-  const [selectedLinked, setSelectedLinked] = useState<Set<string>>(new Set());
+  const [selectedLinked, setSelectedLinked] = useState<Set<string>>(() => new Set(extraIds));
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -215,7 +232,11 @@ export function PrzekazForm({
       {linked.length > 0 && (
         <FormSection
           title="Zestaw do przekazania"
-          description="Zaznacz dodatkowe urządzenia, które faktycznie przekazujesz razem z tym sprzętem. Samo powiązanie nie zmienia ich przydziału — decydujesz o tym tutaj."
+          description={
+            extraIds.length > 0
+              ? "Zaznacz dodatkowe urządzenia, które faktycznie przekazujesz razem z tym sprzętem. Pozycje zaznaczone wcześniej na liście sprzętu są już odhaczone poniżej."
+              : "Zaznacz dodatkowe urządzenia, które faktycznie przekazujesz razem z tym sprzętem. Samo powiązanie nie zmienia ich przydziału — decydujesz o tym tutaj."
+          }
         >
           <div className="sm:col-span-2 flex flex-col gap-2">
             {linked.map((l) => {

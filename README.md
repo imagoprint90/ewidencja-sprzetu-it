@@ -31,6 +31,12 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   numeracja L.p. Status ma 5 wartości: W magazynie/Przydzielony (automatyczne, sterowane
   operacją „Przekaż sprzęt”) oraz W naprawie/Zepsuty/Wycofany (ustawiane ręcznie) — cały
   wiersz przyjmuje kolor odpowiadający statusowi (czarny/pomarańczowy/czerwony/szary).
+  Checkboxy przy wierszach (tylko dla administratora) pozwalają zaznaczyć kilka pozycji
+  naraz i użyć paska akcji zbiorczych nad tabelą: „Przydziel zaznaczone” (przenosi do
+  formularza przekazania z resztą zaznaczonych pozycji dopiętą jako zestaw, niezależnie od
+  formalnych powiązań) i „Usuń zaznaczone” (usuwa po kolei, pomijając zablokowane przez
+  protokoły i informując, ile się udało). Dodatkowo każdy wiersz ma ikony szybkich akcji
+  (Edytuj / Przydziel / Usuń) bez wchodzenia na kartę sprzętu.
 - Karta sprzętu z zakładkami: Szczegóły, Przydziały (odczyt historii z bazy), Powiązany
   sprzęt (dodawanie/usuwanie powiązań w zestawie), Oprogramowanie/Dokumenty (informacyjne —
   pełna funkcjonalność w kolejnych etapach), Historia zmian.
@@ -56,7 +62,9 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   karcie sprzętu pozwalają pobrać PDF (prywatny magazyn plików, link ważny 60 s), ponowić
   nieudane generowanie (bez duplikowania numeru), dołączyć podpisany skan, wyszukiwać po
   numerze/sprzęcie/pracowniku/miejscowości i usunąć protokół (nieodwracalnie, razem z PDF).
-  Lista sprzętu ma kolumnę z ikoną otwierającą ostatni protokół danego sprzętu.
+  Lista sprzętu ma kolumnę z ikoną otwierającą ostatni protokół danego sprzętu. Tabela w
+  protokole pokazuje nazwę ewidencyjną sprzętu, a producenta/model jako mniejszy opis pod
+  nazwą.
 - **Usuwanie sprzętu**: dostępne na karcie sprzętu. Zablokowane, dopóki istnieją powiązane
   protokoły (`protocol_items.equipment_id` ma teraz `ON DELETE RESTRICT`) — po ich usunięciu
   usunięcie sprzętu kasuje kaskadowo też jego historię przydziałów.

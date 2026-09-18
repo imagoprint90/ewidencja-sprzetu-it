@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { FileText } from "lucide-react";
+import { ArrowRightLeft, FileText, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type {
   Assignment,
   Category,
@@ -33,6 +35,7 @@ import {
 import { useIsAdmin } from "@/lib/current-user-context";
 import type { ProtocolItemLink } from "@/lib/supabase/queries";
 import {
+  deleteEquipmentAction,
   updateEquipmentAction,
   updateEquipmentStatusAction,
   type EquipmentInput,
@@ -54,6 +57,10 @@ export function EquipmentTable({
   protocolItemLinks,
   visibleColumns,
   columnColors,
+  selectedIds,
+  allSelected,
+  onToggleSelect,
+  onToggleSelectAll,
 }: {
   equipment: Equipment[];
   categories: Category[];
@@ -69,9 +76,31 @@ export function EquipmentTable({
   protocolItemLinks: ProtocolItemLink[];
   visibleColumns: EquipmentColumnKey[];
   columnColors: Partial<Record<EquipmentColumnKey, string>>;
+  selectedIds: Set<string>;
+  allSelected: boolean;
+  onToggleSelect: (id: string) => void;
+  onToggleSelectAll: () => void;
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
+  const [deleteTarget, setDeleteTarget] = useState<Equipment | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, startDeleteTransition] = useTransition();
+
+  function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    startDeleteTransition(async () => {
+      const result = await deleteEquipmentAction(target.id);
+      setDeleteTarget(null);
+      if (!result.ok) {
+        setDeleteError(result.error);
+        return;
+      }
+      setDeleteError(null);
+      router.refresh();
+    });
+  }
 
   async function saveField(item: Equipment, patch: Partial<EquipmentInput>) {
     const payload: EquipmentInput = { ...equipmentToInput(item), ...patch };
@@ -103,16 +132,34 @@ export function EquipmentTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+    <div className="flex flex-col gap-3">
+      {deleteError && (
+        <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
+          {deleteError}
+        </p>
+      )}
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
       <table className="w-full min-w-[960px] text-sm">
         <thead>
           <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
+            {isAdmin && (
+              <th className="w-8 px-3 py-2.5">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={onToggleSelectAll}
+                  aria-label="Zaznacz wszystkie widoczne pozycje"
+                  className="h-4 w-4 rounded border-border text-primary"
+                />
+              </th>
+            )}
             <th className="w-10 px-3 py-2.5 font-medium">L.p.</th>
             {visibleColumns.map((col) => (
               <th key={col} className="whitespace-nowrap px-3 py-2.5 font-medium">
                 {EQUIPMENT_COLUMN_LABELS[col]}
               </th>
             ))}
+            {isAdmin && <th className="whitespace-nowrap px-3 py-2.5 font-medium">Akcje</th>}
           </tr>
         </thead>
         <tbody>
@@ -146,6 +193,17 @@ export function EquipmentTable({
                 style={{ color: EQUIPMENT_STATUS_COLORS[item.status] }}
                 onClick={() => router.push(`/sprzet/${item.id}`)}
               >
+                {isAdmin && (
+                  <td className="px-3 py-2 align-middle" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(item.id)}
+                      onChange={() => onToggleSelect(item.id)}
+                      aria-label={`Zaznacz ${item.name}`}
+                      className="h-4 w-4 rounded border-border text-primary"
+                    />
+                  </td>
+                )}
                 <td className="px-3 py-2 align-middle text-xs">{index + 1}</td>
                 {visibleColumns.map((col) => (
                   <td
@@ -169,11 +227,54 @@ export function EquipmentTable({
                     })}
                   </td>
                 ))}
+                {isAdmin && (
+                  <td className="px-3 py-2 align-middle" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={`/sprzet/${item.id}?edit=1`}
+                        title="Edytuj sprzęt"
+                        className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
+                      >
+                        <Pencil size={15} />
+                      </Link>
+                      <Link
+                        href={`/sprzet/${item.id}/przekaz`}
+                        title="Przydziel sprzęt"
+                        className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
+                      >
+                        <ArrowRightLeft size={15} />
+                      </Link>
+                      <button
+                        type="button"
+                        title="Usuń sprzęt"
+                        onClick={() => setDeleteTarget(item)}
+                        className="rounded-md p-1.5 text-current hover:bg-red-50 hover:text-danger"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
+                )}
               </tr>
             );
           })}
         </tbody>
       </table>
+      </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Usunąć ten sprzęt?"
+        description={
+          deleteTarget
+            ? `${deleteTarget.name} (${deleteTarget.inventoryNumber}). Tej operacji nie można cofnąć. Jeśli sprzęt ma powiązane protokoły, usunięcie zostanie zablokowane — usuń je najpierw.`
+            : undefined
+        }
+        confirmLabel={isDeleting ? "Usuwanie…" : "Usuń"}
+        danger
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }

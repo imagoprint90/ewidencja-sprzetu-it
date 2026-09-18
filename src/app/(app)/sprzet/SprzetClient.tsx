@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ColumnPicker } from "@/components/equipment/ColumnPicker";
 import { EquipmentFilters, type EquipmentFiltersState } from "@/components/equipment/EquipmentFilters";
@@ -13,6 +14,7 @@ import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { EQUIPMENT_COLUMNS, type EquipmentColumnKey, type EquipmentStatus } from "@/lib/types";
 import { getActiveAssignment } from "@/lib/equipment-helpers";
+import { deleteEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
 import type {
   Assignment,
   Category,
@@ -68,6 +70,7 @@ function SprzetPageInner({
   protocolItemLinks: ProtocolItemLink[];
 }) {
   const isAdmin = useIsAdmin();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialStatus = (searchParams.get("status") as EquipmentStatus | null) ?? "";
 
@@ -78,6 +81,10 @@ function SprzetPageInner({
     locationId: "",
     employeeId: "",
   });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+  const [isBulkPending, startBulkTransition] = useTransition();
   const [visibleColumns, setVisibleColumns] = useLocalStorage<EquipmentColumnKey[]>(
     "sprzet-kolumny",
     DEFAULT_COLUMNS
@@ -110,6 +117,73 @@ function SprzetPageInner({
       return true;
     });
   }, [equipment, filters, assignments, employees]);
+
+  // Zaznaczenie jest pamiętane niezależnie od filtrów, ale do wyświetlania i akcji zbiorczych
+  // liczą się tylko pozycje aktualnie widoczne na liście — unika to niejawnych operacji na
+  // wierszach, których użytkownik już nie widzi.
+  const visibleSelectedIds = useMemo(
+    () => new Set(filtered.filter((item) => selectedIds.has(item.id)).map((item) => item.id)),
+    [filtered, selectedIds]
+  );
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((item) => visibleSelectedIds.has(item.id));
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const item of filtered) {
+        if (allFilteredSelected) next.delete(item.id);
+        else next.add(item.id);
+      }
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function handleBulkAssign() {
+    const ids = Array.from(visibleSelectedIds);
+    if (ids.length === 0) return;
+    const [first, ...rest] = ids;
+    const query = rest.length > 0 ? `?extra=${rest.join(",")}` : "";
+    router.push(`/sprzet/${first}/przekaz${query}`);
+  }
+
+  function handleBulkDelete() {
+    setBulkDeleteOpen(false);
+    const ids = Array.from(visibleSelectedIds);
+    startBulkTransition(async () => {
+      let okCount = 0;
+      const failedNames: string[] = [];
+      for (const id of ids) {
+        const result = await deleteEquipmentAction(id);
+        if (result.ok) okCount += 1;
+        else failedNames.push(equipment.find((e) => e.id === id)?.name ?? id);
+      }
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of ids) next.delete(id);
+        return next;
+      });
+      setBulkMessage(
+        failedNames.length === 0
+          ? `Usunięto ${okCount} pozycji.`
+          : `Usunięto ${okCount} z ${ids.length}. Zablokowane przez powiązane protokoły: ${failedNames.join(", ")}.`
+      );
+      router.refresh();
+    });
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -146,6 +220,29 @@ function SprzetPageInner({
         />
       </div>
 
+      {isAdmin && visibleSelectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
+          <span className="text-sm font-medium">Zaznaczono: {visibleSelectedIds.size}</span>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={handleBulkAssign} disabled={isBulkPending}>
+              Przydziel zaznaczone
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setBulkDeleteOpen(true)} disabled={isBulkPending}>
+              <Trash2 size={14} />
+              Usuń zaznaczone
+            </Button>
+            <Button size="sm" variant="ghost" onClick={clearSelection} disabled={isBulkPending}>
+              Anuluj zaznaczenie
+            </Button>
+          </div>
+          {isBulkPending && <span className="text-xs text-muted">Przetwarzanie…</span>}
+        </div>
+      )}
+
+      {bulkMessage && (
+        <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">{bulkMessage}</p>
+      )}
+
       {filtered.length === 0 ? (
         <EmptyState
           title="Brak sprzętu spełniającego kryteria"
@@ -174,8 +271,22 @@ function SprzetPageInner({
           protocolItemLinks={protocolItemLinks}
           visibleColumns={visibleColumns.length ? visibleColumns : EQUIPMENT_COLUMNS.slice(0, 3)}
           columnColors={columnColors}
+          selectedIds={visibleSelectedIds}
+          allSelected={allFilteredSelected}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAll}
         />
       )}
+
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        title={`Usunąć ${visibleSelectedIds.size} pozycji?`}
+        description="Tej operacji nie można cofnąć. Pozycje z powiązanymi protokołami zostaną pominięte — usuń najpierw ich protokoły."
+        confirmLabel="Usuń zaznaczone"
+        danger
+        onCancel={() => setBulkDeleteOpen(false)}
+        onConfirm={handleBulkDelete}
+      />
     </div>
   );
 }

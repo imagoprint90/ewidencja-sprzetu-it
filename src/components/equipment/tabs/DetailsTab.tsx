@@ -27,14 +27,16 @@ export function DetailsTab({
   equipment,
   categories,
   locations,
+  startInEdit = false,
 }: {
   equipment: Equipment;
   categories: Category[];
   locations: Location[];
+  startInEdit?: boolean;
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(startInEdit && isAdmin);
   const [error, setError] = useState<string | null>(null);
 
   const {

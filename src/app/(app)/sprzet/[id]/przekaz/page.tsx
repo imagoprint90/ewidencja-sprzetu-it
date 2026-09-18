@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -60,17 +61,19 @@ export default async function PrzekazSprzetPage({
   }
 
   return (
-    <PrzekazForm
-      item={item}
-      allEquipment={equipment}
-      categories={categories}
-      employees={employees}
-      assignments={assignments}
-      equipmentLinks={equipmentLinks}
-      installedSoftware={installedSoftware}
-      products={products}
-      licenses={licenses}
-      licenseAssignments={licenseAssignments}
-    />
+    <Suspense>
+      <PrzekazForm
+        item={item}
+        allEquipment={equipment}
+        categories={categories}
+        employees={employees}
+        assignments={assignments}
+        equipmentLinks={equipmentLinks}
+        installedSoftware={installedSoftware}
+        products={products}
+        licenses={licenses}
+        licenseAssignments={licenseAssignments}
+      />
+    </Suspense>
   );
 }
