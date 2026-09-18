@@ -14,7 +14,9 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
 **Gotowe i działające, z danymi trwałymi w Supabase (nie w przeglądarce):**
 - Logowanie e-mail/hasło przez Supabase Auth, z opcją przypomnienia hasła (link e-mail).
   Wszystkie strony poza `/logowanie` wymagają zalogowania (wymuszane w middleware/proxy
-  i ponownie sprawdzane po stronie serwera — nie tylko ukrywaniem przycisków).
+  i ponownie sprawdzane po stronie serwera — nie tylko ukrywaniem przycisków). Każdy
+  zalogowany użytkownik (niezależnie od roli) może zmienić własne hasło z poziomu menu przy
+  swoim e-mailu w prawym górnym rogu — wymaga podania obecnego hasła.
 - Role „administrator” (pełny dostęp) i „podgląd” (tylko odczyt) — wymuszane realnie przez
   reguły RLS w bazie danych, a dodatkowo interfejs ukrywa akcje edycji przed rolą „podgląd”.
 - **Użytkownicy** (Etap 6, zakładka `/uzytkownicy`, tylko dla administratora): zakładanie,
