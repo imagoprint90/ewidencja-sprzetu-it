@@ -38,8 +38,10 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   przypisanego pracownika, a przy zwrocie do magazynu wraca do domyślnej lokalizacji
   „Magazyn” (ustawiane w `transfer_equipment_set`). Zmiana lokalizacji pracownika aktualizuje
   też lokalizację jego aktualnie przydzielonego sprzętu.
-- Pracownicy: lista (z kolumnami e-mail i telefon) z filtrami wielokrotnego wyboru (lokalizacja,
-  dział, status — zapamiętywane jak w Sprzęcie), karta pracownika, dodawanie, edycja,
+- Pracownicy: lista z filtrami wielokrotnego wyboru (lokalizacja, dział, status —
+  zapamiętywane jak w Sprzęcie), wyborem widocznych kolumn i ich kolejności (przycisk
+  „Kolumny”, tak jak w Sprzęcie) oraz edycją wprost w komórkach tabeli (e-mail, telefon,
+  dział — bez wchodzenia na kartę pracownika). Karta pracownika: dodawanie, edycja,
   aktywacja/dezaktywacja, usuwanie (zablokowane, gdy pracownik ma historię przydziałów
   sprzętu — wtedy zamiast usuwania używa się dezaktywacji, żeby zachować historię). Dział i
   lokalizacja są opcjonalne — nie każdy pracownik musi je mieć uzupełnione. Import z

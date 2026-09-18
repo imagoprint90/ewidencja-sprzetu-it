@@ -7,6 +7,8 @@ import { Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { EditableCell } from "@/components/ui/EditableCell";
+import { ColumnPicker } from "@/components/ui/ColumnPicker";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { getLocationName } from "@/lib/equipment-helpers";
@@ -18,6 +20,7 @@ import {
 } from "@/components/employees/EmployeeFilters";
 import {
   importEmployeesAction,
+  updateEmployeeAction,
   type EmployeeCsvRow,
 } from "@/lib/supabase/actions/employee-actions";
 import type { Employee, Location } from "@/lib/types";
@@ -27,6 +30,33 @@ const EMAIL_ALIASES = ["email", "e-mail", "adres e-mail", "adres email"];
 const PHONE_ALIASES = ["telefon", "nr telefonu", "numer telefonu", "tel"];
 const DEPARTMENT_ALIASES = ["dzial"];
 const LOCATION_ALIASES = ["lokalizacja"];
+
+type EmployeeColumnKey = "email" | "phone" | "department" | "location" | "assignedEquipment" | "status";
+
+const EMPLOYEE_COLUMNS: EmployeeColumnKey[] = [
+  "email",
+  "phone",
+  "department",
+  "location",
+  "assignedEquipment",
+  "status",
+];
+const EMPLOYEE_COLUMN_LABELS: Record<EmployeeColumnKey, string> = {
+  email: "Email",
+  phone: "Telefon",
+  department: "Dział",
+  location: "Lokalizacja",
+  assignedEquipment: "Przydzielony sprzęt",
+  status: "Status",
+};
+const DEFAULT_EMPLOYEE_COLUMNS: EmployeeColumnKey[] = [
+  "email",
+  "phone",
+  "department",
+  "location",
+  "assignedEquipment",
+  "status",
+];
 
 export function PracownicyClient({
   employees,
@@ -43,10 +73,29 @@ export function PracownicyClient({
     "pracownicy-filtry",
     DEFAULT_EMPLOYEE_FILTERS
   );
+  const [visibleColumns, setVisibleColumns] = useLocalStorage<EmployeeColumnKey[]>(
+    "pracownicy-kolumny",
+    DEFAULT_EMPLOYEE_COLUMNS
+  );
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<string | null>(null);
   const [isImporting, startImportTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function saveField(
+    item: Employee,
+    patch: Partial<{ email: string | null; phone: string | null; department: string | null }>
+  ) {
+    const result = await updateEmployeeAction(item.id, {
+      fullName: item.fullName,
+      email: patch.email !== undefined ? patch.email : item.email,
+      phone: patch.phone !== undefined ? patch.phone : item.phone,
+      department: patch.department !== undefined ? patch.department : item.department,
+      locationId: item.locationId,
+    });
+    if (result.ok) router.refresh();
+    return result.ok ? { ok: true as const } : { ok: false as const, error: result.error };
+  }
 
   const departments = useMemo(
     () =>
@@ -186,7 +235,15 @@ export function PracownicyClient({
         <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">{importResult}</p>
       )}
 
-      <EmployeeFilters value={filters} onChange={setFilters} locations={locations} departments={departments} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <EmployeeFilters value={filters} onChange={setFilters} locations={locations} departments={departments} />
+        <ColumnPicker
+          allColumns={EMPLOYEE_COLUMNS}
+          labels={EMPLOYEE_COLUMN_LABELS}
+          visible={visibleColumns}
+          onChange={setVisibleColumns}
+        />
+      </div>
 
       {filtered.length === 0 ? (
         <EmptyState
@@ -205,12 +262,11 @@ export function PracownicyClient({
             <thead>
               <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-medium">Imię i nazwisko</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Telefon</th>
-                <th className="px-4 py-3 font-medium">Dział</th>
-                <th className="px-4 py-3 font-medium">Lokalizacja</th>
-                <th className="px-4 py-3 font-medium">Przydzielony sprzęt</th>
-                <th className="px-4 py-3 font-medium">Status</th>
+                {visibleColumns.map((col) => (
+                  <th key={col} className="px-4 py-3 font-medium">
+                    {EMPLOYEE_COLUMN_LABELS[col]}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -225,16 +281,47 @@ export function PracownicyClient({
                       {e.fullName}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">{e.email ?? "—"}</td>
-                  <td className="px-4 py-3">{e.phone ?? "—"}</td>
-                  <td className="px-4 py-3">{e.department ?? "—"}</td>
-                  <td className="px-4 py-3">{getLocationName(locations, e.locationId)}</td>
-                  <td className="px-4 py-3">{assignedCounts[e.id] ?? 0} szt.</td>
-                  <td className="px-4 py-3">
-                    <Badge tone={e.isActive ? "success" : "default"}>
-                      {e.isActive ? "Aktywny" : "Nieaktywny"}
-                    </Badge>
-                  </td>
+                  {visibleColumns.map((col) => (
+                    <td key={col} className="px-4 py-3" onClick={(ev) => ev.stopPropagation()}>
+                      {col === "email" &&
+                        (isAdmin ? (
+                          <EditableCell
+                            value={e.email ?? ""}
+                            displayValue={e.email ?? <span className="text-muted">—</span>}
+                            onSave={(v) => saveField(e, { email: v || null })}
+                          />
+                        ) : (
+                          (e.email ?? "—")
+                        ))}
+                      {col === "phone" &&
+                        (isAdmin ? (
+                          <EditableCell
+                            value={e.phone ?? ""}
+                            displayValue={e.phone ?? <span className="text-muted">—</span>}
+                            onSave={(v) => saveField(e, { phone: v || null })}
+                          />
+                        ) : (
+                          (e.phone ?? "—")
+                        ))}
+                      {col === "department" &&
+                        (isAdmin ? (
+                          <EditableCell
+                            value={e.department ?? ""}
+                            displayValue={e.department ?? <span className="text-muted">—</span>}
+                            onSave={(v) => saveField(e, { department: v || null })}
+                          />
+                        ) : (
+                          (e.department ?? "—")
+                        ))}
+                      {col === "location" && getLocationName(locations, e.locationId)}
+                      {col === "assignedEquipment" && `${assignedCounts[e.id] ?? 0} szt.`}
+                      {col === "status" && (
+                        <Badge tone={e.isActive ? "success" : "default"}>
+                          {e.isActive ? "Aktywny" : "Nieaktywny"}
+                        </Badge>
+                      )}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>

@@ -23,7 +23,7 @@ import type {
 import { EQUIPMENT_COLUMN_LABELS, EQUIPMENT_STATUS_COLORS, EQUIPMENT_STATUS_LABELS } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
-import { EditableCell } from "@/components/equipment/EditableCell";
+import { EditableCell } from "@/components/ui/EditableCell";
 import { formatDate } from "@/lib/format";
 import {
   equipmentToInput,
