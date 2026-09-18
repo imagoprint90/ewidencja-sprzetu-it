@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { EditableCell } from "@/components/ui/EditableCell";
 import { ColumnPicker } from "@/components/ui/ColumnPicker";
 import { SortableTh } from "@/components/ui/SortableTh";
+import { ExpandableList } from "@/components/ui/ExpandableList";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useSort } from "@/lib/useSort";
@@ -74,11 +75,11 @@ const DEFAULT_EMPLOYEE_COLUMNS: EmployeeColumnKey[] = [
 
 export function PracownicyClient({
   employees,
-  assignedCounts,
+  assignedEquipmentNames,
   locations,
 }: {
   employees: Employee[];
-  assignedCounts: Record<string, number>;
+  assignedEquipmentNames: Record<string, string[]>;
   locations: Location[];
 }) {
   const router = useRouter();
@@ -149,11 +150,12 @@ export function PracownicyClient({
       department: (a, b) => compareStrings(a.department ?? "", b.department ?? ""),
       location: (a, b) =>
         compareStrings(getLocationName(locations, a.locationId), getLocationName(locations, b.locationId)),
-      assignedEquipment: (a, b) => compareNumbers(assignedCounts[a.id] ?? 0, assignedCounts[b.id] ?? 0),
+      assignedEquipment: (a, b) =>
+        compareNumbers((assignedEquipmentNames[a.id] ?? []).length, (assignedEquipmentNames[b.id] ?? []).length),
       status: (a, b) => compareNumbers(Number(a.isActive), Number(b.isActive)),
     };
     return applySort(filtered, sortKey, sortDir, comparators);
-  }, [filtered, sortKey, sortDir, locations, assignedCounts]);
+  }, [filtered, sortKey, sortDir, locations, assignedEquipmentNames]);
 
   function handleFilePicked(file: File) {
     setImportError(null);
@@ -358,7 +360,9 @@ export function PracownicyClient({
                           (e.department ?? "—")
                         ))}
                       {col === "location" && getLocationName(locations, e.locationId)}
-                      {col === "assignedEquipment" && `${assignedCounts[e.id] ?? 0} szt.`}
+                      {col === "assignedEquipment" && (
+                        <ExpandableList items={assignedEquipmentNames[e.id] ?? []} />
+                      )}
                       {col === "status" && (
                         <Badge tone={e.isActive ? "success" : "default"}>
                           {e.isActive ? "Aktywny" : "Nieaktywny"}
