@@ -45,7 +45,9 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
     const q = query.trim().toLowerCase();
     if (!q) return protocols;
     return protocols.filter((p) => {
-      const equipmentNames = p.snapshot.items.map((i) => i.name).join(" ");
+      const equipmentNames = p.snapshot.items
+        .map((i) => `${i.name} ${i.equipmentName ?? ""}`)
+        .join(" ");
       const haystack = [
         p.protocolNumber,
         PROTOCOL_TYPE_LABELS[p.type],
@@ -159,12 +161,13 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full min-w-[980px] text-sm">
+          <table className="w-full min-w-[1080px] text-sm">
             <thead>
               <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-3 py-2.5 font-medium">Numer</th>
                 <th className="px-3 py-2.5 font-medium">Typ</th>
                 <th className="px-3 py-2.5 font-medium">Sprzęt</th>
+                <th className="px-3 py-2.5 font-medium">Nazwa sprzętu</th>
                 <th className="px-3 py-2.5 font-medium">Strony</th>
                 <th className="px-3 py-2.5 font-medium">Data</th>
                 <th className="px-3 py-2.5 font-medium">Status</th>
@@ -178,6 +181,9 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
                   <td className="px-3 py-2 align-middle">{PROTOCOL_TYPE_LABELS[p.type]}</td>
                   <td className="px-3 py-2 align-middle">
                     <ExpandableList items={p.snapshot.items.map((i) => i.name)} />
+                  </td>
+                  <td className="px-3 py-2 align-middle">
+                    <ExpandableList items={p.snapshot.items.map((i) => i.equipmentName ?? i.name)} />
                   </td>
                   <td className="px-3 py-2 align-middle">{partySummary(p)}</td>
                   <td className="px-3 py-2 align-middle">{formatDateTime(p.createdAt)}</td>

@@ -52,6 +52,7 @@ const styles = StyleSheet.create({
   colQty: { flex: 1, paddingHorizontal: 4, textAlign: "center" },
   colInv: { flex: 2, paddingHorizontal: 4 },
   colSerial: { flex: 2, paddingHorizontal: 4 },
+  colCondition: { flex: 2, paddingHorizontal: 4 },
   th: { fontSize: 9, fontWeight: "bold" },
   td: { fontSize: 9 },
   notesBox: {
@@ -160,6 +161,7 @@ export function ProtocolDocument({ snapshot }: { snapshot: ProtocolSnapshot }) {
             <Text style={[styles.colQty, styles.th]}>Ilość</Text>
             <Text style={[styles.colInv, styles.th]}>Nr inwentarzowy</Text>
             <Text style={[styles.colSerial, styles.th]}>Nr seryjny</Text>
+            <Text style={[styles.colCondition, styles.th]}>Stan techniczny</Text>
           </View>
           {snapshot.items.map((item, i) => (
             <View style={styles.tableRow} key={i} wrap={false}>
@@ -167,15 +169,15 @@ export function ProtocolDocument({ snapshot }: { snapshot: ProtocolSnapshot }) {
               <Text style={[styles.colQty, styles.td]}>{item.quantity}</Text>
               <Text style={[styles.colInv, styles.td]}>{item.inventoryNumber}</Text>
               <Text style={[styles.colSerial, styles.td]}>{item.serialNumber ?? "—"}</Text>
+              <Text style={[styles.colCondition, styles.td]}>
+                {item.technicalConditionLabel ?? snapshot.technicalConditionLabel}
+              </Text>
             </View>
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>Stan techniczny i uwagi</Text>
+        <Text style={styles.sectionTitle}>Uwagi</Text>
         <View style={styles.notesBox}>
-          <Text style={{ fontSize: 9, marginBottom: 4 }}>
-            Stan techniczny: {snapshot.technicalConditionLabel}
-          </Text>
           <Text style={{ fontSize: 9 }}>{snapshot.notes || "Brak dodatkowych uwag."}</Text>
         </View>
 

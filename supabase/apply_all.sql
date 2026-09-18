@@ -993,3 +993,10 @@ alter table public.protocol_items
   foreign key (equipment_id) references public.equipment(id) on delete restrict;
 
 
+-- ============================================================
+-- 0019_technical_condition_nowy.sql
+-- ============================================================
+-- Dodaje wartość "Nowy" do stanu technicznego sprzętu (najlepszy stan, przed "Bardzo dobry").
+alter type public.technical_condition add value if not exists 'nowy' before 'bardzo_dobry';
+
+

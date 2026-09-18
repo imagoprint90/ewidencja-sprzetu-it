@@ -110,6 +110,8 @@ export async function createProtocolAction(
     notes: input.notes,
     items: equipmentRows.map((e) => ({
       name: equipmentDisplayName(e),
+      equipmentName: e.name,
+      technicalConditionLabel: TECHNICAL_CONDITION_LABELS[input.condition],
       quantity: 1,
       inventoryNumber: e.inventory_number,
       serialNumber: e.serial_number,

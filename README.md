@@ -55,14 +55,17 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
 
 - **Protokoły PDF** (Etap 4): automatyczne generowanie przy każdym przekazaniu/zwrocie —
   numer dokumentu, dane firmy, strony, lista sprzętu identyfikowanego przez producenta i model
-  (nie wewnętrzną nazwę ewidencyjną) wraz z numerem seryjnym, z powtarzanym nagłówkiem tabeli
-  na kolejnych stronach, stan techniczny, miejsca na podpis. Treść jest zamrożoną migawką
-  (`snapshot` w tabeli `protocols`) — późniejsza edycja danych firmy/pracownika/sprzętu nie
-  zmienia już wystawionych dokumentów. Strona **Protokoły** i zakładka **Dokumenty** na
-  karcie sprzętu pozwalają pobrać PDF (prywatny magazyn plików, link ważny 60 s), ponowić
-  nieudane generowanie (bez duplikowania numeru), dołączyć podpisany skan, wyszukiwać po
-  numerze/sprzęcie/pracowniku/miejscowości i usunąć protokół (nieodwracalnie, razem z PDF).
-  Lista sprzętu ma kolumnę z ikoną otwierającą ostatni protokół danego sprzętu.
+  (nie wewnętrzną nazwę ewidencyjną) wraz z numerem seryjnym i ilością, z powtarzanym
+  nagłówkiem tabeli na kolejnych stronach, stan techniczny jako osobna kolumna w tabeli sprzętu
+  (nie jako oddzielny akapit — ważne, gdy na jednym protokole jest kilka różnych urządzeń),
+  miejsca na podpis. Treść jest zamrożoną migawką (`snapshot` w tabeli `protocols`) —
+  późniejsza edycja danych firmy/pracownika/sprzętu nie zmienia już wystawionych dokumentów.
+  Strona **Protokoły** i zakładka **Dokumenty** na karcie sprzętu pozwalają pobrać PDF (prywatny
+  magazyn plików, link ważny 60 s), ponowić nieudane generowanie (bez duplikowania numeru),
+  dołączyć podpisany skan, wyszukiwać po numerze/sprzęcie/pracowniku/miejscowości i usunąć
+  protokół (nieodwracalnie, razem z PDF). Lista Protokołów ma osobne kolumny „Sprzęt”
+  (producent+model, jak na PDF) i „Nazwa sprzętu” (wewnętrzna nazwa ewidencyjna). Lista sprzętu
+  ma kolumnę z ikoną otwierającą ostatni protokół danego sprzętu.
 - **Usuwanie sprzętu**: dostępne na karcie sprzętu. Zablokowane, dopóki istnieją powiązane
   protokoły (`protocol_items.equipment_id` ma teraz `ON DELETE RESTRICT`) — po ich usunięciu
   usunięcie sprzętu kasuje kaskadowo też jego historię przydziałów.
@@ -97,10 +100,9 @@ zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
 etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
 wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
-co już istnieje. Nowy plik do zastosowania: `0018_delete_equipment_via_protocols.sql`
-(zmienia, co blokuje usunięcie sprzętu — patrz niżej). Pliki 0009–0017 zostały już
-zastosowane.
-Pliki 0009–0011 zostały już zastosowane.
+co już istnieje. Nowe pliki do zastosowania: `0018_delete_equipment_via_protocols.sql`
+(zmienia, co blokuje usunięcie sprzętu) i `0019_technical_condition_nowy.sql` (dodaje stan
+techniczny „Nowy”). Pliki 0009–0017 zostały już zastosowane.
 
 ## Konfiguracja Supabase
 

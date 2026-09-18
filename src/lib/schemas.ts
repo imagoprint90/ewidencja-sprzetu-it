@@ -9,7 +9,7 @@ const equipmentBaseSchema = z.object({
   purchaseDate: z.string().optional(),
   warrantyEnd: z.string().optional(),
   technicalCondition: z
-    .union([z.literal(""), z.enum(["bardzo_dobry", "dobry", "dostateczny", "uszkodzony"])])
+    .union([z.literal(""), z.enum(["nowy", "bardzo_dobry", "dobry", "dostateczny", "uszkodzony"])])
     .optional(),
   purchasePrice: z
     .string()

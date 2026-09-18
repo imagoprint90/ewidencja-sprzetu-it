@@ -27,9 +27,10 @@ export const EQUIPMENT_STATUS_COLORS: Record<EquipmentStatus, string> = {
   wycofany: "#6b7280",
 };
 
-export type TechnicalCondition = "bardzo_dobry" | "dobry" | "dostateczny" | "uszkodzony";
+export type TechnicalCondition = "nowy" | "bardzo_dobry" | "dobry" | "dostateczny" | "uszkodzony";
 
 export const TECHNICAL_CONDITION_LABELS: Record<TechnicalCondition, string> = {
+  nowy: "Nowy",
   bardzo_dobry: "Bardzo dobry",
   dobry: "Dobry",
   dostateczny: "Dostateczny",
@@ -154,6 +155,13 @@ export const PROTOCOL_STATUS_LABELS: Record<ProtocolPdfStatus, string> = {
 
 export interface ProtocolItemData {
   name: string;
+  // Wewnętrzna nazwa ewidencyjna sprzętu — nie pokazywana na PDF (tam sprzęt identyfikuje
+  // producent+model, pole "name"), tylko w kolumnie "Nazwa sprzętu" listy Protokołów.
+  // Opcjonalne, bo starsze protokoły (sprzed tej zmiany) nie mają tego pola w migawce.
+  equipmentName?: string;
+  // Opcjonalne z tego samego powodu co equipmentName — starsze protokoły miały tylko
+  // jedno globalne pole "Stan techniczny" (poza tabelą), nie per-pozycja.
+  technicalConditionLabel?: string;
   quantity: number;
   inventoryNumber: string;
   serialNumber: string | null;
