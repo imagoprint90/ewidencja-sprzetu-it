@@ -54,3 +54,11 @@ export const employeeFormSchema = z.object({
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;
+
+export const userFormSchema = z.object({
+  fullName: z.string().trim().min(1, "Imię i nazwisko są wymagane."),
+  email: z.string().trim().email("Nieprawidłowy adres e-mail."),
+  password: z.string().min(8, "Hasło musi mieć co najmniej 8 znaków."),
+});
+
+export type UserFormValues = z.infer<typeof userFormSchema>;

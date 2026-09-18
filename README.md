@@ -9,7 +9,7 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
 - **Kod**: https://github.com/imagoprint90/ewidencja-sprzetu-it
 - **Wersja na żywo**: https://ewidencja-sprzetu-it.vercel.app
 
-## Stan projektu (Etapy 1-5 ukończone)
+## Stan projektu (Etapy 1-6 ukończone)
 
 **Gotowe i działające, z danymi trwałymi w Supabase (nie w przeglądarce):**
 - Logowanie e-mail/hasło przez Supabase Auth, z opcją przypomnienia hasła (link e-mail).
@@ -17,6 +17,10 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   i ponownie sprawdzane po stronie serwera — nie tylko ukrywaniem przycisków).
 - Role „administrator” (pełny dostęp) i „podgląd” (tylko odczyt) — wymuszane realnie przez
   reguły RLS w bazie danych, a dodatkowo interfejs ukrywa akcje edycji przed rolą „podgląd”.
+- **Użytkownicy** (Etap 6, zakładka `/uzytkownicy`, tylko dla administratora): zakładanie,
+  usuwanie i reset hasła kont bezpośrednio z aplikacji (przez Supabase Admin API), zmiana roli
+  oraz — dla roli „podgląd” — wybór, które zakładki dane konto widzi. Patrz sekcja „Zakładanie
+  kont użytkowników” niżej.
 - Sprzęt: lista z wyszukiwarką, filtrami, wyborem widocznych kolumn, dodawanie i edycja
   (walidacja unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane
   w bazie.
@@ -136,9 +140,9 @@ zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
 etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
 wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
-co już istnieje. Nowe pliki do zastosowania: `0018_delete_equipment_via_protocols.sql`
-(zmienia, co blokuje usunięcie sprzętu) i `0019_technical_condition_nowy.sql` (dodaje stan
-techniczny „Nowy”). Pliki 0009–0017 zostały już zastosowane.
+co już istnieje. Nowy plik do zastosowania: `0020_user_management.sql` (dodaje kolumny
+`email` i `visible_tabs` do `profiles`, potrzebne dla zakładki Użytkownicy). Pliki 0009–0019
+zostały już zastosowane.
 
 ## Konfiguracja Supabase
 
@@ -160,22 +164,37 @@ Te same trzy zmienne są już ustawione w Vercelu dla wersji produkcyjnej.
 
 ### Zakładanie kont użytkowników
 
-Aplikacja **nie ma publicznej rejestracji** — konta administratorów i osób z dostępem
-tylko do odczytu zakłada się ręcznie w panelu Supabase:
+Aplikacja **nie ma publicznej rejestracji**. Od Etapu 6 konta zakłada się wygodnie z poziomu
+samej aplikacji — zakładka **Użytkownicy** (widoczna w bocznym menu tylko dla roli
+`administrator`, pod `/uzytkownicy`):
 
-1. **Authentication → Users → Add user** — podaj e-mail i hasło (albo wyślij zaproszenie),
-   zaznacz „Auto Confirm User”, żeby nie trzeba było potwierdzać e-maila.
+- **Dodaj użytkownika** — podaj imię i nazwisko, e-mail, hasło początkowe oraz rolę
+  (`Administrator` — pełny dostęp i edycja wszędzie, albo `Tylko podgląd` — wyłącznie odczyt,
+  żadnych przycisków edycji, wymuszane przez RLS w bazie, nie tylko ukryciem w interfejsie).
+  Dla roli „Tylko podgląd” zaznacz też, które zakładki ta osoba ma widzieć (np. Sprzęt tak,
+  Pracownicy nie) — zakładka Pulpit jest zawsze dostępna, a Użytkownicy zawsze wyłącznie dla
+  administratora. Konto działa od razu, użytkownik loguje się podanym hasłem (może je później
+  zmienić przez „Nie pamiętasz hasła?” na stronie logowania).
+- Na liście Użytkownicy przycisk **Zarządzaj** pozwala zmienić rolę/widoczne zakładki i
+  zresetować hasło; **kosz** trwale usuwa konto (zablokowane dla własnego konta, żeby
+  administrator nie odciął sobie dostępu).
+- Ograniczenie widoczności zakładek działa na poziomie stron (bezpośrednie wejście pod adres
+  ukrytej zakładki też jest blokowane, nie tylko link w menu) — nie jest to jednak pełna
+  reguła bazodanowa jak RLS dla ról; np. nazwisko przydzielonego pracownika nadal pojawi się
+  przy sprzęcie, nawet jeśli to konto nie ma dostępu do zakładki Pracownicy.
+
+**Pierwsze konto administratora** trzeba założyć ręcznie w panelu Supabase (zanim ktokolwiek
+może zalogować się do zakładki Użytkownicy):
+
+1. **Authentication → Users → Add user** — podaj e-mail i hasło, zaznacz „Auto Confirm User”.
 2. Skopiuj `UID` nowo utworzonego użytkownika.
-3. W **SQL Editor** uruchom (rola `administrator` — pełny dostęp, lub `podglad` — tylko
-   odczyt, gdy interfejs zacznie to wymuszać w kolejnym etapie):
+3. W **SQL Editor** uruchom:
    ```sql
    insert into public.profiles (id, full_name, role)
    values ('<UID-uzytkownika>', 'Imię i Nazwisko', 'administrator');
    ```
-   (RLS celowo nie pozwala nikomu samodzielnie nadać sobie roli — każde konto zakłada się
-   w ten sposób).
-4. Ta osoba może się teraz zalogować pod `/logowanie` swoim e-mailem i hasłem, oraz użyć
-   „Nie pamiętasz hasła?”, żeby ustawić je samodzielnie linkiem e-mail.
+4. Ta osoba loguje się pod `/logowanie` i od teraz zakłada kolejne konta już przez zakładkę
+   Użytkownicy.
 
 ## GitHub
 

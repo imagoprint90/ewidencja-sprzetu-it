@@ -157,6 +157,7 @@ export async function getInstalledSoftware(supabase: SupabaseClient): Promise<In
 export interface CurrentProfile {
   fullName: string;
   role: "administrator" | "podglad";
+  visibleTabs: string[] | null;
 }
 
 export async function getCurrentProfile(
@@ -165,10 +166,34 @@ export async function getCurrentProfile(
 ): Promise<CurrentProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("full_name, role")
+    .select("full_name, role, visible_tabs")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  return { fullName: data.full_name, role: data.role };
+  return { fullName: data.full_name, role: data.role, visibleTabs: data.visible_tabs };
+}
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string | null;
+  role: "administrator" | "podglad";
+  visibleTabs: string[] | null;
+  createdAt: string;
+}
+
+// Lista kont aplikacji (zakładka Użytkownicy) — RLS pozwala to odczytać tylko
+// administratorowi (patrz polityka "admin zarzadza profilami").
+export async function getProfiles(supabase: SupabaseClient): Promise<UserProfile[]> {
+  const { data, error } = await supabase.from("profiles").select("*").order("full_name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    fullName: row.full_name,
+    email: row.email,
+    role: row.role,
+    visibleTabs: row.visible_tabs,
+    createdAt: row.created_at,
+  }));
 }

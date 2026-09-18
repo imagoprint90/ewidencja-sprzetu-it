@@ -3,12 +3,14 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   getAssignments,
   getCategories,
+  getCurrentProfile,
   getEmployees,
   getEquipment,
   getSoftwareLicenses,
   getSoftwareProducts,
 } from "@/lib/supabase/queries";
 import { daysUntil, formatDate } from "@/lib/format";
+import { canViewTab } from "@/lib/access";
 import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -32,6 +34,13 @@ function StatCard({
 
 export default async function PulpitPage(): Promise<ReactNode> {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const profile = user ? await getCurrentProfile(supabase, user.id) : null;
+  const canSeeEquipment = profile ? canViewTab(profile.role, profile.visibleTabs, "sprzet") : false;
+  const canSeeSoftware = profile ? canViewTab(profile.role, profile.visibleTabs, "oprogramowanie") : false;
+
   const [equipment, employees, assignments, categories, licenses, softwareProducts] = await Promise.all([
     getEquipment(supabase),
     getEmployees(supabase),
@@ -79,110 +88,127 @@ export default async function PulpitPage(): Promise<ReactNode> {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard label="Wszystkie urządzenia" value={equipment.length} href="/sprzet" />
-        <StatCard
-          label={EQUIPMENT_STATUS_LABELS.w_magazynie}
-          value={counts.w_magazynie}
-          href="/sprzet?status=w_magazynie"
-        />
-        <StatCard
-          label={EQUIPMENT_STATUS_LABELS.przydzielony}
-          value={counts.przydzielony}
-          href="/sprzet?status=przydzielony"
-        />
-        <StatCard
-          label={EQUIPMENT_STATUS_LABELS.w_naprawie}
-          value={counts.w_naprawie}
-          href="/sprzet?status=w_naprawie"
-        />
-        <StatCard
-          label={EQUIPMENT_STATUS_LABELS.zepsuty}
-          value={counts.zepsuty}
-          href="/sprzet?status=zepsuty"
-        />
-        <StatCard
-          label={EQUIPMENT_STATUS_LABELS.wycofany}
-          value={counts.wycofany}
-          href="/sprzet?status=wycofany"
-        />
-      </div>
+      {canSeeEquipment && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <StatCard label="Wszystkie urządzenia" value={equipment.length} href="/sprzet" />
+          <StatCard
+            label={EQUIPMENT_STATUS_LABELS.w_magazynie}
+            value={counts.w_magazynie}
+            href="/sprzet?status=w_magazynie"
+          />
+          <StatCard
+            label={EQUIPMENT_STATUS_LABELS.przydzielony}
+            value={counts.przydzielony}
+            href="/sprzet?status=przydzielony"
+          />
+          <StatCard
+            label={EQUIPMENT_STATUS_LABELS.w_naprawie}
+            value={counts.w_naprawie}
+            href="/sprzet?status=w_naprawie"
+          />
+          <StatCard
+            label={EQUIPMENT_STATUS_LABELS.zepsuty}
+            value={counts.zepsuty}
+            href="/sprzet?status=zepsuty"
+          />
+          <StatCard
+            label={EQUIPMENT_STATUS_LABELS.wycofany}
+            value={counts.wycofany}
+            href="/sprzet?status=wycofany"
+          />
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-surface p-5">
-          <h2 className="text-sm font-semibold">Kończące się gwarancje (60 dni)</h2>
-          {expiringWarranties.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">Brak urządzeń z gwarancją kończącą się wkrótce.</p>
-          ) : (
-            <ul className="mt-3 flex flex-col gap-2">
-              {expiringWarranties.map((e) => (
-                <li key={e.id} className="flex items-center justify-between text-sm">
-                  <Link href={`/sprzet/${e.id}`} className="text-primary hover:underline">
-                    {e.name} ({e.inventoryNumber})
-                  </Link>
-                  <span className="text-muted">{formatDate(e.warrantyEnd)}</span>
-                </li>
-              ))}
-            </ul>
+      {(canSeeEquipment || canSeeSoftware) && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {canSeeEquipment && (
+            <div className="rounded-xl border border-border bg-surface p-5">
+              <h2 className="text-sm font-semibold">Kończące się gwarancje (60 dni)</h2>
+              {expiringWarranties.length === 0 ? (
+                <p className="mt-3 text-sm text-muted">Brak urządzeń z gwarancją kończącą się wkrótce.</p>
+              ) : (
+                <ul className="mt-3 flex flex-col gap-2">
+                  {expiringWarranties.map((e) => (
+                    <li key={e.id} className="flex items-center justify-between text-sm">
+                      <Link href={`/sprzet/${e.id}`} className="text-primary hover:underline">
+                        {e.name} ({e.inventoryNumber})
+                      </Link>
+                      <span className="text-muted">{formatDate(e.warrantyEnd)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {canSeeSoftware && (
+            <div className="rounded-xl border border-border bg-surface p-5">
+              <h2 className="text-sm font-semibold">Wygasające licencje (60 dni)</h2>
+              {expiringLicenses.length === 0 ? (
+                <p className="mt-3 text-sm text-muted">Brak licencji wygasających wkrótce.</p>
+              ) : (
+                <ul className="mt-3 flex flex-col gap-2">
+                  {expiringLicenses.map((l) => (
+                    <li key={l.id} className="flex items-center justify-between text-sm">
+                      <Link href="/oprogramowanie" className="text-primary hover:underline">
+                        {softwareProducts.find((p) => p.id === l.productId)?.name ?? "Nieznany produkt"}
+                      </Link>
+                      <span className="text-muted">{formatDate(l.validUntil)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
         </div>
+      )}
 
+      {canSeeEquipment && (
         <div className="rounded-xl border border-border bg-surface p-5">
-          <h2 className="text-sm font-semibold">Wygasające licencje (60 dni)</h2>
-          {expiringLicenses.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">Brak licencji wygasających wkrótce.</p>
+          <h2 className="text-sm font-semibold">Ostatnie przekazania</h2>
+          {recentAssignments.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">Brak zarejestrowanych przekazań.</p>
           ) : (
-            <ul className="mt-3 flex flex-col gap-2">
-              {expiringLicenses.map((l) => (
-                <li key={l.id} className="flex items-center justify-between text-sm">
-                  <Link href="/oprogramowanie" className="text-primary hover:underline">
-                    {softwareProducts.find((p) => p.id === l.productId)?.name ?? "Nieznany produkt"}
-                  </Link>
-                  <span className="text-muted">{formatDate(l.validUntil)}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted">
+                    <th className="pb-2 pr-4 font-medium">Sprzęt</th>
+                    <th className="pb-2 pr-4 font-medium">Pracownik</th>
+                    <th className="pb-2 pr-4 font-medium">Data przydzielenia</th>
+                    <th className="pb-2 font-medium">Data zwrotu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentAssignments.map((a) => {
+                    const eq = equipment.find((e) => e.id === a.equipmentId);
+                    const emp = employees.find((e) => e.id === a.employeeId);
+                    return (
+                      <tr key={a.id} className="border-t border-border">
+                        <td className="py-2 pr-4">
+                          <Link href={`/sprzet/${a.equipmentId}`} className="text-primary hover:underline">
+                            {eq?.name ?? "—"}
+                          </Link>
+                        </td>
+                        <td className="py-2 pr-4">{emp?.fullName ?? "—"}</td>
+                        <td className="py-2 pr-4">{formatDate(a.assignedAt)}</td>
+                        <td className="py-2">{a.returnedAt ? formatDate(a.returnedAt) : "aktywny"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-      </div>
+      )}
 
-      <div className="rounded-xl border border-border bg-surface p-5">
-        <h2 className="text-sm font-semibold">Ostatnie przekazania</h2>
-        {recentAssignments.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">Brak zarejestrowanych przekazań.</p>
-        ) : (
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-muted">
-                  <th className="pb-2 pr-4 font-medium">Sprzęt</th>
-                  <th className="pb-2 pr-4 font-medium">Pracownik</th>
-                  <th className="pb-2 pr-4 font-medium">Data przydzielenia</th>
-                  <th className="pb-2 font-medium">Data zwrotu</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentAssignments.map((a) => {
-                  const eq = equipment.find((e) => e.id === a.equipmentId);
-                  const emp = employees.find((e) => e.id === a.employeeId);
-                  return (
-                    <tr key={a.id} className="border-t border-border">
-                      <td className="py-2 pr-4">
-                        <Link href={`/sprzet/${a.equipmentId}`} className="text-primary hover:underline">
-                          {eq?.name ?? "—"}
-                        </Link>
-                      </td>
-                      <td className="py-2 pr-4">{emp?.fullName ?? "—"}</td>
-                      <td className="py-2 pr-4">{formatDate(a.assignedAt)}</td>
-                      <td className="py-2">{a.returnedAt ? formatDate(a.returnedAt) : "aktywny"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {!canSeeEquipment && !canSeeSoftware && (
+        <div className="rounded-xl border border-dashed border-border bg-surface p-5 text-sm text-muted">
+          Twoje konto nie ma dostępu do żadnej zakładki z podsumowaniem. Skorzystaj z menu po
+          lewej stronie.
+        </div>
+      )}
     </div>
   );
 }

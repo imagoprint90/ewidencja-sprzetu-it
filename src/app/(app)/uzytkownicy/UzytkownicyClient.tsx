@@ -1,0 +1,308 @@
+"use client";
+
+import { Fragment, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Plus, ChevronDown, ChevronUp, Trash2, KeyRound } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { inputClass } from "@/components/ui/Form";
+import { useCurrentUser } from "@/lib/current-user-context";
+import { ASSIGNABLE_TABS } from "@/lib/access";
+import { formatDateTime } from "@/lib/format";
+import type { UserProfile } from "@/lib/supabase/queries";
+import {
+  deleteUserAction,
+  resetUserPasswordAction,
+  updateUserPermissionsAction,
+} from "@/lib/supabase/actions/user-actions";
+
+export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
+  const router = useRouter();
+  const currentUser = useCurrentUser();
+  const [isPending, startTransition] = useTransition();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editRole, setEditRole] = useState<"administrator" | "podglad">("podglad");
+  const [editTabs, setEditTabs] = useState<Set<string>>(new Set());
+  const [editError, setEditError] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  function startEdit(p: UserProfile) {
+    setExpandedId(p.id);
+    setEditRole(p.role);
+    setEditTabs(new Set(p.visibleTabs ?? ASSIGNABLE_TABS.map((t) => t.key)));
+    setEditError(null);
+    setNewPassword("");
+    setPasswordMessage(null);
+  }
+
+  function toggleTab(key: string) {
+    setEditTabs((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function saveEdit(id: string) {
+    setEditError(null);
+    startTransition(async () => {
+      const result = await updateUserPermissionsAction(id, {
+        role: editRole,
+        visibleTabs: editRole === "administrator" ? null : Array.from(editTabs),
+      });
+      if (!result.ok) {
+        setEditError(result.error);
+        return;
+      }
+      setExpandedId(null);
+      router.refresh();
+    });
+  }
+
+  function savePassword(id: string) {
+    if (newPassword.length < 8) {
+      setPasswordMessage("Hasło musi mieć co najmniej 8 znaków.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await resetUserPasswordAction(id, newPassword);
+      if (!result.ok) {
+        setPasswordMessage(result.error);
+        return;
+      }
+      setNewPassword("");
+      setPasswordMessage("Hasło zostało zmienione.");
+    });
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    startTransition(async () => {
+      const result = await deleteUserAction(deleteTarget.id);
+      if (!result.ok) {
+        setDeleteTarget(null);
+        setDeleteError(result.error);
+        return;
+      }
+      setDeleteTarget(null);
+      setDeleteError(null);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-xl font-semibold">Użytkownicy</h1>
+          <p className="text-sm text-muted">
+            {profiles.length} {profiles.length === 1 ? "konto" : "kont"} w systemie. Zakładka
+            widoczna tylko dla administratora.
+          </p>
+        </div>
+        <Link href="/uzytkownicy/nowy">
+          <Button>
+            <Plus size={16} />
+            Dodaj użytkownika
+          </Button>
+        </Link>
+      </div>
+
+      {deleteError && (
+        <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
+          {deleteError}
+        </p>
+      )}
+
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+        <table className="w-full min-w-[860px] text-sm">
+          <thead>
+            <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
+              <th className="px-4 py-3 font-medium">Imię i nazwisko</th>
+              <th className="px-4 py-3 font-medium">Email</th>
+              <th className="px-4 py-3 font-medium">Rola</th>
+              <th className="px-4 py-3 font-medium">Zakładki</th>
+              <th className="px-4 py-3 font-medium">Utworzono</th>
+              <th className="px-4 py-3 font-medium text-right">Działania</th>
+            </tr>
+          </thead>
+          <tbody>
+            {profiles.map((p) => {
+              const isSelf = p.id === currentUser.id;
+              const expanded = expandedId === p.id;
+              return (
+                <Fragment key={p.id}>
+                  <tr className="border-b border-border last:border-0">
+                    <td className="px-4 py-3">
+                      {p.fullName}
+                      {isSelf && <span className="ml-2 text-xs text-muted">(Ty)</span>}
+                    </td>
+                    <td className="px-4 py-3">{p.email ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <Badge tone={p.role === "administrator" ? "success" : "default"}>
+                        {p.role === "administrator" ? "Administrator" : "Tylko podgląd"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      {p.role === "administrator" || !p.visibleTabs ? (
+                        <span className="text-xs text-muted">wszystkie</span>
+                      ) : (
+                        <span className="text-xs text-muted">
+                          {p.visibleTabs.length === 0
+                            ? "brak"
+                            : ASSIGNABLE_TABS.filter((t) => p.visibleTabs!.includes(t.key))
+                                .map((t) => t.label)
+                                .join(", ")}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">{formatDateTime(p.createdAt)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => (expanded ? setExpandedId(null) : startEdit(p))}
+                        >
+                          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          Zarządzaj
+                        </Button>
+                        {!isSelf && (
+                          <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(p)}>
+                            <Trash2 size={14} />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {expanded && (
+                    <tr className="border-b border-border bg-black/[0.015] last:border-0">
+                      <td colSpan={6} className="px-4 py-4">
+                        <div className="flex flex-col gap-4">
+                          <div>
+                            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                              Rola
+                            </p>
+                            <div className="flex gap-3">
+                              <label className="flex items-center gap-2 text-sm">
+                                <input
+                                  type="radio"
+                                  checked={editRole === "podglad"}
+                                  disabled={isSelf}
+                                  onChange={() => setEditRole("podglad")}
+                                  className="h-4 w-4 text-primary"
+                                />
+                                Tylko podgląd
+                              </label>
+                              <label className="flex items-center gap-2 text-sm">
+                                <input
+                                  type="radio"
+                                  checked={editRole === "administrator"}
+                                  onChange={() => setEditRole("administrator")}
+                                  className="h-4 w-4 text-primary"
+                                />
+                                Administrator
+                              </label>
+                            </div>
+                            {isSelf && (
+                              <p className="mt-1 text-xs text-muted">
+                                Nie możesz odebrać uprawnień administratora samemu sobie.
+                              </p>
+                            )}
+                          </div>
+
+                          {editRole === "podglad" ? (
+                            <div>
+                              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                                Widoczne zakładki
+                              </p>
+                              <div className="flex flex-wrap gap-3">
+                                {ASSIGNABLE_TABS.map((t) => (
+                                  <label key={t.key} className="flex items-center gap-2 text-sm">
+                                    <input
+                                      type="checkbox"
+                                      checked={editTabs.has(t.key)}
+                                      onChange={() => toggleTab(t.key)}
+                                      className="h-4 w-4 rounded border-border text-primary"
+                                    />
+                                    {t.label}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted">
+                              Administrator ma zawsze pełny dostęp do wszystkich zakładek.
+                            </p>
+                          )}
+
+                          {editError && <p className="text-sm text-danger">{editError}</p>}
+
+                          <div className="flex justify-end gap-3 border-t border-border pt-3">
+                            <Button variant="secondary" size="sm" onClick={() => setExpandedId(null)}>
+                              Anuluj
+                            </Button>
+                            <Button size="sm" disabled={isPending} onClick={() => saveEdit(p.id)}>
+                              Zapisz uprawnienia
+                            </Button>
+                          </div>
+
+                          <div className="border-t border-border pt-3">
+                            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                              Reset hasła
+                            </p>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                              <input
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="Nowe hasło (min. 8 znaków)"
+                                className={`${inputClass} sm:max-w-xs`}
+                              />
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                disabled={isPending}
+                                onClick={() => savePassword(p.id)}
+                              >
+                                <KeyRound size={14} />
+                                Ustaw nowe hasło
+                              </Button>
+                            </div>
+                            {passwordMessage && (
+                              <p className="mt-1.5 text-sm text-muted">{passwordMessage}</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Usunąć to konto?"
+        description={
+          deleteTarget
+            ? `Konto „${deleteTarget.fullName}” (${deleteTarget.email ?? "brak e-mail"}) zostanie trwale usunięte. Tej operacji nie można cofnąć.`
+            : undefined
+        }
+        confirmLabel="Usuń"
+        danger
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
+    </div>
+  );
+}

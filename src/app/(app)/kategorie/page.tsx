@@ -1,8 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireTabAccess } from "@/lib/supabase/require-tab";
 import { getCategories, getEquipment } from "@/lib/supabase/queries";
 import { KategorieClient } from "./KategorieClient";
 
 export default async function KategoriePage() {
+  await requireTabAccess("kategorie");
   const supabase = await createSupabaseServerClient();
   const [categories, equipment] = await Promise.all([
     getCategories(supabase),

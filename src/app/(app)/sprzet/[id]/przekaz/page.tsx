@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireTabAccess } from "@/lib/supabase/require-tab";
 import {
   getAssignments,
   getCategories,
@@ -22,6 +23,7 @@ export default async function PrzekazSprzetPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await requireTabAccess("sprzet");
   const supabase = await createSupabaseServerClient();
   const [
     equipment,

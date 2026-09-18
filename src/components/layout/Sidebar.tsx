@@ -11,25 +11,41 @@ import {
   Tags,
   MapPin,
   Settings,
+  ShieldCheck,
   X,
 } from "lucide-react";
+import { useCurrentUser } from "@/lib/current-user-context";
+import { canViewTab, type TabKey } from "@/lib/access";
 
-const NAV_ITEMS = [
+const NAV_ITEMS: {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  tab?: TabKey;
+  adminOnly?: boolean;
+}[] = [
   { href: "/pulpit", label: "Pulpit", icon: LayoutDashboard },
-  { href: "/sprzet", label: "Sprzęt", icon: Laptop },
-  { href: "/pracownicy", label: "Pracownicy", icon: Users },
-  { href: "/oprogramowanie", label: "Oprogramowanie", icon: AppWindow },
-  { href: "/protokoly", label: "Protokoły", icon: FileText },
-  { href: "/kategorie", label: "Kategorie", icon: Tags },
-  { href: "/lokalizacje", label: "Lokalizacje", icon: MapPin },
-  { href: "/ustawienia", label: "Ustawienia", icon: Settings },
+  { href: "/sprzet", label: "Sprzęt", icon: Laptop, tab: "sprzet" },
+  { href: "/pracownicy", label: "Pracownicy", icon: Users, tab: "pracownicy" },
+  { href: "/oprogramowanie", label: "Oprogramowanie", icon: AppWindow, tab: "oprogramowanie" },
+  { href: "/protokoly", label: "Protokoły", icon: FileText, tab: "protokoly" },
+  { href: "/kategorie", label: "Kategorie", icon: Tags, tab: "kategorie" },
+  { href: "/lokalizacje", label: "Lokalizacje", icon: MapPin, tab: "lokalizacje" },
+  { href: "/ustawienia", label: "Ustawienia", icon: Settings, tab: "ustawienia" },
+  { href: "/uzytkownicy", label: "Użytkownicy", icon: ShieldCheck, adminOnly: true },
 ];
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { role, visibleTabs } = useCurrentUser();
+  const items = NAV_ITEMS.filter((item) => {
+    if (item.adminOnly) return role === "administrator";
+    if (!item.tab) return true;
+    return canViewTab(role, visibleTabs, item.tab);
+  });
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
-      {NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         const active = pathname?.startsWith(item.href);
         const Icon = item.icon;
         return (

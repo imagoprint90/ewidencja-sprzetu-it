@@ -44,7 +44,13 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <CurrentUserProvider
-      value={{ email: user.email ?? "", fullName: profile.fullName, role: profile.role }}
+      value={{
+        id: user.id,
+        email: user.email ?? "",
+        fullName: profile.fullName,
+        role: profile.role,
+        visibleTabs: profile.visibleTabs,
+      }}
     >
       <AppShell userEmail={user.email ?? ""}>{children}</AppShell>
     </CurrentUserProvider>

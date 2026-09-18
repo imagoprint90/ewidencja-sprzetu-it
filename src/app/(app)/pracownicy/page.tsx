@@ -1,8 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireTabAccess } from "@/lib/supabase/require-tab";
 import { getAssignments, getEmployees, getLocations } from "@/lib/supabase/queries";
 import { PracownicyClient } from "./PracownicyClient";
 
 export default async function PracownicyPage() {
+  await requireTabAccess("pracownicy");
   const supabase = await createSupabaseServerClient();
   const [employees, assignments, locations] = await Promise.all([
     getEmployees(supabase),

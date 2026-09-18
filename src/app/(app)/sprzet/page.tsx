@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireTabAccess } from "@/lib/supabase/require-tab";
 import {
   getAssignments,
   getCategories,
@@ -16,6 +17,7 @@ import {
 import { SprzetClient } from "./SprzetClient";
 
 export default async function SprzetPage() {
+  await requireTabAccess("sprzet");
   const supabase = await createSupabaseServerClient();
   const [
     equipment,

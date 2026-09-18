@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireTabAccess } from "@/lib/supabase/require-tab";
 import {
   getAssignments,
   getCategories,
@@ -20,6 +21,7 @@ export default async function PracownikDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await requireTabAccess("pracownicy");
   const supabase = await createSupabaseServerClient();
   const [employees, equipment, categories, assignments, licenses, licenseAssignments, products, locations] =
     await Promise.all([

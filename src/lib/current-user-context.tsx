@@ -1,11 +1,14 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import { canViewTab, type TabKey } from "@/lib/access";
 
 interface CurrentUser {
+  id: string;
   email: string;
   fullName: string;
   role: "administrator" | "podglad";
+  visibleTabs: string[] | null;
 }
 
 const CurrentUserContext = createContext<CurrentUser | null>(null);
@@ -28,4 +31,9 @@ export function useCurrentUser(): CurrentUser {
 
 export function useIsAdmin(): boolean {
   return useCurrentUser().role === "administrator";
+}
+
+export function useCanViewTab(tab: TabKey): boolean {
+  const { role, visibleTabs } = useCurrentUser();
+  return canViewTab(role, visibleTabs, tab);
 }
