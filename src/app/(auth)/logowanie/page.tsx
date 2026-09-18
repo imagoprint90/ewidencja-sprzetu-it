@@ -47,9 +47,8 @@ function LoginForm() {
   return (
     <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-primary text-sm font-bold text-white">
-          IT
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="Logo firmy" className="mx-auto mb-4 h-12 w-auto" />
         <h1 className="text-lg font-semibold">Ewidencja sprzętu IT</h1>
         <p className="mt-1 text-sm text-muted">Zaloguj się do systemu</p>
       </div>

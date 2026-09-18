@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { ProtocolSnapshot } from "@/lib/types";
 import { PROTOCOL_TYPE_LABELS } from "@/lib/types";
+import { LogoMark } from "./LogoMark";
 
 function formatPl(dateIso: string): string {
   const d = new Date(dateIso);
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   colName: { flex: 3, paddingHorizontal: 4 },
-  colCategory: { flex: 2, paddingHorizontal: 4 },
+  colQty: { flex: 1, paddingHorizontal: 4, textAlign: "center" },
   colInv: { flex: 2, paddingHorizontal: 4 },
   colSerial: { flex: 2, paddingHorizontal: 4 },
   th: { fontSize: 9, fontWeight: "bold" },
@@ -118,9 +119,12 @@ export function ProtocolDocument({ snapshot }: { snapshot: ProtocolSnapshot }) {
       <Page size="A4" style={styles.page} wrap>
         <View style={styles.headerRow}>
           <View style={styles.companyBlock}>
-            <Text style={{ fontWeight: "bold" }}>{snapshot.companyName}</Text>
-            <Text>{snapshot.companyAddress}</Text>
-            {snapshot.companyNip && <Text>NIP: {snapshot.companyNip}</Text>}
+            <LogoMark width={100} />
+            <View style={{ marginTop: 6 }}>
+              <Text style={{ fontWeight: "bold" }}>{snapshot.companyName}</Text>
+              <Text>{snapshot.companyAddress}</Text>
+              {snapshot.companyNip && <Text>NIP: {snapshot.companyNip}</Text>}
+            </View>
           </View>
           <View>
             <Text style={styles.title}>{PROTOCOL_TYPE_LABELS[snapshot.type].toUpperCase()}</Text>
@@ -153,14 +157,14 @@ export function ProtocolDocument({ snapshot }: { snapshot: ProtocolSnapshot }) {
         <View style={styles.table}>
           <View style={styles.tableHeaderRow} fixed>
             <Text style={[styles.colName, styles.th]}>Nazwa</Text>
-            <Text style={[styles.colCategory, styles.th]}>Kategoria</Text>
+            <Text style={[styles.colQty, styles.th]}>Ilość</Text>
             <Text style={[styles.colInv, styles.th]}>Nr inwentarzowy</Text>
             <Text style={[styles.colSerial, styles.th]}>Nr seryjny</Text>
           </View>
           {snapshot.items.map((item, i) => (
             <View style={styles.tableRow} key={i} wrap={false}>
               <Text style={[styles.colName, styles.td]}>{item.name}</Text>
-              <Text style={[styles.colCategory, styles.td]}>{item.category}</Text>
+              <Text style={[styles.colQty, styles.td]}>{item.quantity}</Text>
               <Text style={[styles.colInv, styles.td]}>{item.inventoryNumber}</Text>
               <Text style={[styles.colSerial, styles.td]}>{item.serialNumber ?? "—"}</Text>
             </View>

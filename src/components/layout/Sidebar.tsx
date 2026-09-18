@@ -63,11 +63,9 @@ export function Sidebar({
     <>
       {/* Wersja stała — widoczna od szerokości tabletu w górę */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface lg:flex">
-        <div className="flex h-16 items-center gap-2 border-b border-border px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-white">
-            IT
-          </div>
-          <span className="text-sm font-semibold">Ewidencja sprzętu</span>
+        <div className="flex h-16 items-center border-b border-border px-5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="Logo firmy" className="h-9 w-auto" />
         </div>
         <NavLinks />
       </aside>
@@ -82,7 +80,8 @@ export function Sidebar({
           />
           <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-surface shadow-xl">
             <div className="flex h-16 items-center justify-between border-b border-border px-5">
-              <span className="text-sm font-semibold">Ewidencja sprzętu</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.svg" alt="Logo firmy" className="h-9 w-auto" />
               <button
                 onClick={onClose}
                 aria-label="Zamknij menu"

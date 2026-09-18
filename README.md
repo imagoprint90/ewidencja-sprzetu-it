@@ -86,8 +86,10 @@ zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
 etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
 wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
-co już istnieje. Nowy plik do zastosowania: `0015_auto_inventory_number.sql` (automatyczne
-numery inwentarzowe przy dodawaniu sprzętu). Pliki 0009–0014 zostały już zastosowane.
+co już istnieje. Nowe pliki do zastosowania, w kolejności: `0016_company_representative.sql`
+(pole „osoba reprezentująca” w danych firmy) i `0017_inventory_number_format.sql` (prostszy
+format numeru inwentarzowego: INW/001 zamiast INW/2026/00001). Pliki 0009–0015 zostały już
+zastosowane.
 Pliki 0009–0011 zostały już zastosowane.
 
 ## Konfiguracja Supabase

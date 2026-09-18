@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f6f8;
+  /* Kolory z logotypu firmy: granat #192d69, błękit #009fe3, pomarańcz #ef7d00,
+     grafit #1d1d1b — reszta palety (tło, obramowania) dobrana tak, żeby z nimi pasować. */
+  --background: #f4f6fa;
   --surface: #ffffff;
-  --foreground: #1a2332;
-  --muted: #5b6472;
-  --border: #e1e5eb;
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
+  --foreground: #1d1d1b;
+  --muted: #64708a;
+  --border: #dde2ec;
+  --primary: #009fe3;
+  --primary-dark: #192d69;
+  --accent: #ef7d00;
   --danger: #dc2626;
   --success: #16a34a;
-  --warning: #d97706;
+  --warning: #ef7d00;
 }
 
 @theme inline {
@@ -21,6 +24,7 @@
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-dark: var(--primary-dark);
+  --color-accent: var(--accent);
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-warning: var(--warning);

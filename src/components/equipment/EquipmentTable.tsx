@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import type {
   Assignment,
@@ -82,9 +83,9 @@ export function EquipmentTable({
       <table className="w-full min-w-[960px] text-sm">
         <thead>
           <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
-            <th className="w-12 px-4 py-3 font-medium">L.p.</th>
+            <th className="w-10 px-3 py-2.5 font-medium">L.p.</th>
             {visibleColumns.map((col) => (
-              <th key={col} className="whitespace-nowrap px-4 py-3 font-medium">
+              <th key={col} className="whitespace-nowrap px-3 py-2.5 font-medium">
                 {EQUIPMENT_COLUMN_LABELS[col]}
               </th>
             ))}
@@ -113,15 +114,18 @@ export function EquipmentTable({
             return (
               <tr
                 key={item.id}
-                className="cursor-pointer border-b border-border last:border-0 hover:bg-black/[0.02]"
+                className={clsx(
+                  "cursor-pointer border-b border-border last:border-0 hover:bg-primary/5",
+                  index % 2 === 1 && "bg-black/[0.015]"
+                )}
                 style={{ color: EQUIPMENT_STATUS_COLORS[item.status] }}
                 onClick={() => router.push(`/sprzet/${item.id}`)}
               >
-                <td className="px-4 py-3 align-top">{index + 1}</td>
+                <td className="px-3 py-2 align-middle text-xs">{index + 1}</td>
                 {visibleColumns.map((col) => (
                   <td
                     key={col}
-                    className="px-4 py-3 align-top"
+                    className="px-3 py-2 align-middle"
                     style={columnColors[col] ? { color: columnColors[col] } : undefined}
                   >
                     {renderCell(col, item, {

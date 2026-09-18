@@ -946,3 +946,29 @@ $$;
 alter table public.equipment alter column inventory_number set default public.generate_inventory_number();
 
 
+-- ============================================================
+-- 0016_company_representative.sql
+-- ============================================================
+-- Osoba reprezentująca firmę (imię i nazwisko) — wyświetlana na protokołach jako
+-- strona wydająca/odbierająca w imieniu firmy, zamiast każdorazowo zalogowanego
+-- administratora. Konfigurowana raz w Ustawieniach.
+
+alter table public.company_settings
+  add column if not exists representative_name text not null default '';
+
+
+-- ============================================================
+-- 0017_inventory_number_format.sql
+-- ============================================================
+-- Prostszy format numeru inwentarzowego: INW/001, INW/002, ... (bez roku).
+-- Ta sama sekwencja co dotychczas — nowe numery kontynuują od bieżącej wartości,
+-- stare numery (INW/2026/000xx) pozostają bez zmian w historii.
+
+create or replace function public.generate_inventory_number()
+returns text
+language sql
+as $$
+  select 'INW/' || lpad(nextval('public.equipment_inventory_seq')::text, 3, '0');
+$$;
+
+

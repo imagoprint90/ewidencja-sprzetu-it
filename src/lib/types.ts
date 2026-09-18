@@ -21,8 +21,8 @@ export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
 // ustawia się ręcznie na liście sprzętu.
 export const EQUIPMENT_STATUS_COLORS: Record<EquipmentStatus, string> = {
   w_magazynie: "#16a34a",
-  przydzielony: "#1a2332",
-  w_naprawie: "#d97706",
+  przydzielony: "#1d1d1b",
+  w_naprawie: "#ef7d00",
   zepsuty: "#dc2626",
   wycofany: "#6b7280",
 };
@@ -154,7 +154,7 @@ export const PROTOCOL_STATUS_LABELS: Record<ProtocolPdfStatus, string> = {
 
 export interface ProtocolItemData {
   name: string;
-  category: string;
+  quantity: number;
   inventoryNumber: string;
   serialNumber: string | null;
 }
@@ -195,6 +195,7 @@ export interface CompanySettings {
   name: string;
   address: string;
   nip: string | null;
+  representativeName: string;
 }
 
 export interface AuditLogEntry {

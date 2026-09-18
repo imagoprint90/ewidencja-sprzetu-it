@@ -71,7 +71,7 @@ export async function createProtocolAction(
       supabase.from("company_settings").select("*").eq("id", true).single(),
       supabase
         .from("equipment")
-        .select("id, name, manufacturer, model, inventory_number, serial_number, category_id, categories(name)")
+        .select("id, name, manufacturer, model, inventory_number, serial_number")
         .in("id", input.equipmentIds),
       supabase
         .from("employees")
@@ -103,14 +103,14 @@ export async function createProtocolAction(
     companyNip: company.nip,
     city: input.city,
     issuedAt: input.transferDate,
-    issuedByName: profile?.full_name ?? user.email ?? "Administrator",
+    issuedByName: company.representative_name?.trim() || profile?.full_name || user.email || "Administrator",
     previousEmployeeName: employeeName(input.previousEmployeeId),
     newEmployeeName: employeeName(input.newEmployeeId),
     technicalConditionLabel: TECHNICAL_CONDITION_LABELS[input.condition],
     notes: input.notes,
     items: equipmentRows.map((e) => ({
       name: equipmentDisplayName(e),
-      category: (e.categories as unknown as { name: string } | null)?.name ?? "—",
+      quantity: 1,
       inventoryNumber: e.inventory_number,
       serialNumber: e.serial_number,
     })),
@@ -141,7 +141,7 @@ export async function createProtocolAction(
       protocol_id: protocolRow.id,
       equipment_id: e.id,
       name_snapshot: equipmentDisplayName(e),
-      category_snapshot: (e.categories as unknown as { name: string } | null)?.name ?? "—",
+      category_snapshot: "—",
       inventory_number_snapshot: e.inventory_number,
       serial_number_snapshot: e.serial_number,
     }))

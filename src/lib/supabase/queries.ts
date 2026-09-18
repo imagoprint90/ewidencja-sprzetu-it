@@ -76,7 +76,12 @@ export async function getCompanySettings(supabase: SupabaseClient): Promise<Comp
     .eq("id", true)
     .single();
   if (error) throw new Error(error.message);
-  return { name: data.name, address: data.address, nip: data.nip };
+  return {
+    name: data.name,
+    address: data.address,
+    nip: data.nip,
+    representativeName: data.representative_name ?? "",
+  };
 }
 
 export async function getProtocols(supabase: SupabaseClient): Promise<Protocol[]> {
