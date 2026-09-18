@@ -221,6 +221,7 @@ export const EQUIPMENT_COLUMNS = [
   "status",
   "location",
   "notes",
+  "lastProtocol",
 ] as const;
 
 export type EquipmentColumnKey = (typeof EQUIPMENT_COLUMNS)[number];
@@ -237,4 +238,5 @@ export const EQUIPMENT_COLUMN_LABELS: Record<EquipmentColumnKey, string> = {
   status: "Status",
   location: "Lokalizacja",
   notes: "Uwagi",
+  lastProtocol: "Ostatni protokół",
 };

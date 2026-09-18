@@ -180,6 +180,30 @@ export async function retryProtocolPdfAction(protocolId: string): Promise<Action
   return { ok: true, data: { pdfGenerated: result.ok } };
 }
 
+export async function deleteProtocolAction(id: string): Promise<ActionResult<undefined>> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: protocol } = await supabase
+    .from("protocols")
+    .select("pdf_path, signed_scan_path")
+    .eq("id", id)
+    .single();
+
+  const { error } = await supabase.from("protocols").delete().eq("id", id);
+  if (error) return { ok: false, error: "Nie udało się usunąć protokołu." };
+
+  const pathsToRemove = [protocol?.pdf_path, protocol?.signed_scan_path].filter(
+    (p): p is string => Boolean(p)
+  );
+  if (pathsToRemove.length > 0) {
+    await supabase.storage.from("protokoly").remove(pathsToRemove);
+  }
+
+  revalidatePath("/protokoly");
+  revalidatePath("/sprzet");
+  return { ok: true, data: undefined };
+}
+
 export async function getProtocolDownloadUrlAction(
   path: string
 ): Promise<ActionResult<{ url: string }>> {

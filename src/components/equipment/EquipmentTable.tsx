@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import clsx from "clsx";
+import { FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type {
   Assignment,
@@ -12,6 +13,7 @@ import type {
   EquipmentLink,
   InstalledSoftware,
   Location,
+  Protocol,
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
@@ -29,11 +31,13 @@ import {
   getLocationName,
 } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
+import type { ProtocolItemLink } from "@/lib/supabase/queries";
 import {
   updateEquipmentAction,
   updateEquipmentStatusAction,
   type EquipmentInput,
 } from "@/lib/supabase/actions/equipment-actions";
+import { getProtocolDownloadUrlAction } from "@/lib/supabase/actions/protocol-actions";
 
 export function EquipmentTable({
   equipment,
@@ -46,6 +50,8 @@ export function EquipmentTable({
   licenses,
   licenseAssignments,
   locations,
+  protocols,
+  protocolItemLinks,
   visibleColumns,
   columnColors,
 }: {
@@ -59,6 +65,8 @@ export function EquipmentTable({
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
+  protocols: Protocol[];
+  protocolItemLinks: ProtocolItemLink[];
   visibleColumns: EquipmentColumnKey[];
   columnColors: Partial<Record<EquipmentColumnKey, string>>;
 }) {
@@ -76,6 +84,22 @@ export function EquipmentTable({
     const result = await updateEquipmentStatusAction(item.id, status as Equipment["status"]);
     if (result.ok) router.refresh();
     return result.ok ? { ok: true } : { ok: false, error: result.error };
+  }
+
+  function getLastProtocol(equipmentId: string): Protocol | undefined {
+    const protocolIds = protocolItemLinks
+      .filter((l) => l.equipmentId === equipmentId)
+      .map((l) => l.protocolId);
+    return protocols
+      .filter((p) => protocolIds.includes(p.id))
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+  }
+
+  async function handleOpenProtocol(e: React.MouseEvent, protocol: Protocol) {
+    e.stopPropagation();
+    if (!protocol.pdfPath) return;
+    const result = await getProtocolDownloadUrlAction(protocol.pdfPath);
+    if (result.ok) window.open(result.data.url, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -110,6 +134,7 @@ export function EquipmentTable({
               })
               .filter((name): name is string => Boolean(name));
             const software = Array.from(new Set([...installedNames, ...licensedNames]));
+            const lastProtocol = getLastProtocol(item.id);
 
             return (
               <tr
@@ -137,8 +162,10 @@ export function EquipmentTable({
                       software,
                       categories,
                       isAdmin,
+                      lastProtocol,
                       onSave: (patch) => saveField(item, patch),
                       onSaveStatus: (status) => saveStatus(item, status),
+                      onOpenProtocol: handleOpenProtocol,
                     })}
                   </td>
                 ))}
@@ -163,8 +190,10 @@ function renderCell(
     software: string[];
     categories: Category[];
     isAdmin: boolean;
+    lastProtocol?: Protocol;
     onSave: (patch: Partial<EquipmentInput>) => Promise<{ ok: boolean; error?: string }>;
     onSaveStatus: (status: string) => Promise<{ ok: boolean; error?: string }>;
+    onOpenProtocol: (e: React.MouseEvent, protocol: Protocol) => void;
   }
 ) {
   switch (col) {
@@ -252,6 +281,25 @@ function renderCell(
           multiline
           onSave={(v) => extra.onSave({ notes: v || null })}
         />
+      );
+    case "lastProtocol":
+      if (!extra.lastProtocol) return <span>—</span>;
+      if (extra.lastProtocol.pdfStatus !== "wygenerowany") {
+        return (
+          <span title="Protokół jeszcze nie wygenerowany — sprawdź listę Protokołów">
+            <FileText size={16} className="opacity-40" />
+          </span>
+        );
+      }
+      return (
+        <button
+          type="button"
+          onClick={(e) => extra.onOpenProtocol(e, extra.lastProtocol!)}
+          title={`Otwórz protokół ${extra.lastProtocol.protocolNumber}`}
+          className="text-current hover:text-primary"
+        >
+          <FileText size={16} />
+        </button>
       );
     default:
       return null;

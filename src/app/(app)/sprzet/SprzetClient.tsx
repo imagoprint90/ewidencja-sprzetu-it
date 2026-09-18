@@ -21,10 +21,12 @@ import type {
   EquipmentLink,
   InstalledSoftware,
   Location,
+  Protocol,
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
 } from "@/lib/types";
+import type { ProtocolItemLink } from "@/lib/supabase/queries";
 
 const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "inventoryNumber",
@@ -35,6 +37,7 @@ const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "serialNumber",
   "status",
   "location",
+  "lastProtocol",
 ];
 
 function SprzetPageInner({
@@ -48,6 +51,8 @@ function SprzetPageInner({
   licenses,
   licenseAssignments,
   locations,
+  protocols,
+  protocolItemLinks,
 }: {
   equipment: Equipment[];
   categories: Category[];
@@ -59,6 +64,8 @@ function SprzetPageInner({
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
+  protocols: Protocol[];
+  protocolItemLinks: ProtocolItemLink[];
 }) {
   const isAdmin = useIsAdmin();
   const searchParams = useSearchParams();
@@ -163,6 +170,8 @@ function SprzetPageInner({
           licenses={licenses}
           licenseAssignments={licenseAssignments}
           locations={locations}
+          protocols={protocols}
+          protocolItemLinks={protocolItemLinks}
           visibleColumns={visibleColumns.length ? visibleColumns : EQUIPMENT_COLUMNS.slice(0, 3)}
           columnColors={columnColors}
         />
@@ -182,6 +191,8 @@ export function SprzetClient(props: {
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
+  protocols: Protocol[];
+  protocolItemLinks: ProtocolItemLink[];
 }) {
   return (
     <Suspense>

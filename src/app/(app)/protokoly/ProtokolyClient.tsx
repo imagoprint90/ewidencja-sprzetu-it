@@ -1,14 +1,18 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileWarning, RefreshCw, Upload } from "lucide-react";
+import { Download, FileWarning, RefreshCw, Search, Trash2, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ExpandableList } from "@/components/ui/ExpandableList";
 import { formatDateTime } from "@/lib/format";
+import { useIsAdmin } from "@/lib/current-user-context";
 import { PROTOCOL_STATUS_LABELS, PROTOCOL_TYPE_LABELS, type Protocol } from "@/lib/types";
 import {
+  deleteProtocolAction,
   getProtocolDownloadUrlAction,
   retryProtocolPdfAction,
   uploadSignedScanAction,
@@ -29,10 +33,32 @@ function statusTone(status: Protocol["pdfStatus"]) {
 
 export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
   const router = useRouter();
+  const isAdmin = useIsAdmin();
   const [isPending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return protocols;
+    return protocols.filter((p) => {
+      const equipmentNames = p.snapshot.items.map((i) => i.name).join(" ");
+      const haystack = [
+        p.protocolNumber,
+        PROTOCOL_TYPE_LABELS[p.type],
+        p.snapshot.previousEmployeeName ?? "",
+        p.snapshot.newEmployeeName ?? "",
+        p.city,
+        equipmentNames,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [protocols, query]);
 
   function handleDownload(path: string | null) {
     if (!path) return;
@@ -81,6 +107,21 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
     reader.readAsDataURL(file);
   }
 
+  function handleDelete() {
+    if (!deleteTarget) return;
+    const id = deleteTarget;
+    startTransition(async () => {
+      const result = await deleteProtocolAction(id);
+      if (!result.ok) {
+        setError(result.error);
+        setDeleteTarget(null);
+        return;
+      }
+      setDeleteTarget(null);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -91,44 +132,62 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
         </p>
       </div>
 
+      <div className="relative max-w-sm">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Szukaj: numer, sprzęt, pracownik, miejscowość…"
+          className="w-full rounded-lg border border-border bg-surface py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary"
+        />
+      </div>
+
       {error && (
         <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
           {error}
         </p>
       )}
 
-      {protocols.length === 0 ? (
+      {filtered.length === 0 ? (
         <EmptyState
-          title="Brak wystawionych protokołów"
-          description="Protokół pojawi się tutaj automatycznie po pierwszym przekazaniu lub zwrocie sprzętu."
+          title={protocols.length === 0 ? "Brak wystawionych protokołów" : "Brak protokołów spełniających kryteria"}
+          description={
+            protocols.length === 0
+              ? "Protokół pojawi się tutaj automatycznie po pierwszym przekazaniu lub zwrocie sprzętu."
+              : "Zmień frazę wyszukiwania."
+          }
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full min-w-[880px] text-sm">
+          <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-4 py-3 font-medium">Numer</th>
-                <th className="px-4 py-3 font-medium">Typ</th>
-                <th className="px-4 py-3 font-medium">Strony</th>
-                <th className="px-4 py-3 font-medium">Data</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium text-right">Działania</th>
+                <th className="px-3 py-2.5 font-medium">Numer</th>
+                <th className="px-3 py-2.5 font-medium">Typ</th>
+                <th className="px-3 py-2.5 font-medium">Sprzęt</th>
+                <th className="px-3 py-2.5 font-medium">Strony</th>
+                <th className="px-3 py-2.5 font-medium">Data</th>
+                <th className="px-3 py-2.5 font-medium">Status</th>
+                <th className="px-3 py-2.5 font-medium text-right">Działania</th>
               </tr>
             </thead>
             <tbody>
-              {protocols.map((p) => (
+              {filtered.map((p) => (
                 <tr key={p.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 font-medium">{p.protocolNumber}</td>
-                  <td className="px-4 py-3">{PROTOCOL_TYPE_LABELS[p.type]}</td>
-                  <td className="px-4 py-3">{partySummary(p)}</td>
-                  <td className="px-4 py-3">{formatDateTime(p.createdAt)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2 align-middle font-medium">{p.protocolNumber}</td>
+                  <td className="px-3 py-2 align-middle">{PROTOCOL_TYPE_LABELS[p.type]}</td>
+                  <td className="px-3 py-2 align-middle">
+                    <ExpandableList items={p.snapshot.items.map((i) => i.name)} />
+                  </td>
+                  <td className="px-3 py-2 align-middle">{partySummary(p)}</td>
+                  <td className="px-3 py-2 align-middle">{formatDateTime(p.createdAt)}</td>
+                  <td className="px-3 py-2 align-middle">
                     <Badge tone={statusTone(p.pdfStatus)}>{PROTOCOL_STATUS_LABELS[p.pdfStatus]}</Badge>
                     {p.signedScanPath && (
                       <span className="ml-2 text-xs text-muted">+ podpisany skan</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-2 align-middle">
                     <div className="flex justify-end gap-2">
                       {p.pdfStatus === "wygenerowany" && (
                         <Button
@@ -175,6 +234,16 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
                         <Upload size={14} />
                         Skan
                       </Button>
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={isPending}
+                          onClick={() => setDeleteTarget(p.id)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -193,6 +262,16 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
           nawet po późniejszej edycji tych danych w systemie.
         </p>
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Usunąć ten protokół?"
+        description="Tej operacji nie można cofnąć — usunięty zostanie zarówno wpis, jak i plik PDF. Usunięcie ostatniego protokołu danego sprzętu może odblokować możliwość usunięcia samego sprzętu."
+        confirmLabel="Usuń"
+        danger
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

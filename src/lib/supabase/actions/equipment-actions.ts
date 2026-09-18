@@ -141,7 +141,7 @@ export async function deleteEquipmentAction(id: string): Promise<ActionResult<un
       return {
         ok: false,
         error:
-          "Nie można usunąć — ten sprzęt ma historię przydziałów lub protokołów. Ustaw status na „Wycofany”, żeby go zarchiwizować zamiast usuwać.",
+          "Nie można usunąć — ten sprzęt ma powiązane protokoły. Usuń najpierw te protokoły (zakładka Dokumenty na karcie sprzętu albo lista Protokoły), a potem spróbuj ponownie. Historia przydziałów sama w sobie nie blokuje usunięcia.",
       };
     }
     return { ok: false, error: "Nie udało się usunąć sprzętu." };

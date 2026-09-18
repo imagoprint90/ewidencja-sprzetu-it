@@ -155,7 +155,7 @@ export function SprzetDetailClient({
       <ConfirmDialog
         open={confirmDeleteOpen}
         title="Usunąć ten sprzęt?"
-        description="Tej operacji nie można cofnąć. Jeśli sprzęt ma historię przydziałów lub protokoły, usunięcie zostanie zablokowane — wtedy lepiej ustawić status „Wycofany”."
+        description="Tej operacji nie można cofnąć. Jeśli sprzęt ma powiązane protokoły, usunięcie zostanie zablokowane — usuń je najpierw w zakładce Dokumenty."
         confirmLabel="Usuń"
         danger
         onCancel={() => setConfirmDeleteOpen(false)}

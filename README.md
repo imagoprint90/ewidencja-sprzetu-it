@@ -54,7 +54,12 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   (`snapshot` w tabeli `protocols`) — późniejsza edycja danych firmy/pracownika/sprzętu nie
   zmienia już wystawionych dokumentów. Strona **Protokoły** i zakładka **Dokumenty** na
   karcie sprzętu pozwalają pobrać PDF (prywatny magazyn plików, link ważny 60 s), ponowić
-  nieudane generowanie (bez duplikowania numeru) i dołączyć podpisany skan.
+  nieudane generowanie (bez duplikowania numeru), dołączyć podpisany skan, wyszukiwać po
+  numerze/sprzęcie/pracowniku/miejscowości i usunąć protokół (nieodwracalnie, razem z PDF).
+  Lista sprzętu ma kolumnę z ikoną otwierającą ostatni protokół danego sprzętu.
+- **Usuwanie sprzętu**: dostępne na karcie sprzętu. Zablokowane, dopóki istnieją powiązane
+  protokoły (`protocol_items.equipment_id` ma teraz `ON DELETE RESTRICT`) — po ich usunięciu
+  usunięcie sprzętu kasuje kaskadowo też jego historię przydziałów.
 - **Oprogramowanie i licencje** (Etap 5): katalog produktów, rejestr licencji (na
   urządzenie / na użytkownika) z limitem stanowisk wymuszanym w bazie danych, przypisania do
   sprzętu lub pracowników, lista zainstalowanego oprogramowania na karcie sprzętu. Przy
@@ -86,9 +91,8 @@ zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
 etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
 wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
-co już istnieje. Nowe pliki do zastosowania, w kolejności: `0016_company_representative.sql`
-(pole „osoba reprezentująca” w danych firmy) i `0017_inventory_number_format.sql` (prostszy
-format numeru inwentarzowego: INW/001 zamiast INW/2026/00001). Pliki 0009–0015 zostały już
+co już istnieje. Nowy plik do zastosowania: `0018_delete_equipment_via_protocols.sql`
+(zmienia, co blokuje usunięcie sprzętu — patrz niżej). Pliki 0009–0017 zostały już
 zastosowane.
 Pliki 0009–0011 zostały już zastosowane.
 

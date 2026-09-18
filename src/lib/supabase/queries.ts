@@ -109,6 +109,25 @@ export async function getProtocolsForEquipment(
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
+export interface ProtocolItemLink {
+  protocolId: string;
+  equipmentId: string;
+}
+
+// Lekka lista powiązań protokół↔sprzęt (bez pełnych danych protokołów) — do wyliczenia
+// "ostatniego protokołu" dla każdej pozycji na liście sprzętu bez N osobnych zapytań.
+export async function getProtocolItemLinks(supabase: SupabaseClient): Promise<ProtocolItemLink[]> {
+  const { data, error } = await supabase
+    .from("protocol_items")
+    .select("protocol_id, equipment_id")
+    .not("equipment_id", "is", null);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => ({
+    protocolId: row.protocol_id,
+    equipmentId: row.equipment_id as string,
+  }));
+}
+
 export async function getSoftwareProducts(supabase: SupabaseClient): Promise<SoftwareProduct[]> {
   const { data, error } = await supabase.from("software_products").select("*").order("name");
   if (error) throw new Error(error.message);
