@@ -3,10 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AppRole } from "@/lib/access";
 
 type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
-
-type AppRole = "administrator" | "podglad";
 
 async function requireAdmin(): Promise<
   | { ok: true; supabase: SupabaseClient; userId: string }
@@ -37,6 +36,7 @@ export async function createUserAction(input: {
   fullName: string;
   role: AppRole;
   visibleTabs: string[] | null;
+  visibleCategories: string[] | null;
 }): Promise<ActionResult<{ id: string }>> {
   const guard = await requireAdmin();
   if (!guard.ok) return guard;
@@ -70,6 +70,7 @@ export async function createUserAction(input: {
     email,
     role: input.role,
     visible_tabs: input.role === "administrator" ? null : input.visibleTabs,
+    visible_categories: input.role === "edycja_podglad" ? input.visibleCategories : null,
   });
 
   if (profileError) {
@@ -84,7 +85,7 @@ export async function createUserAction(input: {
 
 export async function updateUserPermissionsAction(
   id: string,
-  input: { role: AppRole; visibleTabs: string[] | null }
+  input: { role: AppRole; visibleTabs: string[] | null; visibleCategories: string[] | null }
 ): Promise<ActionResult<undefined>> {
   const guard = await requireAdmin();
   if (!guard.ok) return guard;
@@ -98,6 +99,7 @@ export async function updateUserPermissionsAction(
     .update({
       role: input.role,
       visible_tabs: input.role === "administrator" ? null : input.visibleTabs,
+      visible_categories: input.role === "edycja_podglad" ? input.visibleCategories : null,
     })
     .eq("id", id);
 

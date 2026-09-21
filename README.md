@@ -17,12 +17,16 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   i ponownie sprawdzane po stronie serwera — nie tylko ukrywaniem przycisków). Każdy
   zalogowany użytkownik (niezależnie od roli) może zmienić własne hasło z poziomu menu przy
   swoim e-mailu w prawym górnym rogu — wymaga podania obecnego hasła.
-- Role „administrator” (pełny dostęp) i „podgląd” (tylko odczyt) — wymuszane realnie przez
-  reguły RLS w bazie danych, a dodatkowo interfejs ukrywa akcje edycji przed rolą „podgląd”.
+- Trzy role — „administrator” (pełny dostęp wszędzie), „podgląd” (tylko odczyt wszędzie) i
+  „edycja i podgląd (sprzęt)” (jak podgląd, ale dodatkowo może edytować sprzęt — wyłącznie w
+  przypisanych mu kategoriach; sprzęt spoza tych kategorii jest dla niego całkowicie
+  niewidoczny, nie tylko niedostępny do edycji) — wymuszane realnie przez reguły RLS w bazie
+  danych (`supabase/migrations/0023...`, `0024...`), a dodatkowo interfejs ukrywa akcje
+  niedostępne dla danej roli.
 - **Użytkownicy** (Etap 6, zakładka `/uzytkownicy`, tylko dla administratora): zakładanie,
-  usuwanie i reset hasła kont bezpośrednio z aplikacji (przez Supabase Admin API), zmiana roli
-  oraz — dla roli „podgląd” — wybór, które zakładki dane konto widzi. Patrz sekcja „Zakładanie
-  kont użytkowników” niżej.
+  usuwanie i reset hasła kont bezpośrednio z aplikacji (przez Supabase Admin API), zmiana roli,
+  wybór widocznych zakładek (role „podgląd” i „edycja i podgląd”) oraz wybór kategorii sprzętu
+  do edycji (rola „edycja i podgląd”). Patrz sekcja „Zakładanie kont użytkowników” niżej.
 - Sprzęt: lista z wyszukiwarką, filtrami wielokrotnego wyboru (checkboxy — np. kilka statusów
   albo kilka lokalizacji naraz), wyborem widocznych kolumn, dodawanie i edycja (walidacja
   unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane w bazie.
@@ -168,8 +172,13 @@ zobaczysz czytelny komunikat „Brak konfiguracji Supabase” zamiast błędu.
 Gdy w repozytorium pojawi się nowy plik w `supabase/migrations/` (np. przy okazji nowego
 etapu), zastosuj **tylko ten nowy plik** w SQL Editor Supabase (skopiuj jego zawartość,
 wklej, Run) — nie uruchamiaj ponownie `apply_all.sql`, bo próbowałby odtworzyć od zera to,
-co już istnieje. Nowy plik do zastosowania: `0022_employee_first_last_name.sql` (rozdziela
-imię i nazwisko pracownika na dwie kolumny). Pliki 0009–0021 zostały już zastosowane.
+co już istnieje. Pliki 0009–0022 zostały już zastosowane. Nowe pliki do zastosowania, **w
+podanej kolejności, każdy osobnym Run** (nie da się ich połączyć w jedno uruchomienie —
+Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w której ją dodano):
+1. `0023_equipment_editor_role.sql` (dodaje rolę „edycja_podglad” i kolumnę
+   `visible_categories` w `profiles`)
+2. `0024_equipment_editor_role_rls.sql` (reguły RLS dla tej roli — dopiero po zastosowaniu
+   pliku 1)
 
 ## Konfiguracja Supabase
 
@@ -195,20 +204,32 @@ Aplikacja **nie ma publicznej rejestracji**. Od Etapu 6 konta zakłada się wygo
 samej aplikacji — zakładka **Użytkownicy** (widoczna w bocznym menu tylko dla roli
 `administrator`, pod `/uzytkownicy`):
 
-- **Dodaj użytkownika** — podaj imię i nazwisko, e-mail, hasło początkowe oraz rolę
-  (`Administrator` — pełny dostęp i edycja wszędzie, albo `Tylko podgląd` — wyłącznie odczyt,
-  żadnych przycisków edycji, wymuszane przez RLS w bazie, nie tylko ukryciem w interfejsie).
-  Dla roli „Tylko podgląd” zaznacz też, które zakładki ta osoba ma widzieć (np. Sprzęt tak,
-  Pracownicy nie) — zakładka Pulpit jest zawsze dostępna, a Użytkownicy zawsze wyłącznie dla
-  administratora. Konto działa od razu, użytkownik loguje się podanym hasłem (może je później
-  zmienić przez „Nie pamiętasz hasła?” na stronie logowania).
-- Na liście Użytkownicy przycisk **Zarządzaj** pozwala zmienić rolę/widoczne zakładki i
-  zresetować hasło; **kosz** trwale usuwa konto (zablokowane dla własnego konta, żeby
+- **Dodaj użytkownika** — podaj imię i nazwisko, e-mail, hasło początkowe oraz rolę:
+  - `Administrator` — pełny dostęp i edycja wszędzie.
+  - `Tylko podgląd` — wyłącznie odczyt, żadnych przycisków edycji.
+  - `Edycja i podgląd (sprzęt)` — jak „Tylko podgląd”, ale dodatkowo może edytować sprzęt
+    (nazwa, numer seryjny, kategoria, status, uwagi) — **wyłącznie w zaznaczonych niżej
+    kategoriach**. Sprzęt spoza tych kategorii jest dla takiego konta całkowicie niewidoczny,
+    nie tylko zablokowany do edycji — to wymuszają reguły RLS w bazie (nie da się tego obejść
+    inaczej niż przez zmianę uprawnień w tej zakładce). Ta rola nie może dodawać ani usuwać
+    sprzętu, ani go przekazywać/zwracać (operacja „Przekaż sprzęt”) — to zostaje wyłącznie dla
+    administratora.
+
+  Wszystkie role poza administratorem wymagają wymuszane przez RLS w bazie, nie tylko
+  ukryciem przycisków w interfejsie. Dla ról innych niż administrator zaznacz też, które
+  zakładki dane konto ma widzieć (np. Sprzęt tak, Pracownicy nie) — zakładka Pulpit jest
+  zawsze dostępna, a Użytkownicy zawsze wyłącznie dla administratora. Konto działa od razu,
+  użytkownik loguje się podanym hasłem (może je później zmienić przez „Nie pamiętasz hasła?”
+  na stronie logowania albo z menu przy swoim e-mailu po zalogowaniu).
+- Na liście Użytkownicy przycisk **Zarządzaj** pozwala zmienić rolę/widoczne zakładki/kategorie
+  i zresetować hasło; **kosz** trwale usuwa konto (zablokowane dla własnego konta, żeby
   administrator nie odciął sobie dostępu).
 - Ograniczenie widoczności zakładek działa na poziomie stron (bezpośrednie wejście pod adres
   ukrytej zakładki też jest blokowane, nie tylko link w menu) — nie jest to jednak pełna
   reguła bazodanowa jak RLS dla ról; np. nazwisko przydzielonego pracownika nadal pojawi się
-  przy sprzęcie, nawet jeśli to konto nie ma dostępu do zakładki Pracownicy.
+  przy sprzęcie, nawet jeśli to konto nie ma dostępu do zakładki Pracownicy. Ograniczenie
+  kategorii sprzętu dla roli „Edycja i podgląd” to co innego — to jest twarda reguła RLS na
+  samej tabeli sprzętu, więc obejmuje też ewentualny bezpośredni dostęp do bazy.
 
 **Pierwsze konto administratora** trzeba założyć ręcznie w panelu Supabase (zanim ktokolwiek
 może zalogować się do zakładki Użytkownicy):

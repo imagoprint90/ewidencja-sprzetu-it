@@ -7,16 +7,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { userFormSchema, type UserFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
-import { ASSIGNABLE_TABS } from "@/lib/access";
+import { ASSIGNABLE_TABS, type AppRole } from "@/lib/access";
 import { createUserAction } from "@/lib/supabase/actions/user-actions";
+import type { Category } from "@/lib/types";
 
-export function NowyUzytkownikForm() {
+export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [role, setRole] = useState<"administrator" | "podglad">("podglad");
+  const [role, setRole] = useState<AppRole>("podglad");
   const [visibleTabs, setVisibleTabs] = useState<Set<string>>(
     () => new Set(ASSIGNABLE_TABS.map((t) => t.key))
   );
+  const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set());
 
   const {
     register,
@@ -35,6 +37,15 @@ export function NowyUzytkownikForm() {
     });
   }
 
+  function toggleCategory(id: string) {
+    setVisibleCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   async function onSubmit(values: UserFormValues) {
     setSubmitError(null);
     const result = await createUserAction({
@@ -43,6 +54,7 @@ export function NowyUzytkownikForm() {
       fullName: values.fullName,
       role,
       visibleTabs: Array.from(visibleTabs),
+      visibleCategories: Array.from(visibleCategories),
     });
     if (!result.ok) {
       setSubmitError(result.error);
@@ -77,9 +89,9 @@ export function NowyUzytkownikForm() {
 
         <FormSection
           title="Uprawnienia"
-          description="Administrator ma zawsze pełny dostęp do wszystkich zakładek i może edytować dane. Tylko podgląd może jedynie przeglądać dane, bez żadnej możliwości edycji."
+          description="Administrator ma zawsze pełny dostęp i może edytować wszystko. Tylko podgląd wyłącznie przegląda dane. Edycja i podgląd (sprzęt) może dodatkowo edytować sprzęt, ale tylko w wybranych niżej kategoriach."
         >
-          <div className="sm:col-span-2 flex gap-3">
+          <div className="sm:col-span-2 flex flex-col gap-2">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="radio"
@@ -92,6 +104,15 @@ export function NowyUzytkownikForm() {
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="radio"
+                checked={role === "edycja_podglad"}
+                onChange={() => setRole("edycja_podglad")}
+                className="h-4 w-4 text-primary"
+              />
+              Edycja i podgląd (sprzęt)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
                 checked={role === "administrator"}
                 onChange={() => setRole("administrator")}
                 className="h-4 w-4 text-primary"
@@ -100,7 +121,7 @@ export function NowyUzytkownikForm() {
             </label>
           </div>
 
-          {role === "podglad" && (
+          {role !== "administrator" && (
             <div className="sm:col-span-2">
               <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
                 Widoczne zakładki
@@ -118,6 +139,36 @@ export function NowyUzytkownikForm() {
                   </label>
                 ))}
               </div>
+            </div>
+          )}
+
+          {role === "edycja_podglad" && (
+            <div className="sm:col-span-2">
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                Kategorie sprzętu do edycji
+              </p>
+              {categories.length === 0 ? (
+                <p className="text-sm text-muted">Brak kategorii w systemie.</p>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {categories
+                    .filter((c) => !c.isArchived)
+                    .map((c) => (
+                      <label key={c.id} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={visibleCategories.has(c.id)}
+                          onChange={() => toggleCategory(c.id)}
+                          className="h-4 w-4 rounded border-border text-primary"
+                        />
+                        {c.name}
+                      </label>
+                    ))}
+                </div>
+              )}
+              <p className="mt-1.5 text-xs text-muted">
+                Sprzęt spoza zaznaczonych kategorii nie będzie w ogóle widoczny dla tego konta.
+              </p>
             </div>
           )}
         </FormSection>

@@ -36,7 +36,7 @@ import {
   getLinkedEquipment,
   getLocationName,
 } from "@/lib/equipment-helpers";
-import { useIsAdmin } from "@/lib/current-user-context";
+import { useCanEditEquipment, useCurrentUser, useIsAdmin } from "@/lib/current-user-context";
 import type { ProtocolItemLink } from "@/lib/supabase/queries";
 import {
   deleteEquipmentAction,
@@ -87,6 +87,13 @@ export function EquipmentTable({
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
+  const canEditEquipment = useCanEditEquipment();
+  const { role, visibleCategories } = useCurrentUser();
+  // "edycja_podglad" widzi w dropdownie kategorii tylko te, do których ma dostęp — inaczej
+  // mógłby próbować przenieść sprzęt do kategorii spoza swojego zakresu (RLS by to i tak
+  // zablokowała, ale lepiej nie proponować wyboru, który i tak się nie zapisze).
+  const editableCategories =
+    role === "edycja_podglad" ? categories.filter((c) => (visibleCategories ?? []).includes(c.id)) : categories;
   const [deleteTarget, setDeleteTarget] = useState<Equipment | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
@@ -229,7 +236,9 @@ export function EquipmentTable({
                 className="whitespace-nowrap px-3 py-2.5 font-medium"
               />
             ))}
-            {isAdmin && <th className="whitespace-nowrap px-3 py-2.5 font-medium">Akcje</th>}
+            {(isAdmin || canEditEquipment) && (
+              <th className="whitespace-nowrap px-3 py-2.5 font-medium">Akcje</th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -269,8 +278,8 @@ export function EquipmentTable({
                       activeAssignment,
                       linked,
                       software,
-                      categories,
-                      isAdmin,
+                      categories: editableCategories,
+                      canEdit: canEditEquipment,
                       lastProtocol,
                       onSave: (patch) => saveField(item, patch),
                       onSaveStatus: (status) => saveStatus(item, status),
@@ -278,7 +287,7 @@ export function EquipmentTable({
                     })}
                   </td>
                 ))}
-                {isAdmin && (
+                {(isAdmin || canEditEquipment) && (
                   <td className="px-3 py-2 align-middle" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
                       <Link
@@ -288,21 +297,25 @@ export function EquipmentTable({
                       >
                         <Pencil size={15} />
                       </Link>
-                      <Link
-                        href={`/sprzet/${item.id}/przekaz`}
-                        title="Przydziel sprzęt"
-                        className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
-                      >
-                        <ArrowRightLeft size={15} />
-                      </Link>
-                      <button
-                        type="button"
-                        title="Usuń sprzęt"
-                        onClick={() => setDeleteTarget(item)}
-                        className="rounded-md p-1.5 text-current hover:bg-red-50 hover:text-danger"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      {isAdmin && (
+                        <>
+                          <Link
+                            href={`/sprzet/${item.id}/przekaz`}
+                            title="Przydziel sprzęt"
+                            className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
+                          >
+                            <ArrowRightLeft size={15} />
+                          </Link>
+                          <button
+                            type="button"
+                            title="Usuń sprzęt"
+                            onClick={() => setDeleteTarget(item)}
+                            className="rounded-md p-1.5 text-current hover:bg-red-50 hover:text-danger"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 )}
@@ -341,7 +354,7 @@ function renderCell(
     linked: Equipment[];
     software: string[];
     categories: Category[];
-    isAdmin: boolean;
+    canEdit: boolean;
     lastProtocol?: Protocol;
     onSave: (patch: Partial<EquipmentInput>) => Promise<{ ok: boolean; error?: string }>;
     onSaveStatus: (status: string) => Promise<{ ok: boolean; error?: string }>;
@@ -360,7 +373,7 @@ function renderCell(
         </Link>
       );
     case "category":
-      if (!extra.isAdmin) return extra.categoryName;
+      if (!extra.canEdit) return extra.categoryName;
       return (
         <EditableCell
           value={item.categoryId}
@@ -383,10 +396,10 @@ function renderCell(
         <span>—</span>
       );
     case "name":
-      if (!extra.isAdmin) return item.name;
+      if (!extra.canEdit) return item.name;
       return <EditableCell value={item.name} onSave={(v) => extra.onSave({ name: v })} />;
     case "serialNumber":
-      if (!extra.isAdmin) return item.serialNumber ?? <span>—</span>;
+      if (!extra.canEdit) return item.serialNumber ?? <span>—</span>;
       return (
         <EditableCell
           value={item.serialNumber ?? ""}
@@ -399,7 +412,7 @@ function renderCell(
     case "linkedEquipment":
       return <ExpandableList items={extra.linked.map((l) => l.name)} />;
     case "status":
-      if (!extra.isAdmin) return <StatusBadge status={item.status} />;
+      if (!extra.canEdit) return <StatusBadge status={item.status} />;
       return (
         <EditableCell
           value={item.status}
@@ -413,7 +426,7 @@ function renderCell(
       // przy przekazaniu, ustawiana na magazyn przy zwrocie) — nie edytujemy jej ręcznie.
       return extra.locationName;
     case "notes":
-      if (!extra.isAdmin) {
+      if (!extra.canEdit) {
         return item.notes ? (
           <span className="line-clamp-2 max-w-[220px]">{item.notes}</span>
         ) : (

@@ -11,7 +11,7 @@ import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getLocationName } from "@/lib/equipment-helpers";
-import { useIsAdmin } from "@/lib/current-user-context";
+import { useCanEditEquipment, useCurrentUser } from "@/lib/current-user-context";
 import { updateEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -35,8 +35,11 @@ export function DetailsTab({
   startInEdit?: boolean;
 }) {
   const router = useRouter();
-  const isAdmin = useIsAdmin();
-  const [editing, setEditing] = useState(startInEdit && isAdmin);
+  const canEdit = useCanEditEquipment();
+  const { role, visibleCategories } = useCurrentUser();
+  const editableCategories =
+    role === "edycja_podglad" ? categories.filter((c) => (visibleCategories ?? []).includes(c.id)) : categories;
+  const [editing, setEditing] = useState(startInEdit && canEdit);
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -87,7 +90,7 @@ export function DetailsTab({
     const category = categories.find((c) => c.id === equipment.categoryId);
     return (
       <div className="flex flex-col gap-4">
-        {isAdmin && (
+        {canEdit && (
           <div className="flex justify-end">
             <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
               Edytuj dane
@@ -133,7 +136,7 @@ export function DetailsTab({
         </FormField>
         <FormField label="Kategoria" htmlFor="categoryId" required error={errors.categoryId?.message}>
           <select id="categoryId" className={inputClass} {...register("categoryId")}>
-            {categories
+            {editableCategories
               .filter((c) => !c.isArchived || c.id === equipment.categoryId)
               .map((c) => (
                 <option key={c.id} value={c.id}>

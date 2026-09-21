@@ -26,6 +26,7 @@ import type {
   InstalledSoftware,
   Location,
 } from "@/lib/types";
+import type { AppRole } from "@/lib/access";
 
 export async function getCategories(supabase: SupabaseClient): Promise<Category[]> {
   const { data, error } = await supabase.from("categories").select("*").order("name");
@@ -160,8 +161,9 @@ export async function getInstalledSoftware(supabase: SupabaseClient): Promise<In
 
 export interface CurrentProfile {
   fullName: string;
-  role: "administrator" | "podglad";
+  role: AppRole;
   visibleTabs: string[] | null;
+  visibleCategories: string[] | null;
 }
 
 export async function getCurrentProfile(
@@ -170,20 +172,26 @@ export async function getCurrentProfile(
 ): Promise<CurrentProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("full_name, role, visible_tabs")
+    .select("full_name, role, visible_tabs, visible_categories")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  return { fullName: data.full_name, role: data.role, visibleTabs: data.visible_tabs };
+  return {
+    fullName: data.full_name,
+    role: data.role,
+    visibleTabs: data.visible_tabs,
+    visibleCategories: data.visible_categories,
+  };
 }
 
 export interface UserProfile {
   id: string;
   fullName: string;
   email: string | null;
-  role: "administrator" | "podglad";
+  role: AppRole;
   visibleTabs: string[] | null;
+  visibleCategories: string[] | null;
   createdAt: string;
 }
 
@@ -198,6 +206,7 @@ export async function getProfiles(supabase: SupabaseClient): Promise<UserProfile
     email: row.email,
     role: row.role,
     visibleTabs: row.visible_tabs,
+    visibleCategories: row.visible_categories,
     createdAt: row.created_at,
   }));
 }

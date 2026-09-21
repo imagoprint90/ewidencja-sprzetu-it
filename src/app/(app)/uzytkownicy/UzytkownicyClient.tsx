@@ -12,9 +12,10 @@ import { inputClass } from "@/components/ui/Form";
 import { useCurrentUser } from "@/lib/current-user-context";
 import { useSort } from "@/lib/useSort";
 import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
-import { ASSIGNABLE_TABS } from "@/lib/access";
+import { ASSIGNABLE_TABS, APP_ROLE_LABELS, type AppRole } from "@/lib/access";
 import { formatDateTime } from "@/lib/format";
 import type { UserProfile } from "@/lib/supabase/queries";
+import type { Category } from "@/lib/types";
 import {
   deleteUserAction,
   resetUserPasswordAction,
@@ -23,14 +24,21 @@ import {
 
 type SortKey = "fullName" | "email" | "role" | "tabs" | "createdAt";
 
-export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
+export function UzytkownicyClient({
+  profiles,
+  categories,
+}: {
+  profiles: UserProfile[];
+  categories: Category[];
+}) {
   const router = useRouter();
   const currentUser = useCurrentUser();
   const { sortKey, sortDir, toggleSort } = useSort<SortKey>("fullName");
   const [isPending, startTransition] = useTransition();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editRole, setEditRole] = useState<"administrator" | "podglad">("podglad");
+  const [editRole, setEditRole] = useState<AppRole>("podglad");
   const [editTabs, setEditTabs] = useState<Set<string>>(new Set());
+  const [editCategories, setEditCategories] = useState<Set<string>>(new Set());
   const [editError, setEditError] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
@@ -41,6 +49,7 @@ export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
     setExpandedId(p.id);
     setEditRole(p.role);
     setEditTabs(new Set(p.visibleTabs ?? ASSIGNABLE_TABS.map((t) => t.key)));
+    setEditCategories(new Set(p.visibleCategories ?? []));
     setEditError(null);
     setNewPassword("");
     setPasswordMessage(null);
@@ -55,12 +64,22 @@ export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
     });
   }
 
+  function toggleCategory(id: string) {
+    setEditCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   function saveEdit(id: string) {
     setEditError(null);
     startTransition(async () => {
       const result = await updateUserPermissionsAction(id, {
         role: editRole,
         visibleTabs: editRole === "administrator" ? null : Array.from(editTabs),
+        visibleCategories: editRole === "edycja_podglad" ? Array.from(editCategories) : null,
       });
       if (!result.ok) {
         setEditError(result.error);
@@ -162,9 +181,22 @@ export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
                     </td>
                     <td className="px-4 py-3">{p.email ?? "—"}</td>
                     <td className="px-4 py-3">
-                      <Badge tone={p.role === "administrator" ? "success" : "default"}>
-                        {p.role === "administrator" ? "Administrator" : "Tylko podgląd"}
+                      <Badge
+                        tone={
+                          p.role === "administrator" ? "success" : p.role === "edycja_podglad" ? "warning" : "default"
+                        }
+                      >
+                        {APP_ROLE_LABELS[p.role]}
                       </Badge>
+                      {p.role === "edycja_podglad" && (
+                        <p className="mt-1 text-xs text-muted">
+                          {(p.visibleCategories ?? []).length === 0
+                            ? "brak kategorii — nie widzi żadnego sprzętu"
+                            : `${(p.visibleCategories ?? []).length} ${
+                                (p.visibleCategories ?? []).length === 1 ? "kategoria" : "kategorii"
+                              }`}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {p.role === "administrator" || !p.visibleTabs ? (
@@ -220,6 +252,16 @@ export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
                               <label className="flex items-center gap-2 text-sm">
                                 <input
                                   type="radio"
+                                  checked={editRole === "edycja_podglad"}
+                                  disabled={isSelf}
+                                  onChange={() => setEditRole("edycja_podglad")}
+                                  className="h-4 w-4 text-primary"
+                                />
+                                Edycja i podgląd (sprzęt)
+                              </label>
+                              <label className="flex items-center gap-2 text-sm">
+                                <input
+                                  type="radio"
                                   checked={editRole === "administrator"}
                                   onChange={() => setEditRole("administrator")}
                                   className="h-4 w-4 text-primary"
@@ -234,7 +276,7 @@ export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
                             )}
                           </div>
 
-                          {editRole === "podglad" ? (
+                          {editRole !== "administrator" ? (
                             <div>
                               <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
                                 Widoczne zakładki
@@ -257,6 +299,37 @@ export function UzytkownicyClient({ profiles }: { profiles: UserProfile[] }) {
                             <p className="text-xs text-muted">
                               Administrator ma zawsze pełny dostęp do wszystkich zakładek.
                             </p>
+                          )}
+
+                          {editRole === "edycja_podglad" && (
+                            <div>
+                              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                                Kategorie sprzętu do edycji
+                              </p>
+                              {categories.length === 0 ? (
+                                <p className="text-sm text-muted">Brak kategorii w systemie.</p>
+                              ) : (
+                                <div className="flex flex-wrap gap-3">
+                                  {categories
+                                    .filter((c) => !c.isArchived)
+                                    .map((c) => (
+                                      <label key={c.id} className="flex items-center gap-2 text-sm">
+                                        <input
+                                          type="checkbox"
+                                          checked={editCategories.has(c.id)}
+                                          onChange={() => toggleCategory(c.id)}
+                                          className="h-4 w-4 rounded border-border text-primary"
+                                        />
+                                        {c.name}
+                                      </label>
+                                    ))}
+                                </div>
+                              )}
+                              <p className="mt-1.5 text-xs text-muted">
+                                Sprzęt spoza zaznaczonych kategorii nie będzie w ogóle widoczny dla
+                                tego konta.
+                              </p>
+                            </div>
                           )}
 
                           {editError && <p className="text-sm text-danger">{editError}</p>}
