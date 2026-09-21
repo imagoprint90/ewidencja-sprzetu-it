@@ -16,6 +16,7 @@ export interface CreateProtocolInput {
   city: string;
   condition: TechnicalCondition;
   notes: string | null;
+  handoverPersonName: string | null;
 }
 
 async function generateAndStorePdf(
@@ -109,6 +110,7 @@ export async function createProtocolAction(
     issuedByName: company.representative_name?.trim() || profile?.full_name || user.email || "Administrator",
     previousEmployeeName: employeeName(input.previousEmployeeId),
     newEmployeeName: employeeName(input.newEmployeeId),
+    handoverPersonName: input.handoverPersonName,
     technicalConditionLabel: TECHNICAL_CONDITION_LABELS[input.condition],
     notes: input.notes,
     items: equipmentRows.map((e) => ({

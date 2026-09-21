@@ -100,8 +100,20 @@ export function PrzekazForm({
   const [condition, setCondition] = useState<TechnicalCondition | "">("");
   const [notes, setNotes] = useState("");
   const [selectedLinked, setSelectedLinked] = useState<Set<string>>(() => new Set(extraIds));
+  const [handoverEnabled, setHandoverEnabled] = useState(false);
+  const [handoverPersonId, setHandoverPersonId] = useState("");
+  const [handoverPersonManual, setHandoverPersonManual] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const handoverPersonName: string | null = !handoverEnabled
+    ? null
+    : handoverPersonId === "__manual__"
+      ? handoverPersonManual.trim() || null
+      : (() => {
+          const person = employees.find((e) => e.id === handoverPersonId);
+          return person ? employeeFullName(person) : null;
+        })();
 
   function toggleLinked(id: string) {
     setSelectedLinked((prev) => {
@@ -124,6 +136,9 @@ export function PrzekazForm({
     if (!transferDate) return "Podaj datę przekazania.";
     if (!city.trim()) return "Podaj miejscowość sporządzenia protokołu.";
     if (!condition) return "Wybierz stan techniczny sprzętu.";
+    if (handoverEnabled && !handoverPersonName) {
+      return "Podaj osobę przekazującą (wybierz z listy albo wpisz ręcznie) albo odznacz checkbox.";
+    }
     return null;
   }
 
@@ -164,6 +179,7 @@ export function PrzekazForm({
         city: city.trim(),
         condition: condition as TechnicalCondition,
         notes: notes.trim() || null,
+        handoverPersonName,
       });
 
       if (!protocolResult.ok || !protocolResult.data.pdfGenerated) {
@@ -357,6 +373,53 @@ export function PrzekazForm({
             ))}
           </select>
         </FormField>
+        <div className="sm:col-span-2 flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={handoverEnabled}
+              onChange={(e) => {
+                setHandoverEnabled(e.target.checked);
+                if (!e.target.checked) {
+                  setHandoverPersonId("");
+                  setHandoverPersonManual("");
+                }
+              }}
+              className="h-4 w-4 rounded border-border text-primary"
+            />
+            Osoba przekazująca
+          </label>
+          <p className="text-xs text-muted">
+            Osoba, która fizycznie wydaje sprzęt (jeśli inna niż wynika to z samej operacji) —
+            pojawi się na protokole razem z miejscem na podpis.
+          </p>
+          {handoverEnabled && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <select
+                className={inputClass}
+                value={handoverPersonId}
+                onChange={(e) => setHandoverPersonId(e.target.value)}
+              >
+                <option value="">Wybierz pracownika…</option>
+                {activeEmployees.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {employeeFullName(e)}
+                  </option>
+                ))}
+                <option value="__manual__">Inna osoba (wpisz ręcznie)</option>
+              </select>
+              {handoverPersonId === "__manual__" && (
+                <input
+                  className={inputClass}
+                  placeholder="Imię i nazwisko"
+                  value={handoverPersonManual}
+                  onChange={(e) => setHandoverPersonManual(e.target.value)}
+                />
+              )}
+            </div>
+          )}
+        </div>
+
         <FormField label="Uwagi" htmlFor="notes" full>
           <textarea
             id="notes"
@@ -404,7 +467,9 @@ export function PrzekazForm({
             : `Zwrot do magazynu od: ${currentEmployee ? employeeFullName(currentEmployee) : "—"}. `) +
           `Data: ${formatDate(transferDate)}, ${city.trim() || "brak miejscowości"}. Stan: ${
             condition ? TECHNICAL_CONDITION_LABELS[condition as TechnicalCondition] : "—"
-          }. Zostanie automatycznie wygenerowany protokół PDF.`
+          }. ` +
+          (handoverPersonName ? `Osoba przekazująca: ${handoverPersonName}. ` : "") +
+          `Zostanie automatycznie wygenerowany protokół PDF.`
         }
         confirmLabel="Zatwierdź"
         onCancel={() => setConfirmOpen(false)}

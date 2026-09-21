@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   signatureBox: { width: "45%" },
+  signatureBoxThird: { width: "30%" },
   signatureLine: {
     borderTopWidth: 1,
     borderTopColor: "#1a2332",
@@ -153,6 +154,11 @@ export function ProtocolDocument({ snapshot }: { snapshot: ProtocolSnapshot }) {
             Poprzedni użytkownik sprzętu: {snapshot.previousEmployeeName}
           </Text>
         )}
+        {snapshot.handoverPersonName && (
+          <Text style={{ fontSize: 8, color: "#5b6472", marginTop: 4 }}>
+            Sprzęt fizycznie przekazał(a): {snapshot.handoverPersonName}
+          </Text>
+        )}
 
         <Text style={styles.sectionTitle}>Przekazywany sprzęt</Text>
         <View style={styles.table}>
@@ -188,13 +194,21 @@ export function ProtocolDocument({ snapshot }: { snapshot: ProtocolSnapshot }) {
         </Text>
 
         <View style={styles.signatures} wrap={false}>
-          <View style={styles.signatureBox}>
+          <View style={snapshot.handoverPersonName ? styles.signatureBoxThird : styles.signatureBox}>
             <View style={styles.signatureLine}>
               <Text style={styles.signatureLabel}>Przekazujący</Text>
               <Text style={styles.signatureName}>{parties.issuerName}</Text>
             </View>
           </View>
-          <View style={styles.signatureBox}>
+          {snapshot.handoverPersonName && (
+            <View style={styles.signatureBoxThird}>
+              <View style={styles.signatureLine}>
+                <Text style={styles.signatureLabel}>Osoba przekazująca sprzęt</Text>
+                <Text style={styles.signatureName}>{snapshot.handoverPersonName}</Text>
+              </View>
+            </View>
+          )}
+          <View style={snapshot.handoverPersonName ? styles.signatureBoxThird : styles.signatureBox}>
             <View style={styles.signatureLine}>
               <Text style={styles.signatureLabel}>Odbierający</Text>
               <Text style={styles.signatureName}>{parties.receiverName}</Text>

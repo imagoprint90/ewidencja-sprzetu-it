@@ -180,6 +180,11 @@ export interface ProtocolSnapshot {
   issuedByName: string;
   previousEmployeeName: string | null;
   newEmployeeName: string | null;
+  // Osoba, która fizycznie wydała sprzęt — opcjonalna, niekoniecznie ta sama osoba co
+  // reprezentant firmy z issuedByName (np. informatyk dostarczający sprzęt w imieniu firmy).
+  // Gdy podana, protokół pokazuje ją jako dodatkową stronę z miejscem na podpis.
+  // Opcjonalne pole (?) — starsze protokoły sprzed tej zmiany nie mają go w migawce.
+  handoverPersonName?: string | null;
   technicalConditionLabel: string;
   notes: string | null;
   items: ProtocolItemData[];

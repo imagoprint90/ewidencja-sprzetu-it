@@ -80,7 +80,10 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   zestawu (sprzęt + zaznaczone powiązane urządzenia) — wszystko w jednej atomowej transakcji
   SQL (`transfer_equipment_set`, `supabase/migrations/0009_transfer_sets.sql`). Blokada dwóch
   aktywnych przydziałów tego samego sprzętu i walidacja dat są wymuszane w bazie danych, nie
-  tylko w interfejsie.
+  tylko w interfejsie. Opcjonalne pole **„Osoba przekazująca”** (checkbox, potem wybór z listy
+  pracowników albo wpisanie ręcznie) — gdy uzupełnione, na protokole pojawia się jako
+  dodatkowa strona z miejscem na podpis, obok Przekazującego i Odbierającego. Przydatne, gdy
+  fizycznie sprzęt wydaje inna osoba niż reprezentant firmy z protokołu (np. informatyk).
 
 - **Protokoły PDF** (Etap 4): automatyczne generowanie przy każdym przekazaniu/zwrocie —
   numer dokumentu, dane firmy, strony, lista sprzętu identyfikowanego przez producenta i model
