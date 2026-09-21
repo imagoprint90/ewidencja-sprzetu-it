@@ -17,16 +17,23 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   i ponownie sprawdzane po stronie serwera — nie tylko ukrywaniem przycisków). Każdy
   zalogowany użytkownik (niezależnie od roli) może zmienić własne hasło z poziomu menu przy
   swoim e-mailu w prawym górnym rogu — wymaga podania obecnego hasła.
-- Trzy role — „administrator” (pełny dostęp wszędzie), „podgląd” (tylko odczyt wszędzie) i
-  „edycja i podgląd (sprzęt)” (jak podgląd, ale dodatkowo może edytować sprzęt — wyłącznie w
-  przypisanych mu kategoriach; sprzęt spoza tych kategorii jest dla niego całkowicie
-  niewidoczny, nie tylko niedostępny do edycji) — wymuszane realnie przez reguły RLS w bazie
-  danych (`supabase/migrations/0023...`, `0024...`), a dodatkowo interfejs ukrywa akcje
-  niedostępne dla danej roli.
+- Uprawnienia są addytywne: każde konto ma rolę bazową — „administrator” (pełny dostęp i
+  edycja wszędzie) albo „podgląd” (domyślnie tylko odczyt wszędzie) — a do tego dowolną
+  kombinację dwóch niezależnie włączanych uprawnień dodatkowych (można mieć jedno, oba albo
+  żadne):
+  - **Edycja i podgląd sprzętu** — dodawanie, edycja i usuwanie sprzętu, wyłącznie w
+    przypisanych kategoriach; sprzęt spoza tych kategorii jest całkowicie niewidoczny, nie
+    tylko niedostępny do edycji.
+  - **Przekazywanie sprzętu** — operacja „Przekaż sprzęt” (przydzielenie/zwrot) i generowanie
+    protokołów, plus wgląd i usuwanie WYŁĄCZNIE własnych wystawionych protokołów.
+
+  Wymuszane realnie przez reguły RLS w bazie danych (`supabase/migrations/0023...`–`0025...`),
+  a dodatkowo interfejs ukrywa akcje niedostępne dla danego konta.
 - **Użytkownicy** (Etap 6, zakładka `/uzytkownicy`, tylko dla administratora): zakładanie,
-  usuwanie i reset hasła kont bezpośrednio z aplikacji (przez Supabase Admin API), zmiana roli,
-  wybór widocznych zakładek (role „podgląd” i „edycja i podgląd”) oraz wybór kategorii sprzętu
-  do edycji (rola „edycja i podgląd”). Patrz sekcja „Zakładanie kont użytkowników” niżej.
+  usuwanie i reset hasła kont bezpośrednio z aplikacji (przez Supabase Admin API), zmiana roli
+  i uprawnień dodatkowych, wybór widocznych zakładek oraz wybór kategorii sprzętu do edycji.
+  Lista kont ma osobną kolumnę **Kategorie sprzętu do edycji**. Patrz sekcja „Zakładanie kont
+  użytkowników” niżej.
 - Sprzęt: lista z wyszukiwarką, filtrami wielokrotnego wyboru (checkboxy — np. kilka statusów
   albo kilka lokalizacji naraz), wyborem widocznych kolumn, dodawanie i edycja (walidacja
   unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane w bazie.
@@ -179,6 +186,10 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
    `visible_categories` w `profiles`)
 2. `0024_equipment_editor_role_rls.sql` (reguły RLS dla tej roli — dopiero po zastosowaniu
    pliku 1)
+3. `0025_multi_role_permissions.sql` (zastępuje pojedynczą rolę „edycja_podglad” addytywnymi
+   flagami `can_edit_equipment`/`can_transfer_equipment`, dodaje uprawnienie „Przekazywanie
+   sprzętu” i rozszerza „Edycja i podgląd” o dodawanie/usuwanie sprzętu — to pojedynczy plik,
+   w przeciwieństwie do 0023/0024 nie trzeba go dzielić)
 
 ## Konfiguracja Supabase
 
@@ -204,32 +215,41 @@ Aplikacja **nie ma publicznej rejestracji**. Od Etapu 6 konta zakłada się wygo
 samej aplikacji — zakładka **Użytkownicy** (widoczna w bocznym menu tylko dla roli
 `administrator`, pod `/uzytkownicy`):
 
-- **Dodaj użytkownika** — podaj imię i nazwisko, e-mail, hasło początkowe oraz rolę:
-  - `Administrator` — pełny dostęp i edycja wszędzie.
-  - `Tylko podgląd` — wyłącznie odczyt, żadnych przycisków edycji.
-  - `Edycja i podgląd (sprzęt)` — jak „Tylko podgląd”, ale dodatkowo może edytować sprzęt
-    (nazwa, numer seryjny, kategoria, status, uwagi) — **wyłącznie w zaznaczonych niżej
-    kategoriach**. Sprzęt spoza tych kategorii jest dla takiego konta całkowicie niewidoczny,
-    nie tylko zablokowany do edycji — to wymuszają reguły RLS w bazie (nie da się tego obejść
-    inaczej niż przez zmianę uprawnień w tej zakładce). Ta rola nie może dodawać ani usuwać
-    sprzętu, ani go przekazywać/zwracać (operacja „Przekaż sprzęt”) — to zostaje wyłącznie dla
-    administratora.
+- **Dodaj użytkownika** — podaj imię i nazwisko, e-mail, hasło początkowe oraz rolę bazową:
+  - `Administrator` — pełny dostęp i edycja wszędzie (uprawnienia dodatkowe poniżej go nie
+    dotyczą, ma zawsze wszystko).
+  - `Standardowe konto` — domyślnie wyłącznie odczyt, żadnych przycisków edycji. Do wyboru są
+    dwa niezależne uprawnienia dodatkowe, które **można dowolnie łączyć** (jedno, oba albo
+    żadne):
+    - **Edycja i podgląd sprzętu** — dodawanie, edycja i usuwanie sprzętu (nazwa, numer
+      seryjny, kategoria, status, uwagi) — **wyłącznie w zaznaczonych niżej kategoriach**.
+      Sprzęt spoza tych kategorii jest dla takiego konta całkowicie niewidoczny, nie tylko
+      zablokowany do edycji — to wymuszają reguły RLS w bazie (nie da się tego obejść inaczej
+      niż przez zmianę uprawnień w tej zakładce).
+    - **Przekazywanie sprzętu** — operacja „Przekaż sprzęt” (przydzielenie/zwrot) i
+      generowanie protokołów. Takie konto widzi na liście Protokoły akcje (Usuń/Ponów/Skan)
+      wyłącznie przy protokołach, które samo wystawiło — reszta jest dla niego tylko do
+      odczytu, również wymuszane przez RLS.
 
-  Wszystkie role poza administratorem wymagają wymuszane przez RLS w bazie, nie tylko
-  ukryciem przycisków w interfejsie. Dla ról innych niż administrator zaznacz też, które
+  Wszystkie uprawnienia poza administratorem są wymuszane przez RLS w bazie, nie tylko
+  ukryciem przycisków w interfejsie. Dla kont innych niż administrator zaznacz też, które
   zakładki dane konto ma widzieć (np. Sprzęt tak, Pracownicy nie) — zakładka Pulpit jest
   zawsze dostępna, a Użytkownicy zawsze wyłącznie dla administratora. Konto działa od razu,
   użytkownik loguje się podanym hasłem (może je później zmienić przez „Nie pamiętasz hasła?”
   na stronie logowania albo z menu przy swoim e-mailu po zalogowaniu).
-- Na liście Użytkownicy przycisk **Zarządzaj** pozwala zmienić rolę/widoczne zakładki/kategorie
-  i zresetować hasło; **kosz** trwale usuwa konto (zablokowane dla własnego konta, żeby
-  administrator nie odciął sobie dostępu).
+- Na liście Użytkownicy przycisk **Zarządzaj** pozwala zmienić rolę/uprawnienia dodatkowe/
+  widoczne zakładki/kategorie i zresetować hasło; **kosz** trwale usuwa konto (zablokowane dla
+  własnego konta, żeby administrator nie odciął sobie dostępu). Kolumna **Kategorie sprzętu do
+  edycji** pokazuje od razu na liście, które kategorie ma przypisane każde konto z uprawnieniem
+  „Edycja i podgląd sprzętu” (i ostrzega na czerwono, jeśli uprawnienie jest włączone, ale nie
+  zaznaczono żadnej kategorii — takie konto nie widzi wtedy żadnego sprzętu).
 - Ograniczenie widoczności zakładek działa na poziomie stron (bezpośrednie wejście pod adres
   ukrytej zakładki też jest blokowane, nie tylko link w menu) — nie jest to jednak pełna
-  reguła bazodanowa jak RLS dla ról; np. nazwisko przydzielonego pracownika nadal pojawi się
-  przy sprzęcie, nawet jeśli to konto nie ma dostępu do zakładki Pracownicy. Ograniczenie
-  kategorii sprzętu dla roli „Edycja i podgląd” to co innego — to jest twarda reguła RLS na
-  samej tabeli sprzętu, więc obejmuje też ewentualny bezpośredni dostęp do bazy.
+  reguła bazodanowa jak RLS dla uprawnień dodatkowych; np. nazwisko przydzielonego pracownika
+  nadal pojawi się przy sprzęcie, nawet jeśli to konto nie ma dostępu do zakładki Pracownicy.
+  Ograniczenie kategorii sprzętu i ograniczenie protokołów do własnych to co innego — to są
+  twarde reguły RLS na samych tabelach, więc obejmują też ewentualny bezpośredni dostęp do
+  bazy.
 
 **Pierwsze konto administratora** trzeba założyć ręcznie w panelu Supabase (zanim ktokolwiek
 może zalogować się do zakładki Użytkownicy):

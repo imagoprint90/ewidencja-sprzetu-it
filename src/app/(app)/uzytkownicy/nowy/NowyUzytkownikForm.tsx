@@ -7,17 +7,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { userFormSchema, type UserFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
-import { ASSIGNABLE_TABS, type AppRole } from "@/lib/access";
+import { ASSIGNABLE_TABS } from "@/lib/access";
 import { createUserAction } from "@/lib/supabase/actions/user-actions";
 import type { Category } from "@/lib/types";
 
 export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [role, setRole] = useState<AppRole>("podglad");
+  const [role, setRole] = useState<"administrator" | "podglad">("podglad");
   const [visibleTabs, setVisibleTabs] = useState<Set<string>>(
     () => new Set(ASSIGNABLE_TABS.map((t) => t.key))
   );
+  const [canEditEquipment, setCanEditEquipment] = useState(false);
+  const [canTransferEquipment, setCanTransferEquipment] = useState(false);
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set());
 
   const {
@@ -54,6 +56,8 @@ export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
       fullName: values.fullName,
       role,
       visibleTabs: Array.from(visibleTabs),
+      canEditEquipment,
+      canTransferEquipment,
       visibleCategories: Array.from(visibleCategories),
     });
     if (!result.ok) {
@@ -88,10 +92,10 @@ export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
         </FormSection>
 
         <FormSection
-          title="Uprawnienia"
-          description="Administrator ma zawsze pełny dostęp i może edytować wszystko. Tylko podgląd wyłącznie przegląda dane. Edycja i podgląd (sprzęt) może dodatkowo edytować sprzęt, ale tylko w wybranych niżej kategoriach."
+          title="Rola"
+          description="Administrator ma zawsze pełny dostęp i może edytować wszystko. Inne konta są domyślnie tylko do odczytu — poniższe uprawnienia dodatkowe można dowolnie łączyć."
         >
-          <div className="sm:col-span-2 flex flex-col gap-2">
+          <div className="sm:col-span-2 flex gap-3">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="radio"
@@ -99,16 +103,7 @@ export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
                 onChange={() => setRole("podglad")}
                 className="h-4 w-4 text-primary"
               />
-              Tylko podgląd
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="radio"
-                checked={role === "edycja_podglad"}
-                onChange={() => setRole("edycja_podglad")}
-                className="h-4 w-4 text-primary"
-              />
-              Edycja i podgląd (sprzęt)
+              Standardowe konto
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -120,13 +115,12 @@ export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
               Administrator
             </label>
           </div>
+        </FormSection>
 
-          {role !== "administrator" && (
-            <div className="sm:col-span-2">
-              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
-                Widoczne zakładki
-              </p>
-              <div className="flex flex-wrap gap-3">
+        {role === "podglad" && (
+          <>
+            <FormSection title="Widoczne zakładki">
+              <div className="sm:col-span-2 flex flex-wrap gap-3">
                 {ASSIGNABLE_TABS.map((t) => (
                   <label key={t.key} className="flex items-center gap-2 text-sm">
                     <input
@@ -139,39 +133,68 @@ export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
                   </label>
                 ))}
               </div>
-            </div>
-          )}
+            </FormSection>
 
-          {role === "edycja_podglad" && (
-            <div className="sm:col-span-2">
-              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
-                Kategorie sprzętu do edycji
-              </p>
-              {categories.length === 0 ? (
-                <p className="text-sm text-muted">Brak kategorii w systemie.</p>
-              ) : (
-                <div className="flex flex-wrap gap-3">
-                  {categories
-                    .filter((c) => !c.isArchived)
-                    .map((c) => (
-                      <label key={c.id} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={visibleCategories.has(c.id)}
-                          onChange={() => toggleCategory(c.id)}
-                          className="h-4 w-4 rounded border-border text-primary"
-                        />
-                        {c.name}
-                      </label>
-                    ))}
+            <FormSection
+              title="Uprawnienia dodatkowe"
+              description="Można zaznaczyć jedno, oba albo żadne — konto bez zaznaczonych uprawnień jest wyłącznie do odczytu."
+            >
+              <div className="sm:col-span-2 flex flex-col gap-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={canEditEquipment}
+                    onChange={(e) => setCanEditEquipment(e.target.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Edycja i podgląd sprzętu — dodawanie, edycja i usuwanie sprzętu, wyłącznie w
+                  wybranych niżej kategoriach
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={canTransferEquipment}
+                    onChange={(e) => setCanTransferEquipment(e.target.checked)}
+                    className="h-4 w-4 rounded border-border text-primary"
+                  />
+                  Przekazywanie sprzętu — operacja „Przekaż sprzęt” i generowanie protokołów,
+                  wgląd i usuwanie własnych wystawionych protokołów
+                </label>
+              </div>
+
+              {canEditEquipment && (
+                <div className="sm:col-span-2">
+                  <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                    Kategorie sprzętu do edycji
+                  </p>
+                  {categories.length === 0 ? (
+                    <p className="text-sm text-muted">Brak kategorii w systemie.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-3">
+                      {categories
+                        .filter((c) => !c.isArchived)
+                        .map((c) => (
+                          <label key={c.id} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={visibleCategories.has(c.id)}
+                              onChange={() => toggleCategory(c.id)}
+                              className="h-4 w-4 rounded border-border text-primary"
+                            />
+                            {c.name}
+                          </label>
+                        ))}
+                    </div>
+                  )}
+                  <p className="mt-1.5 text-xs text-muted">
+                    Sprzęt spoza zaznaczonych kategorii nie będzie w ogóle widoczny dla tego
+                    konta.
+                  </p>
                 </div>
               )}
-              <p className="mt-1.5 text-xs text-muted">
-                Sprzęt spoza zaznaczonych kategorii nie będzie w ogóle widoczny dla tego konta.
-              </p>
-            </div>
-          )}
-        </FormSection>
+            </FormSection>
+          </>
+        )}
 
         {submitError && (
           <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">

@@ -36,7 +36,12 @@ import {
   getLinkedEquipment,
   getLocationName,
 } from "@/lib/equipment-helpers";
-import { useCanEditEquipment, useCurrentUser, useIsAdmin } from "@/lib/current-user-context";
+import {
+  useCanEditEquipment,
+  useCanTransferEquipment,
+  useCurrentUser,
+  useIsAdmin,
+} from "@/lib/current-user-context";
 import type { ProtocolItemLink } from "@/lib/supabase/queries";
 import {
   deleteEquipmentAction,
@@ -88,12 +93,15 @@ export function EquipmentTable({
   const router = useRouter();
   const isAdmin = useIsAdmin();
   const canEditEquipment = useCanEditEquipment();
-  const { role, visibleCategories } = useCurrentUser();
-  // "edycja_podglad" widzi w dropdownie kategorii tylko te, do których ma dostęp — inaczej
-  // mógłby próbować przenieść sprzęt do kategorii spoza swojego zakresu (RLS by to i tak
-  // zablokowała, ale lepiej nie proponować wyboru, który i tak się nie zapisze).
+  const canTransferEquipment = useCanTransferEquipment();
+  const { visibleCategories } = useCurrentUser();
+  // Konto z ograniczeniem kategorii widzi w dropdownie kategorii tylko te, do których ma
+  // dostęp — inaczej mógłby próbować przenieść sprzęt do kategorii spoza swojego zakresu
+  // (RLS by to i tak zablokowała, ale lepiej nie proponować wyboru, który się nie zapisze).
   const editableCategories =
-    role === "edycja_podglad" ? categories.filter((c) => (visibleCategories ?? []).includes(c.id)) : categories;
+    !isAdmin && canEditEquipment
+      ? categories.filter((c) => (visibleCategories ?? []).includes(c.id))
+      : categories;
   const [deleteTarget, setDeleteTarget] = useState<Equipment | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
@@ -213,7 +221,7 @@ export function EquipmentTable({
       <table className="w-full min-w-[960px] text-sm">
         <thead>
           <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
-            {isAdmin && (
+            {(isAdmin || canEditEquipment || canTransferEquipment) && (
               <th className="w-8 px-3 py-2.5">
                 <input
                   type="checkbox"
@@ -236,7 +244,7 @@ export function EquipmentTable({
                 className="whitespace-nowrap px-3 py-2.5 font-medium"
               />
             ))}
-            {(isAdmin || canEditEquipment) && (
+            {(isAdmin || canEditEquipment || canTransferEquipment) && (
               <th className="whitespace-nowrap px-3 py-2.5 font-medium">Akcje</th>
             )}
           </tr>
@@ -253,7 +261,7 @@ export function EquipmentTable({
                 style={{ color: EQUIPMENT_STATUS_COLORS[item.status] }}
                 onClick={() => router.push(`/sprzet/${item.id}`)}
               >
-                {isAdmin && (
+                {(isAdmin || canEditEquipment || canTransferEquipment) && (
                   <td className="px-3 py-2 align-middle" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
@@ -287,34 +295,36 @@ export function EquipmentTable({
                     })}
                   </td>
                 ))}
-                {(isAdmin || canEditEquipment) && (
+                {(isAdmin || canEditEquipment || canTransferEquipment) && (
                   <td className="px-3 py-2 align-middle" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
-                      <Link
-                        href={`/sprzet/${item.id}?edit=1`}
-                        title="Edytuj sprzęt"
-                        className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
-                      >
-                        <Pencil size={15} />
-                      </Link>
-                      {isAdmin && (
-                        <>
-                          <Link
-                            href={`/sprzet/${item.id}/przekaz`}
-                            title="Przydziel sprzęt"
-                            className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
-                          >
-                            <ArrowRightLeft size={15} />
-                          </Link>
-                          <button
-                            type="button"
-                            title="Usuń sprzęt"
-                            onClick={() => setDeleteTarget(item)}
-                            className="rounded-md p-1.5 text-current hover:bg-red-50 hover:text-danger"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </>
+                      {(isAdmin || canEditEquipment) && (
+                        <Link
+                          href={`/sprzet/${item.id}?edit=1`}
+                          title="Edytuj sprzęt"
+                          className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
+                        >
+                          <Pencil size={15} />
+                        </Link>
+                      )}
+                      {(isAdmin || canTransferEquipment) && (
+                        <Link
+                          href={`/sprzet/${item.id}/przekaz`}
+                          title="Przydziel sprzęt"
+                          className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
+                        >
+                          <ArrowRightLeft size={15} />
+                        </Link>
+                      )}
+                      {(isAdmin || canEditEquipment) && (
+                        <button
+                          type="button"
+                          title="Usuń sprzęt"
+                          onClick={() => setDeleteTarget(item)}
+                          className="rounded-md p-1.5 text-current hover:bg-red-50 hover:text-danger"
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       )}
                     </div>
                   </td>

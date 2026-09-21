@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { employeeFullName } from "@/lib/equipment-helpers";
-import { useIsAdmin } from "@/lib/current-user-context";
+import { useIsAdmin, useCanTransferEquipment } from "@/lib/current-user-context";
 import type { Assignment, Employee, Equipment } from "@/lib/types";
 
 export function AssignmentsTab({
@@ -18,6 +18,7 @@ export function AssignmentsTab({
   employees: Employee[];
 }) {
   const isAdmin = useIsAdmin();
+  const canTransferEquipment = useCanTransferEquipment();
   const history = assignments
     .filter((a) => a.equipmentId === equipment.id)
     .sort((a, b) => (a.assignedAt < b.assignedAt ? 1 : -1));
@@ -28,7 +29,7 @@ export function AssignmentsTab({
         <p className="text-sm text-muted">
           Pełna historia przydziałów tego sprzętu, łącznie z poprzednimi użytkownikami.
         </p>
-        {isAdmin && (
+        {(isAdmin || canTransferEquipment) && (
           <Link href={`/sprzet/${equipment.id}/przekaz`}>
             <Button size="sm">Przekaż sprzęt</Button>
           </Link>

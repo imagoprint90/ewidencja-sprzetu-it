@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AppRole } from "@/lib/access";
 
 type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -34,8 +33,10 @@ export async function createUserAction(input: {
   email: string;
   password: string;
   fullName: string;
-  role: AppRole;
+  role: "administrator" | "podglad";
   visibleTabs: string[] | null;
+  canEditEquipment: boolean;
+  canTransferEquipment: boolean;
   visibleCategories: string[] | null;
 }): Promise<ActionResult<{ id: string }>> {
   const guard = await requireAdmin();
@@ -64,13 +65,16 @@ export async function createUserAction(input: {
     return { ok: false, error: message || "Nie udało się utworzyć konta." };
   }
 
+  const isAdminRole = input.role === "administrator";
   const { error: profileError } = await service.from("profiles").insert({
     id: created.user.id,
     full_name: fullName,
     email,
     role: input.role,
-    visible_tabs: input.role === "administrator" ? null : input.visibleTabs,
-    visible_categories: input.role === "edycja_podglad" ? input.visibleCategories : null,
+    visible_tabs: isAdminRole ? null : input.visibleTabs,
+    can_edit_equipment: !isAdminRole && input.canEditEquipment,
+    can_transfer_equipment: !isAdminRole && input.canTransferEquipment,
+    visible_categories: !isAdminRole && input.canEditEquipment ? input.visibleCategories : null,
   });
 
   if (profileError) {
@@ -85,7 +89,13 @@ export async function createUserAction(input: {
 
 export async function updateUserPermissionsAction(
   id: string,
-  input: { role: AppRole; visibleTabs: string[] | null; visibleCategories: string[] | null }
+  input: {
+    role: "administrator" | "podglad";
+    visibleTabs: string[] | null;
+    canEditEquipment: boolean;
+    canTransferEquipment: boolean;
+    visibleCategories: string[] | null;
+  }
 ): Promise<ActionResult<undefined>> {
   const guard = await requireAdmin();
   if (!guard.ok) return guard;
@@ -94,12 +104,15 @@ export async function updateUserPermissionsAction(
     return { ok: false, error: "Nie możesz odebrać uprawnień administratora samemu sobie." };
   }
 
+  const isAdminRole = input.role === "administrator";
   const { error } = await guard.supabase
     .from("profiles")
     .update({
       role: input.role,
-      visible_tabs: input.role === "administrator" ? null : input.visibleTabs,
-      visible_categories: input.role === "edycja_podglad" ? input.visibleCategories : null,
+      visible_tabs: isAdminRole ? null : input.visibleTabs,
+      can_edit_equipment: !isAdminRole && input.canEditEquipment,
+      can_transfer_equipment: !isAdminRole && input.canTransferEquipment,
+      visible_categories: !isAdminRole && input.canEditEquipment ? input.visibleCategories : null,
     })
     .eq("id", id);
 

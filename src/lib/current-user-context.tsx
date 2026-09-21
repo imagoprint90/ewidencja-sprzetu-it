@@ -10,6 +10,8 @@ interface CurrentUser {
   role: AppRole;
   visibleTabs: string[] | null;
   visibleCategories: string[] | null;
+  canEditEquipment: boolean;
+  canTransferEquipment: boolean;
 }
 
 const CurrentUserContext = createContext<CurrentUser | null>(null);
@@ -34,21 +36,26 @@ export function useIsAdmin(): boolean {
   return useCurrentUser().role === "administrator";
 }
 
-// "administrator" edytuje wszystko; "edycja_podglad" edytuje tylko sprzęt (i tylko w swoich
-// kategoriach — to jest wymuszane przez RLS, tu tylko decydujemy czy w ogóle pokazać UI edycji).
+// "administrator" edytuje wszystko. Inne konta edytują sprzęt tylko z jawnie włączoną flagą
+// canEditEquipment (albo historyczną rolą "edycja_podglad" sprzed wprowadzenia addytywnych
+// uprawnień) — i tylko w swoich kategoriach, co wymusza RLS, tu tylko decydujemy o UI edycji.
 export function useCanEditEquipment(): boolean {
-  const role = useCurrentUser().role;
-  return role === "administrator" || role === "edycja_podglad";
+  const { role, canEditEquipment } = useCurrentUser();
+  return role === "administrator" || role === "edycja_podglad" || canEditEquipment;
 }
 
-// Czy dana kategoria jest w zasięgu obecnego użytkownika do EDYCJI sprzętu (nie tylko
-// odczytu — podgląd sprzętu poza własnymi kategoriami dla "edycja_podglad" i tak nie zdarzy
-// się w praktyce, bo RLS filtruje listę sprzętu już na poziomie zapytania).
+// Czy dana kategoria jest w zasięgu obecnego użytkownika do EDYCJI sprzętu.
 export function useCanEditEquipmentCategory(categoryId: string): boolean {
   const { role, visibleCategories } = useCurrentUser();
   if (role === "administrator") return true;
-  if (role !== "edycja_podglad") return false;
   return (visibleCategories ?? []).includes(categoryId);
+}
+
+// Operacja "Przekaż sprzęt" (przekazanie/zwrot) i generowanie protokołów, plus wgląd/usuwanie
+// WŁASNYCH wystawionych protokołów — patrz ProtokolyClient.tsx.
+export function useCanTransferEquipment(): boolean {
+  const { role, canTransferEquipment } = useCurrentUser();
+  return role === "administrator" || canTransferEquipment;
 }
 
 export function useCanViewTab(tab: TabKey): boolean {

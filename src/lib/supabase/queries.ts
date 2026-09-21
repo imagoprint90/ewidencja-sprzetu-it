@@ -164,6 +164,8 @@ export interface CurrentProfile {
   role: AppRole;
   visibleTabs: string[] | null;
   visibleCategories: string[] | null;
+  canEditEquipment: boolean;
+  canTransferEquipment: boolean;
 }
 
 export async function getCurrentProfile(
@@ -172,7 +174,7 @@ export async function getCurrentProfile(
 ): Promise<CurrentProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("full_name, role, visible_tabs, visible_categories")
+    .select("full_name, role, visible_tabs, visible_categories, can_edit_equipment, can_transfer_equipment")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -182,6 +184,8 @@ export async function getCurrentProfile(
     role: data.role,
     visibleTabs: data.visible_tabs,
     visibleCategories: data.visible_categories,
+    canEditEquipment: data.can_edit_equipment,
+    canTransferEquipment: data.can_transfer_equipment,
   };
 }
 
@@ -192,6 +196,8 @@ export interface UserProfile {
   role: AppRole;
   visibleTabs: string[] | null;
   visibleCategories: string[] | null;
+  canEditEquipment: boolean;
+  canTransferEquipment: boolean;
   createdAt: string;
 }
 
@@ -207,6 +213,8 @@ export async function getProfiles(supabase: SupabaseClient): Promise<UserProfile
     role: row.role,
     visibleTabs: row.visible_tabs,
     visibleCategories: row.visible_categories,
+    canEditEquipment: row.can_edit_equipment,
+    canTransferEquipment: row.can_transfer_equipment,
     createdAt: row.created_at,
   }));
 }

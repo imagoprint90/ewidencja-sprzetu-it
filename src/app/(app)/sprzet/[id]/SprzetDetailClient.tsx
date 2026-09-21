@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Tabs } from "@/components/ui/Tabs";
-import { useIsAdmin } from "@/lib/current-user-context";
+import { useIsAdmin, useCanEditEquipment } from "@/lib/current-user-context";
 import { deleteEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
 import { DetailsTab } from "@/components/equipment/tabs/DetailsTab";
 import { AssignmentsTab } from "@/components/equipment/tabs/AssignmentsTab";
@@ -59,6 +59,7 @@ function SprzetDetailClientInner({
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
+  const canEditEquipment = useCanEditEquipment();
   const searchParams = useSearchParams();
   const startInEdit = searchParams.get("edit") === "1";
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -97,7 +98,7 @@ function SprzetDetailClientInner({
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={item.status} />
-          {isAdmin && (
+          {(isAdmin || canEditEquipment) && (
             <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteOpen(true)}>
               <Trash2 size={14} />
               Usuń sprzęt

@@ -51,6 +51,8 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         role: profile.role,
         visibleTabs: profile.visibleTabs,
         visibleCategories: profile.visibleCategories,
+        canEditEquipment: profile.canEditEquipment,
+        canTransferEquipment: profile.canTransferEquipment,
       }}
     >
       <AppShell userEmail={user.email ?? ""}>{children}</AppShell>

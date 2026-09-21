@@ -15,7 +15,7 @@ import {
 } from "@/components/equipment/EquipmentFilters";
 import { EquipmentTable } from "@/components/equipment/EquipmentTable";
 import { useLocalStorage } from "@/lib/useLocalStorage";
-import { useIsAdmin } from "@/lib/current-user-context";
+import { useIsAdmin, useCanEditEquipment, useCanTransferEquipment } from "@/lib/current-user-context";
 import { EQUIPMENT_COLUMNS, type EquipmentColumnKey, type EquipmentStatus } from "@/lib/types";
 import { employeeFullName, getActiveAssignment } from "@/lib/equipment-helpers";
 import { deleteEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
@@ -74,6 +74,8 @@ function SprzetPageInner({
   protocolItemLinks: ProtocolItemLink[];
 }) {
   const isAdmin = useIsAdmin();
+  const canEditEquipment = useCanEditEquipment();
+  const canTransferEquipment = useCanTransferEquipment();
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlStatus = searchParams.get("status") as EquipmentStatus | null;
@@ -202,7 +204,7 @@ function SprzetPageInner({
             {filtered.length} z {equipment.length} pozycji
           </p>
         </div>
-        {isAdmin && (
+        {(isAdmin || canEditEquipment) && (
           <Link href="/sprzet/nowy">
             <Button>
               <Plus size={16} />
@@ -228,17 +230,21 @@ function SprzetPageInner({
         />
       </div>
 
-      {isAdmin && visibleSelectedIds.size > 0 && (
+      {(isAdmin || canEditEquipment || canTransferEquipment) && visibleSelectedIds.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
           <span className="text-sm font-medium">Zaznaczono: {visibleSelectedIds.size}</span>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" onClick={handleBulkAssign} disabled={isBulkPending}>
-              Przydziel zaznaczone
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setBulkDeleteOpen(true)} disabled={isBulkPending}>
-              <Trash2 size={14} />
-              Usuń zaznaczone
-            </Button>
+            {(isAdmin || canTransferEquipment) && (
+              <Button size="sm" variant="secondary" onClick={handleBulkAssign} disabled={isBulkPending}>
+                Przydziel zaznaczone
+              </Button>
+            )}
+            {(isAdmin || canEditEquipment) && (
+              <Button size="sm" variant="ghost" onClick={() => setBulkDeleteOpen(true)} disabled={isBulkPending}>
+                <Trash2 size={14} />
+                Usuń zaznaczone
+              </Button>
+            )}
             <Button size="sm" variant="ghost" onClick={clearSelection} disabled={isBulkPending}>
               Anuluj zaznaczenie
             </Button>
@@ -256,7 +262,7 @@ function SprzetPageInner({
           title="Brak sprzętu spełniającego kryteria"
           description="Zmień filtry wyszukiwania albo dodaj nowy sprzęt do ewidencji."
           action={
-            isAdmin ? (
+            isAdmin || canEditEquipment ? (
               <Link href="/sprzet/nowy">
                 <Button variant="secondary">Dodaj pierwszy sprzęt</Button>
               </Link>

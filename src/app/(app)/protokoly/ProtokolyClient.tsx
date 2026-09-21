@@ -12,7 +12,7 @@ import { SortableTh } from "@/components/ui/SortableTh";
 import { formatDateTime } from "@/lib/format";
 import { useSort } from "@/lib/useSort";
 import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
-import { useIsAdmin } from "@/lib/current-user-context";
+import { useCurrentUser, useIsAdmin, useCanTransferEquipment } from "@/lib/current-user-context";
 import { PROTOCOL_STATUS_LABELS, PROTOCOL_TYPE_LABELS, type Protocol } from "@/lib/types";
 import {
   deleteProtocolAction,
@@ -39,6 +39,8 @@ type SortKey = "number" | "type" | "equipment" | "equipmentName" | "parties" | "
 export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
+  const canTransferEquipment = useCanTransferEquipment();
+  const currentUser = useCurrentUser();
   const [isPending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,13 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const { sortKey, sortDir, toggleSort } = useSort<SortKey>("date", "desc");
+
+  // Ponowienie generowania PDF, wgranie skanu i usunięcie są operacjami zapisu na
+  // protokole — RLS dla kont z uprawnieniem "Przekazywanie sprzętu" (bez roli admina)
+  // pozwala na zapis tylko na protokołach, które ten użytkownik sam wystawił.
+  function canManageProtocol(p: Protocol): boolean {
+    return isAdmin || (canTransferEquipment && p.issuedBy === currentUser.id);
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -225,7 +234,7 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
                           Pobierz
                         </Button>
                       )}
-                      {p.pdfStatus === "blad" && (
+                      {p.pdfStatus === "blad" && canManageProtocol(p) && (
                         <Button
                           size="sm"
                           variant="secondary"
@@ -237,29 +246,33 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
                           Ponów
                         </Button>
                       )}
-                      <input
-                        type="file"
-                        accept="application/pdf,image/*"
-                        className="hidden"
-                        ref={(el) => {
-                          fileInputs.current[p.id] = el;
-                        }}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFilePicked(p, file);
-                          e.target.value = "";
-                        }}
-                      />
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={isPending}
-                        onClick={() => fileInputs.current[p.id]?.click()}
-                      >
-                        <Upload size={14} />
-                        Skan
-                      </Button>
-                      {isAdmin && (
+                      {canManageProtocol(p) && (
+                        <>
+                          <input
+                            type="file"
+                            accept="application/pdf,image/*"
+                            className="hidden"
+                            ref={(el) => {
+                              fileInputs.current[p.id] = el;
+                            }}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleFilePicked(p, file);
+                              e.target.value = "";
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={isPending}
+                            onClick={() => fileInputs.current[p.id]?.click()}
+                          >
+                            <Upload size={14} />
+                            Skan
+                          </Button>
+                        </>
+                      )}
+                      {canManageProtocol(p) && (
                         <Button
                           size="sm"
                           variant="ghost"
