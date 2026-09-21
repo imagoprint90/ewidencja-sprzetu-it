@@ -122,7 +122,11 @@ export async function createProtocolAction(
     companyNip: company.nip,
     city: input.city,
     issuedAt: input.transferDate,
-    issuedByName: company.representative_name?.trim() || profile?.full_name || user.email || "Administrator",
+    // Osoba reprezentująca firmę na TYM protokole to konto, które akurat wystawia przekazanie
+    // (każde konto z uprawnieniem "Przekazywanie sprzętu" wystawia protokoły pod własnym
+    // nazwiskiem) — "Osoba reprezentująca" z Ustawień to tylko domyślna wartość na wypadek,
+    // gdyby profil zalogowanego konta z jakiegoś powodu nie miał zapisanego imienia i nazwiska.
+    issuedByName: profile?.full_name?.trim() || company.representative_name?.trim() || user.email || "Administrator",
     previousEmployeeName: employeeName(input.previousEmployeeId),
     newEmployeeName: employeeName(input.newEmployeeId),
     handoverPersonName: input.handoverPersonName,
