@@ -199,6 +199,11 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
    standardowych do protokołów zawierających sprzęt z przypisanych im kategorii — **uwaga:**
    konta bez przypisanej choć jednej kategorii przestaną po tym widzieć jakiekolwiek
    protokoły, dopóki nie przypiszesz im kategorii w zakładce Użytkownicy)
+5. `0027_fix_own_protocol_visibility.sql` (poprawka do 0026 — bez niej konto z uprawnieniem
+   „Przekazywanie sprzętu” traciło z oczu własny, dopiero co utworzony protokół, jeśli sprzęt
+   na nim nie należał do jego przypisanych kategorii, co po cichu psuło całą operację „Przekaż
+   sprzęt”; zastosuj koniecznie od razu po 0026, najlepiej w tym samym Run co 0026 jeśli
+   wdrażasz je pierwszy raz)
 
 ## Konfiguracja Supabase
 
@@ -242,10 +247,13 @@ samej aplikacji — zakładka **Użytkownicy** (widoczna w bocznym menu tylko dl
 
   Niezależnie od powyższych dwóch uprawnień, **każde konto standardowe widzi w zakładce
   Protokoły wyłącznie protokoły zawierające sprzęt z zaznaczonych niżej kategorii** — dokładnie
-  to samo pole „Kategorie sprzętu do edycji”, teraz wykorzystywane też do tego. Bez zaznaczonej
-  choć jednej kategorii konto nie zobaczy żadnego protokołu, nawet jeśli ma włączone
-  „Przekazywanie sprzętu” i sam go wystawił. To też jest twarda reguła RLS
-  (`0026_protocol_category_visibility.sql`), nie tylko ukrycie w interfejsie.
+  to samo pole „Kategorie sprzętu do edycji”, teraz wykorzystywane też do tego. Jedyny wyjątek:
+  konto z „Przekazywanie sprzętu” zawsze widzi (i może zarządzać) protokoły, które **samo
+  wystawiło**, nawet jeśli sprzęt na nich nie należy do jego przypisanych kategorii — inaczej
+  operacja „Przekaż sprzęt” tworzyłaby protokół, którego autor natychmiast by nie widział. Poza
+  tym wyjątkiem, bez zaznaczonej choć jednej kategorii konto nie zobaczy żadnego cudzego
+  protokołu. To też jest twarda reguła RLS (`0026...`, poprawiona w `0027...`), nie tylko
+  ukrycie w interfejsie.
 
   Wszystkie uprawnienia poza administratorem są wymuszane przez RLS w bazie, nie tylko
   ukryciem przycisków w interfejsie. Dla kont innych niż administrator zaznacz też, które

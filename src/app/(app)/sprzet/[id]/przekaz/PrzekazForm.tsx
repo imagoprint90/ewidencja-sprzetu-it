@@ -182,9 +182,19 @@ export function PrzekazForm({
         handoverPersonName,
       });
 
-      if (!protocolResult.ok || !protocolResult.data.pdfGenerated) {
-        // Przydział już zapisany — protokół (lub tylko jego PDF) można wygenerować
-        // ponownie z listy Protokołów bez ryzyka duplikatu.
+      if (!protocolResult.ok) {
+        // Przydział już zapisany, ale sam protokół się nie utworzył — zostajemy na
+        // formularzu i pokazujemy powód, żeby nie było wrażenia, że nic się nie stało.
+        setError(
+          `Przekazanie sprzętu zostało zapisane, ale nie udało się utworzyć protokołu: ${protocolResult.error} ` +
+            "Sprawdź w zakładce Sprzęt, czy przydział się zmienił, i spróbuj ponownie albo skontaktuj się z administratorem."
+        );
+        return;
+      }
+
+      if (!protocolResult.data.pdfGenerated) {
+        // Wpis protokołu powstał, ale samo generowanie pliku PDF się nie udało — można je
+        // ponowić z listy Protokołów (przycisk „Ponów”) bez ryzyka duplikatu.
         router.push("/protokoly");
         router.refresh();
         return;
