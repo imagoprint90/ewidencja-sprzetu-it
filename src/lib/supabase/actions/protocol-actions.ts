@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { renderProtocolPdf, protocolPdfStoragePath } from "@/lib/pdf/render-protocol";
 import { TECHNICAL_CONDITION_LABELS, type ProtocolSnapshot, type ProtocolType, type TechnicalCondition } from "@/lib/types";
 
@@ -66,22 +66,37 @@ export async function createProtocolAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Brak zalogowanego użytkownika." };
 
-  const [{ data: profile }, { data: company }, { data: equipmentRows }, { data: employeeRows }] =
-    await Promise.all([
-      supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
-      supabase.from("company_settings").select("*").eq("id", true).single(),
-      supabase
-        .from("equipment")
-        .select("id, name, manufacturer, model, inventory_number, serial_number")
-        .in("id", input.equipmentIds),
-      supabase
-        .from("employees")
-        .select("id, first_name, last_name")
-        .in(
-          "id",
-          [input.previousEmployeeId, input.newEmployeeId].filter((v): v is string => Boolean(v))
-        ),
-    ]);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, role, can_transfer_equipment")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.role !== "administrator" && !profile?.can_transfer_equipment) {
+    return { ok: false, error: "Brak uprawnień do wystawiania protokołów." };
+  }
+
+  // Dane do migawki protokołu pobieramy przez klienta z uprawnieniami service_role —
+  // konto z uprawnieniem "Przekazywanie sprzętu" może przekazywać sprzęt spoza swoich
+  // kategorii edycji (te uprawnienia nie są ze sobą powiązane), a zwykły klient miałby tu
+  // zawężony RLS-em odczyt sprzętu tylko do własnych kategorii (patrz equipment_category_visible).
+  // Autoryzacja samej operacji jest już sprawdzona wyżej i dodatkowo wymuszona przez RLS przy
+  // zapisie protokołu/pozycji poniżej (klientem zwykłym, nie tym).
+  const service = createSupabaseServiceClient();
+  const [{ data: company }, { data: equipmentRows }, { data: employeeRows }] = await Promise.all([
+    service.from("company_settings").select("*").eq("id", true).single(),
+    service
+      .from("equipment")
+      .select("id, name, manufacturer, model, inventory_number, serial_number")
+      .in("id", input.equipmentIds),
+    service
+      .from("employees")
+      .select("id, first_name, last_name")
+      .in(
+        "id",
+        [input.previousEmployeeId, input.newEmployeeId].filter((v): v is string => Boolean(v))
+      ),
+  ]);
 
   if (!company) return { ok: false, error: "Nie znaleziono danych firmy." };
   if (!equipmentRows || equipmentRows.length === 0) {
