@@ -27,13 +27,18 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   - **Przekazywanie sprzętu** — operacja „Przekaż sprzęt” (przydzielenie/zwrot) i generowanie
     protokołów, plus wgląd i usuwanie WYŁĄCZNIE własnych wystawionych protokołów.
 
-  Wymuszane realnie przez reguły RLS w bazie danych (`supabase/migrations/0023...`–`0025...`),
+  Niezależnie od tych dwóch uprawnień, każde konto niebędące administratorem ma też
+  przypisane kategorie sprzętu (to samo pole co wyżej), które ograniczają, jakie protokoły
+  widzi w zakładce Protokoły — wyłącznie te zawierające sprzęt z jego kategorii; bez
+  przypisanej kategorii konto nie widzi żadnego protokołu.
+
+  Wymuszane realnie przez reguły RLS w bazie danych (`supabase/migrations/0023...`–`0026...`),
   a dodatkowo interfejs ukrywa akcje niedostępne dla danego konta.
 - **Użytkownicy** (Etap 6, zakładka `/uzytkownicy`, tylko dla administratora): zakładanie,
   usuwanie i reset hasła kont bezpośrednio z aplikacji (przez Supabase Admin API), zmiana roli
-  i uprawnień dodatkowych, wybór widocznych zakładek oraz wybór kategorii sprzętu do edycji.
-  Lista kont ma osobną kolumnę **Kategorie sprzętu do edycji**. Patrz sekcja „Zakładanie kont
-  użytkowników” niżej.
+  i uprawnień dodatkowych, wybór widocznych zakładek oraz wybór kategorii sprzętu (do edycji i
+  do widoczności protokołów). Lista kont ma osobną kolumnę **Kategorie sprzętu do edycji**.
+  Patrz sekcja „Zakładanie kont użytkowników” niżej.
 - Sprzęt: lista z wyszukiwarką, filtrami wielokrotnego wyboru (checkboxy — np. kilka statusów
   albo kilka lokalizacji naraz), wyborem widocznych kolumn, dodawanie i edycja (walidacja
   unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane w bazie.
@@ -190,6 +195,10 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
    flagami `can_edit_equipment`/`can_transfer_equipment`, dodaje uprawnienie „Przekazywanie
    sprzętu” i rozszerza „Edycja i podgląd” o dodawanie/usuwanie sprzętu — to pojedynczy plik,
    w przeciwieństwie do 0023/0024 nie trzeba go dzielić)
+4. `0026_protocol_category_visibility.sql` (ogranicza zakładkę Protokoły dla kont
+   standardowych do protokołów zawierających sprzęt z przypisanych im kategorii — **uwaga:**
+   konta bez przypisanej choć jednej kategorii przestaną po tym widzieć jakiekolwiek
+   protokoły, dopóki nie przypiszesz im kategorii w zakładce Użytkownicy)
 
 ## Konfiguracja Supabase
 
@@ -228,8 +237,15 @@ samej aplikacji — zakładka **Użytkownicy** (widoczna w bocznym menu tylko dl
       niż przez zmianę uprawnień w tej zakładce).
     - **Przekazywanie sprzętu** — operacja „Przekaż sprzęt” (przydzielenie/zwrot) i
       generowanie protokołów. Takie konto widzi na liście Protokoły akcje (Usuń/Ponów/Skan)
-      wyłącznie przy protokołach, które samo wystawiło — reszta jest dla niego tylko do
-      odczytu, również wymuszane przez RLS.
+      wyłącznie przy protokołach, które samo wystawiło — reszta widocznych mu protokołów jest
+      tylko do odczytu, również wymuszane przez RLS.
+
+  Niezależnie od powyższych dwóch uprawnień, **każde konto standardowe widzi w zakładce
+  Protokoły wyłącznie protokoły zawierające sprzęt z zaznaczonych niżej kategorii** — dokładnie
+  to samo pole „Kategorie sprzętu do edycji”, teraz wykorzystywane też do tego. Bez zaznaczonej
+  choć jednej kategorii konto nie zobaczy żadnego protokołu, nawet jeśli ma włączone
+  „Przekazywanie sprzętu” i sam go wystawił. To też jest twarda reguła RLS
+  (`0026_protocol_category_visibility.sql`), nie tylko ukrycie w interfejsie.
 
   Wszystkie uprawnienia poza administratorem są wymuszane przez RLS w bazie, nie tylko
   ukryciem przycisków w interfejsie. Dla kont innych niż administrator zaznacz też, które
@@ -240,16 +256,18 @@ samej aplikacji — zakładka **Użytkownicy** (widoczna w bocznym menu tylko dl
 - Na liście Użytkownicy przycisk **Zarządzaj** pozwala zmienić rolę/uprawnienia dodatkowe/
   widoczne zakładki/kategorie i zresetować hasło; **kosz** trwale usuwa konto (zablokowane dla
   własnego konta, żeby administrator nie odciął sobie dostępu). Kolumna **Kategorie sprzętu do
-  edycji** pokazuje od razu na liście, które kategorie ma przypisane każde konto z uprawnieniem
-  „Edycja i podgląd sprzętu” (i ostrzega na czerwono, jeśli uprawnienie jest włączone, ale nie
-  zaznaczono żadnej kategorii — takie konto nie widzi wtedy żadnego sprzętu).
+  edycji** pokazuje od razu na liście, które kategorie ma przypisane każde konto standardowe
+  (dotyczy to WSZYSTKICH kont niebędących administratorem, nie tylko tych z uprawnieniem
+  „Edycja i podgląd sprzętu”) i ostrzega na czerwono, jeśli nie zaznaczono żadnej kategorii —
+  takie konto nie widzi wtedy żadnych protokołów (a jeśli dodatkowo ma „Edycja i podgląd
+  sprzętu”, to też żadnego sprzętu do edycji).
 - Ograniczenie widoczności zakładek działa na poziomie stron (bezpośrednie wejście pod adres
   ukrytej zakładki też jest blokowane, nie tylko link w menu) — nie jest to jednak pełna
   reguła bazodanowa jak RLS dla uprawnień dodatkowych; np. nazwisko przydzielonego pracownika
   nadal pojawi się przy sprzęcie, nawet jeśli to konto nie ma dostępu do zakładki Pracownicy.
-  Ograniczenie kategorii sprzętu i ograniczenie protokołów do własnych to co innego — to są
-  twarde reguły RLS na samych tabelach, więc obejmują też ewentualny bezpośredni dostęp do
-  bazy.
+  Ograniczenie kategorii sprzętu, ograniczenie protokołów do przypisanych kategorii oraz
+  ograniczenie akcji na protokołach do własnych to co innego — to są twarde reguły RLS na
+  samych tabelach, więc obejmują też ewentualny bezpośredni dostęp do bazy.
 
 **Pierwsze konto administratora** trzeba założyć ręcznie w panelu Supabase (zanim ktokolwiek
 może zalogować się do zakładki Użytkownicy):

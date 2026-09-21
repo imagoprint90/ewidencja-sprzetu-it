@@ -74,7 +74,7 @@ export async function createUserAction(input: {
     visible_tabs: isAdminRole ? null : input.visibleTabs,
     can_edit_equipment: !isAdminRole && input.canEditEquipment,
     can_transfer_equipment: !isAdminRole && input.canTransferEquipment,
-    visible_categories: !isAdminRole && input.canEditEquipment ? input.visibleCategories : null,
+    visible_categories: !isAdminRole ? input.visibleCategories : null,
   });
 
   if (profileError) {
@@ -112,7 +112,7 @@ export async function updateUserPermissionsAction(
       visible_tabs: isAdminRole ? null : input.visibleTabs,
       can_edit_equipment: !isAdminRole && input.canEditEquipment,
       can_transfer_equipment: !isAdminRole && input.canTransferEquipment,
-      visible_categories: !isAdminRole && input.canEditEquipment ? input.visibleCategories : null,
+      visible_categories: !isAdminRole ? input.visibleCategories : null,
     })
     .eq("id", id);
 

@@ -225,10 +225,10 @@ export function UzytkownicyClient({
                     <td className="px-4 py-3">
                       {p.role === "administrator" ? (
                         <span className="text-xs text-muted">wszystkie</span>
-                      ) : !canEdit ? (
-                        <span className="text-xs text-muted">—</span>
                       ) : (p.visibleCategories ?? []).length === 0 ? (
-                        <span className="text-xs text-danger">brak — nie widzi żadnego sprzętu</span>
+                        <span className="text-xs text-danger">
+                          brak — nie zobaczy żadnych protokołów{canEdit ? " ani sprzętu do edycji" : ""}
+                        </span>
                       ) : (
                         <span className="text-xs text-muted">
                           {categories
@@ -341,36 +341,38 @@ export function UzytkownicyClient({
                                 </div>
                               </div>
 
-                              {editCanEdit && (
-                                <div>
-                                  <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
-                                    Kategorie sprzętu do edycji
-                                  </p>
-                                  {categories.length === 0 ? (
-                                    <p className="text-sm text-muted">Brak kategorii w systemie.</p>
-                                  ) : (
-                                    <div className="flex flex-wrap gap-3">
-                                      {categories
-                                        .filter((c) => !c.isArchived)
-                                        .map((c) => (
-                                          <label key={c.id} className="flex items-center gap-2 text-sm">
-                                            <input
-                                              type="checkbox"
-                                              checked={editCategories.has(c.id)}
-                                              onChange={() => toggleCategory(c.id)}
-                                              className="h-4 w-4 rounded border-border text-primary"
-                                            />
-                                            {c.name}
-                                          </label>
-                                        ))}
-                                    </div>
-                                  )}
-                                  <p className="mt-1.5 text-xs text-muted">
-                                    Sprzęt spoza zaznaczonych kategorii nie będzie w ogóle widoczny
-                                    dla tego konta.
-                                  </p>
-                                </div>
-                              )}
+                              <div>
+                                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                                  Kategorie sprzętu do edycji
+                                </p>
+                                {categories.length === 0 ? (
+                                  <p className="text-sm text-muted">Brak kategorii w systemie.</p>
+                                ) : (
+                                  <div className="flex flex-wrap gap-3">
+                                    {categories
+                                      .filter((c) => !c.isArchived)
+                                      .map((c) => (
+                                        <label key={c.id} className="flex items-center gap-2 text-sm">
+                                          <input
+                                            type="checkbox"
+                                            checked={editCategories.has(c.id)}
+                                            onChange={() => toggleCategory(c.id)}
+                                            className="h-4 w-4 rounded border-border text-primary"
+                                          />
+                                          {c.name}
+                                        </label>
+                                      ))}
+                                  </div>
+                                )}
+                                <p className="mt-1.5 text-xs text-muted">
+                                  To konto widzi w zakładce Protokoły wyłącznie protokoły
+                                  zawierające sprzęt z zaznaczonych tu kategorii (bez zaznaczonej
+                                  kategorii nie zobaczy żadnego protokołu). Jeśli włączone jest
+                                  „Edycja i podgląd sprzętu” powyżej, dodatkowo sprzęt spoza
+                                  zaznaczonych kategorii nie będzie w ogóle widoczny dla tego
+                                  konta.
+                                </p>
+                              </div>
                             </>
                           ) : (
                             <p className="text-xs text-muted">
