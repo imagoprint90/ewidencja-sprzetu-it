@@ -152,6 +152,83 @@ export async function deleteEquipmentAction(id: string): Promise<ActionResult<un
   return { ok: true, data: undefined };
 }
 
+export async function uploadEquipmentInvoiceAction(
+  equipmentId: string,
+  fileBase64: string,
+  fileName: string
+): Promise<ActionResult<{ path: string }>> {
+  if (!fileName.toLowerCase().endsWith(".pdf")) {
+    return { ok: false, error: "Faktura musi być plikiem PDF." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const buffer = Buffer.from(fileBase64, "base64");
+  const path = `${equipmentId}.pdf`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("faktury")
+    .upload(path, buffer, { contentType: "application/pdf", upsert: true });
+
+  if (uploadError) {
+    return { ok: false, error: "Nie udało się wgrać faktury." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("equipment")
+    .update({ purchase_invoice_path: path })
+    .eq("id", equipmentId);
+
+  if (updateError) {
+    // Sprzątamy po sobie — nie zostawiamy w Storage pliku, którego karta sprzętu nie zna.
+    await supabase.storage.from("faktury").remove([path]);
+    return { ok: false, error: "Nie udało się zapisać faktury przy sprzęcie." };
+  }
+
+  revalidatePath("/sprzet");
+  revalidatePath(`/sprzet/${equipmentId}`);
+  return { ok: true, data: { path } };
+}
+
+export async function deleteEquipmentInvoiceAction(
+  equipmentId: string
+): Promise<ActionResult<undefined>> {
+  const supabase = await createSupabaseServerClient();
+
+  const { data: row } = await supabase
+    .from("equipment")
+    .select("purchase_invoice_path")
+    .eq("id", equipmentId)
+    .single();
+
+  const { error: updateError } = await supabase
+    .from("equipment")
+    .update({ purchase_invoice_path: null })
+    .eq("id", equipmentId);
+
+  if (updateError) {
+    return { ok: false, error: "Nie udało się usunąć faktury." };
+  }
+
+  if (row?.purchase_invoice_path) {
+    await supabase.storage.from("faktury").remove([row.purchase_invoice_path]);
+  }
+
+  revalidatePath("/sprzet");
+  revalidatePath(`/sprzet/${equipmentId}`);
+  return { ok: true, data: undefined };
+}
+
+export async function getEquipmentInvoiceDownloadUrlAction(
+  path: string
+): Promise<ActionResult<{ url: string }>> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.storage.from("faktury").createSignedUrl(path, 60);
+  if (error || !data) {
+    return { ok: false, error: "Nie udało się przygotować linku do pobrania." };
+  }
+  return { ok: true, data: { url: data.signedUrl } };
+}
+
 export async function addEquipmentLinkAction(
   equipmentId: string,
   linkedEquipmentId: string

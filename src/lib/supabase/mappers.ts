@@ -84,6 +84,7 @@ export function mapEquipment(row: {
   status: Equipment["status"];
   location_id: string;
   notes: string | null;
+  purchase_invoice_path: string | null;
   created_at: string;
   updated_at: string;
 }): Equipment {
@@ -102,6 +103,7 @@ export function mapEquipment(row: {
     status: row.status,
     locationId: row.location_id,
     notes: row.notes,
+    purchaseInvoicePath: row.purchase_invoice_path,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

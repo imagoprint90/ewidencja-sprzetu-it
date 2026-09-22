@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { ArrowRightLeft, FileText, Pencil, Trash2 } from "lucide-react";
+import { ArrowRightLeft, FileText, Pencil, Receipt, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type {
@@ -45,6 +45,7 @@ import {
 import type { ProtocolItemLink } from "@/lib/supabase/queries";
 import {
   deleteEquipmentAction,
+  getEquipmentInvoiceDownloadUrlAction,
   updateEquipmentAction,
   updateEquipmentStatusAction,
   type EquipmentInput,
@@ -151,6 +152,12 @@ export function EquipmentTable({
     if (result.ok) window.open(result.data.url, "_blank", "noopener,noreferrer");
   }
 
+  async function handleOpenInvoice(e: React.MouseEvent, path: string) {
+    e.stopPropagation();
+    const result = await getEquipmentInvoiceDownloadUrlAction(path);
+    if (result.ok) window.open(result.data.url, "_blank", "noopener,noreferrer");
+  }
+
   const rows = useMemo(() => {
     return equipment.map((item) => {
       const activeAssignment = getActiveAssignment(assignments, item.id);
@@ -206,6 +213,7 @@ export function EquipmentTable({
       location: (a, b) => compareStrings(a.locationName, b.locationName),
       notes: (a, b) => compareStrings(a.item.notes ?? "", b.item.notes ?? ""),
       lastProtocol: (a, b) => compareStrings(a.lastProtocol?.createdAt ?? "", b.lastProtocol?.createdAt ?? ""),
+      invoice: (a, b) => compareNumbers(a.item.purchaseInvoicePath ? 1 : 0, b.item.purchaseInvoicePath ? 1 : 0),
     };
     return applySort(rows, sortKey, sortDir, comparators);
   }, [rows, sortKey, sortDir]);
@@ -292,6 +300,7 @@ export function EquipmentTable({
                       onSave: (patch) => saveField(item, patch),
                       onSaveStatus: (status) => saveStatus(item, status),
                       onOpenProtocol: handleOpenProtocol,
+                      onOpenInvoice: handleOpenInvoice,
                     })}
                   </td>
                 ))}
@@ -369,6 +378,7 @@ function renderCell(
     onSave: (patch: Partial<EquipmentInput>) => Promise<{ ok: boolean; error?: string }>;
     onSaveStatus: (status: string) => Promise<{ ok: boolean; error?: string }>;
     onOpenProtocol: (e: React.MouseEvent, protocol: Protocol) => void;
+    onOpenInvoice: (e: React.MouseEvent, path: string) => void;
   }
 ) {
   switch (col) {
@@ -474,6 +484,18 @@ function renderCell(
           className="text-current hover:text-primary"
         >
           <FileText size={16} />
+        </button>
+      );
+    case "invoice":
+      if (!item.purchaseInvoicePath) return <span>—</span>;
+      return (
+        <button
+          type="button"
+          onClick={(e) => extra.onOpenInvoice(e, item.purchaseInvoicePath!)}
+          title="Otwórz fakturę zakupu"
+          className="text-current hover:text-primary"
+        >
+          <Receipt size={16} />
         </button>
       );
     default:

@@ -43,7 +43,11 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   albo kilka lokalizacji naraz), wyborem widocznych kolumn, dodawanie i edycja (walidacja
   unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane w bazie.
   Filtry są zapamiętywane w przeglądarce (localStorage) i odtwarzane po przeładowaniu strony;
-  link z pulpitu (np. „W naprawie”) zawsze nadpisuje zapamiętany filtr statusu.
+  link z pulpitu (np. „W naprawie”) zawsze nadpisuje zapamiętany filtr statusu. Do karty
+  sprzętu (zakładka „Szczegóły”) można załączyć fakturę zakupu w PDF — przechowywana w
+  prywatnym Storage, dostępna do pobrania/usunięcia stamtąd; kolumna **FV** na liście Sprzęt
+  pokazuje ikonkę, gdy faktura jest załączona (kliknięcie od razu ją otwiera), a pustą komórkę,
+  gdy jej nie ma.
 - Kategorie i Lokalizacje: dodawanie, zmiana nazwy, oraz trwałe usuwanie (zablokowane, gdy
   lokalizacja/kategoria jest przypisana do pracowników lub sprzętu). Lokalizacje mają kolumnę
   **Aktywna: Tak/Nie** (przycisk Dezaktywuj/Aktywuj) — nieaktywna lokalizacja nie jest
@@ -204,6 +208,9 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
    na nim nie należał do jego przypisanych kategorii, co po cichu psuło całą operację „Przekaż
    sprzęt”; zastosuj koniecznie od razu po 0026, najlepiej w tym samym Run co 0026 jeśli
    wdrażasz je pierwszy raz)
+6. `0028_equipment_purchase_invoice.sql` (dodaje kolumnę `purchase_invoice_path` w `equipment`
+   i nowy prywatny bucket Storage `faktury` — faktura zakupu jako załącznik PDF do karty
+   sprzętu, patrz zakładka „Szczegóły” na karcie sprzętu i kolumna „FV” na liście Sprzęt)
 
 ## Konfiguracja Supabase
 

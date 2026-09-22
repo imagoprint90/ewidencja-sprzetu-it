@@ -13,6 +13,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { getLocationName } from "@/lib/equipment-helpers";
 import { useCanEditEquipment, useCurrentUser } from "@/lib/current-user-context";
 import { updateEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
+import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -120,10 +121,11 @@ export function DetailsTab({
             <DetailRow label="Uwagi" value={equipment.notes ?? "—"} />
           </dl>
         </div>
-        <div className="rounded-xl border border-dashed border-border bg-surface p-5 text-sm text-muted">
-          Załączniki do karty sprzętu (np. faktura zakupu) będą dostępne po podłączeniu
-          prywatnego przechowywania plików w Supabase Storage — patrz zakładka „Dokumenty”.
-        </div>
+        <InvoiceAttachment
+          equipmentId={equipment.id}
+          path={equipment.purchaseInvoicePath}
+          canEdit={canEdit}
+        />
       </div>
     );
   }

@@ -97,6 +97,7 @@ export interface Equipment {
   status: EquipmentStatus;
   locationId: string;
   notes: string | null;
+  purchaseInvoicePath: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -237,6 +238,7 @@ export const EQUIPMENT_COLUMNS = [
   "location",
   "notes",
   "lastProtocol",
+  "invoice",
 ] as const;
 
 export type EquipmentColumnKey = (typeof EQUIPMENT_COLUMNS)[number];
@@ -254,4 +256,5 @@ export const EQUIPMENT_COLUMN_LABELS: Record<EquipmentColumnKey, string> = {
   location: "Lokalizacja",
   notes: "Uwagi",
   lastProtocol: "Ostatni protokół",
+  invoice: "FV",
 };
