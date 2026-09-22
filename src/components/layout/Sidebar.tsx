@@ -12,6 +12,8 @@ import {
   MapPin,
   Settings,
   ShieldCheck,
+  PanelLeftClose,
+  PanelLeftOpen,
   X,
 } from "lucide-react";
 import { useCurrentUser } from "@/lib/current-user-context";
@@ -35,7 +37,13 @@ const NAV_ITEMS: {
   { href: "/uzytkownicy", label: "Użytkownicy", icon: ShieldCheck, adminOnly: true },
 ];
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({
+  onNavigate,
+  collapsed,
+}: {
+  onNavigate?: () => void;
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
   const { role, visibleTabs } = useCurrentUser();
   const items = NAV_ITEMS.filter((item) => {
@@ -53,14 +61,13 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             key={item.href}
             href={item.href}
             onClick={onNavigate}
+            title={collapsed ? item.label : undefined}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              active
-                ? "bg-primary/10 text-primary"
-                : "text-foreground/80 hover:bg-black/5"
-            }`}
+              collapsed ? "justify-center" : ""
+            } ${active ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-black/5"}`}
           >
             <Icon size={18} strokeWidth={2} />
-            {item.label}
+            {!collapsed && item.label}
           </Link>
         );
       })}
@@ -71,22 +78,44 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 export function Sidebar({
   mobileOpen,
   onClose,
+  collapsed,
+  onToggleCollapsed,
 }: {
   mobileOpen: boolean;
   onClose: () => void;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }) {
   return (
     <>
       {/* Wersja stała — widoczna od szerokości tabletu w górę */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface lg:flex">
-        <div className="flex h-16 items-center border-b border-border px-5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Logo firmy" className="h-9 w-auto" />
+      <aside
+        className={`hidden shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-150 lg:flex ${
+          collapsed ? "w-16" : "w-64"
+        }`}
+      >
+        <div
+          className={`flex h-16 items-center border-b border-border ${
+            collapsed ? "justify-center px-2" : "justify-between px-5"
+          }`}
+        >
+          {!collapsed && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src="/logo.svg" alt="Logo firmy" className="h-9 w-auto" />
+          )}
+          <button
+            onClick={onToggleCollapsed}
+            aria-label={collapsed ? "Rozwiń menu" : "Zwiń menu"}
+            title={collapsed ? "Rozwiń menu" : "Zwiń menu"}
+            className="rounded-md p-1.5 text-foreground/60 hover:bg-black/5 hover:text-foreground"
+          >
+            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
         </div>
-        <NavLinks />
+        <NavLinks collapsed={collapsed} />
       </aside>
 
-      {/* Wersja mobilna — nakładka */}
+      {/* Wersja mobilna — nakładka (zawsze pełna szerokość, bez trybu zwiniętego) */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div
