@@ -117,15 +117,21 @@ export function DetailsTab({
               }
             />
             <DetailRow label="Cena zakupu" value={formatCurrency(equipment.purchasePrice)} />
+            <DetailRow
+              label="Faktura zakupu"
+              value={
+                <InvoiceAttachment
+                  equipmentId={equipment.id}
+                  path={equipment.purchaseInvoicePath}
+                  canEdit={canEdit}
+                  bare
+                />
+              }
+            />
             <DetailRow label="Lokalizacja" value={getLocationName(locations, equipment.locationId)} />
             <DetailRow label="Uwagi" value={equipment.notes ?? "—"} />
           </dl>
         </div>
-        <InvoiceAttachment
-          equipmentId={equipment.id}
-          path={equipment.purchaseInvoicePath}
-          canEdit={canEdit}
-        />
       </div>
     );
   }
@@ -171,6 +177,15 @@ export function DetailsTab({
         <FormField label="Cena zakupu (PLN)" htmlFor="purchasePrice" error={errors.purchasePrice?.message}>
           <input id="purchasePrice" type="number" step="0.01" className={inputClass} {...register("purchasePrice")} />
         </FormField>
+        <div className="sm:col-span-2">
+          <p className="mb-1.5 block text-sm font-medium">Faktura zakupu (PDF)</p>
+          <InvoiceAttachment
+            equipmentId={equipment.id}
+            path={equipment.purchaseInvoicePath}
+            canEdit={canEdit}
+            bare
+          />
+        </div>
       </FormSection>
 
       <FormSection

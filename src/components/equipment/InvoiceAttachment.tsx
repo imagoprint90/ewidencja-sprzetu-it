@@ -15,10 +15,14 @@ export function InvoiceAttachment({
   equipmentId,
   path,
   canEdit,
+  bare = false,
 }: {
   equipmentId: string;
   path: string | null;
   canEdit: boolean;
+  // Bez własnej karty/etykiety — do osadzenia wewnątrz sekcji, która już ma tytuł
+  // ("Zakup i gwarancja"), zamiast dublować oprawę wizualną.
+  bare?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -69,9 +73,8 @@ export function InvoiceAttachment({
     });
   }
 
-  return (
-    <div className="rounded-xl border border-border bg-surface p-5">
-      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">Faktura zakupu</p>
+  const content = (
+    <>
       {error && <p className="mb-2 text-sm text-danger">{error}</p>}
       <div className="flex flex-wrap items-center gap-2">
         {path ? (
@@ -119,6 +122,15 @@ export function InvoiceAttachment({
         onCancel={() => setConfirmOpen(false)}
         onConfirm={handleDelete}
       />
+    </>
+  );
+
+  if (bare) return content;
+
+  return (
+    <div className="rounded-xl border border-border bg-surface p-5">
+      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">Faktura zakupu</p>
+      {content}
     </div>
   );
 }
