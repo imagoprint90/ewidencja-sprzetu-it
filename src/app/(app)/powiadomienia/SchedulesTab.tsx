@@ -162,10 +162,10 @@ function ScheduleForm({
       </FormSection>
 
       <p className="text-xs text-muted">
-        Uwaga: dokładna godzina jest przybliżona — system sprawdza harmonogramy cyklicznie i
-        wysyła wiadomość przy pierwszym sprawdzeniu danego dnia, które wypada o wybranej
-        godzinie lub później (na darmowym planie Vercel sprawdzenie może się zdarzyć tylko raz
-        dziennie, więc rzeczywista godzina wysyłki może się różnić).
+        Uwaga: na obecnym planie Vercel system sprawdza harmonogramy tylko raz dziennie (ok.
+        7-8 rano), więc wiadomość na pewno pójdzie w wybrany dzień, ale wybrana tu godzina nie
+        jest jeszcze respektowana co do minuty — to ustawienie zacznie działać precyzyjnie po
+        przejściu na wyższy plan Vercel.
       </p>
 
       {error && <p className="text-sm text-danger">{error}</p>}

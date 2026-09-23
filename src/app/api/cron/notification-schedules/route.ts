@@ -5,20 +5,24 @@ import { renderNotificationText } from "@/lib/notification-helpers";
 import { employeeFullName, getAssignedEquipmentNames } from "@/lib/equipment-helpers";
 import { mapAssignment, mapEmployee, mapEquipment, mapNotificationSchedule, mapNotificationTemplate } from "@/lib/supabase/mappers";
 
-// Wywoływane cyklicznie przez Vercel Cron (patrz vercel.json) — sprawdza harmonogramy
-// automatycznych powiadomień i wysyła te, których dziś i teraz dotyczą. Bez sesji
-// użytkownika, więc autoryzacja to nie "administrator jest zalogowany" tylko "żądanie
-// naprawdę przyszło z Vercel Cron" (nagłówek Authorization z CRON_SECRET).
+// Wywoływane raz dziennie przez Vercel Cron (patrz vercel.json) — sprawdza harmonogramy
+// automatycznych powiadomień i wysyła te, których dziś dotyczą. Bez sesji użytkownika, więc
+// autoryzacja to nie "administrator jest zalogowany" tylko "żądanie naprawdę przyszło z
+// Vercel Cron" (nagłówek Authorization z CRON_SECRET).
 //
-// Uwaga o precyzji: na planie Vercel Hobby zadania cron uruchamiają się co najwyżej raz
-// dziennie, niezależnie od częstotliwości w vercel.json — stąd logika "dogonienia" niżej:
-// harmonogram uruchamia się przy PIERWSZYM sprawdzeniu danego dnia, które wypada o
-// skonfigurowanej godzinie lub później (nie w wąskim oknie), a last_sent_date pilnuje,
-// żeby nie wysłać drugi raz tego samego dnia.
+// Uwaga o precyzji: plan Vercel Hobby pozwala na cron co najwyżej raz dziennie (częstsze
+// wywołania Vercel odrzuca już przy wdrożeniu, nie tylko ogranicza w działaniu) — mamy więc
+// tylko JEDNĄ okazję dziennie, więc godzina z harmonogramu (sendTime) celowo NIE decyduje
+// o tym, czy dziś wysłać — decyduje wyłącznie dzień tygodnia + to, że jeszcze nie wysłano
+// dziś (last_sent_date). Gdyby jednak porównywać z konkretną godziną przy jednym sprawdzeniu
+// dziennie o stałej porze, harmonogram ustawiony na późniejszą godzinę nigdy by się nie
+// uruchomił. Pole sendTime zostaje w danych/UI jako "preferowana pora" — zacznie być realnie
+// respektowane dopiero przy częstszym sprawdzaniu (plan Pro + odpowiednia zmiana w
+// vercel.json).
 
 export const dynamic = "force-dynamic";
 
-function getWarsawNow(): { isoWeekday: number; date: string; time: string } {
+function getWarsawNow(): { isoWeekday: number; date: string } {
   const now = new Date();
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Europe/Warsaw",
@@ -26,20 +30,14 @@ function getWarsawNow(): { isoWeekday: number; date: string; time: string } {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
   }).formatToParts(now);
 
   const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
   const weekdayMap: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
-  let hour = Number(map.hour);
-  if (hour === 24) hour = 0; // ICU czasem zwraca "24" zamiast "00" dla północy przy hour12:false
 
   return {
     isoWeekday: weekdayMap[map.weekday] ?? 0,
     date: `${map.year}-${map.month}-${map.day}`,
-    time: `${String(hour).padStart(2, "0")}:${map.minute}`,
   };
 }
 
@@ -51,7 +49,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = createSupabaseServiceClient();
-  const { isoWeekday, date, time } = getWarsawNow();
+  const { isoWeekday, date } = getWarsawNow();
 
   const [{ data: scheduleRows }, { data: templateRows }, { data: employeeRows }, { data: equipmentRows }, { data: assignmentRows }] =
     await Promise.all([
@@ -68,9 +66,7 @@ export async function GET(request: Request) {
   const equipment = (equipmentRows ?? []).map(mapEquipment);
   const assignments = (assignmentRows ?? []).map(mapAssignment);
 
-  const due = schedules.filter(
-    (s) => s.daysOfWeek.includes(isoWeekday) && s.lastSentDate !== date && s.sendTime <= time
-  );
+  const due = schedules.filter((s) => s.daysOfWeek.includes(isoWeekday) && s.lastSentDate !== date);
 
   let sentCount = 0;
   let errorCount = 0;

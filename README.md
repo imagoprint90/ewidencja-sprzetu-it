@@ -302,7 +302,7 @@ Opcjonalne — bez tego zakładka „Automatyczne” działa normalnie (dodawani
 harmonogramów), tylko nic się faktycznie nie wyśle, dopóki nie uzupełnisz `CRON_SECRET`.
 
 Harmonogramy sprawdza zadanie cron zdefiniowane w `vercel.json`
-(`/api/cron/notification-schedules`) — Vercel wywołuje ten adres cyklicznie, a endpoint
+(`/api/cron/notification-schedules`) — Vercel wywołuje ten adres raz dziennie, a endpoint
 weryfikuje, że żądanie naprawdę przyszło od Vercela, porównując nagłówek `Authorization` ze
 zmienną środowiskową `CRON_SECRET`.
 
@@ -312,12 +312,17 @@ zmienną środowiskową `CRON_SECRET`.
    `CRON_SECRET` — **nie wklejaj go do rozmowy ze mną**, tak jak pozostałych sekretów powyżej.
 3. Zrób redeploy.
 
-**Ważne o precyzji godziny**: darmowy plan Vercel (Hobby) ogranicza zadania cron do
-maksymalnie raz na dobę, niezależnie od częstotliwości ustawionej w `vercel.json` — więc
-wybrana w harmonogramie godzina jest w praktyce przybliżona (wiadomość pójdzie tego samego
-dnia, ale nie zawsze co do minuty). Jeśli zależy Ci na dokładnej godzinie, trzeba przejść na
-płatny plan Vercel Pro — sama aplikacja tego nie wymaga zmieniać, `vercel.json` już jest
-ustawiony na sprawdzanie co 15 minut i zacznie działać precyzyjnie od razu po zmianie planu.
+**Ważne o precyzji godziny**: darmowy plan Vercel (Hobby) pozwala na zadania cron
+uruchamiane maksymalnie raz na dobę — częstsze wywołania Vercel **odrzuca już przy
+wdrożeniu** (deployment kończy się błędem), nie tylko ogranicza w działaniu. Dlatego
+`vercel.json` jest ustawiony na jedno sprawdzenie dziennie (`0 6 * * *`, czyli ok. 7-8 rano
+czasu polskiego, zależnie od czasu letniego/zimowego) i harmonogram wysyła wiadomość w
+wybrany dzień tygodnia **niezależnie od wybranej w formularzu godziny** — to pole jest na
+razie tylko orientacyjne. Żeby godzina była naprawdę respektowana, trzeba: przejść na płatny
+plan Vercel Pro **i** ręcznie zmienić `schedule` w `vercel.json` na częstsze sprawdzanie (np.
+`*/15 * * * *`), a w `src/app/api/cron/notification-schedules/route.ts` przywrócić
+porównanie z `send_time` w warunku `due` (jest tam opisane w komentarzu, co dokładnie
+zmienić).
 
 ### Zakładanie kont użytkowników
 

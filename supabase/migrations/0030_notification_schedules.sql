@@ -1,11 +1,12 @@
 -- Automatyczna wysyłka powiadomień: harmonogramy "wyślij szablon X do wybranych pracowników,
--- o godzinie Y, w wybrane dni tygodnia". Sprawdzane cyklicznie przez zadanie cron (Vercel Cron,
--- patrz src/app/api/cron/notification-schedules/route.ts) — sama baza niczego nie wysyła.
+-- w wybrane dni tygodnia (opcjonalnie o preferowanej porze)". Sprawdzane raz dziennie przez
+-- zadanie cron (Vercel Cron, patrz vercel.json i
+-- src/app/api/cron/notification-schedules/route.ts) — sama baza niczego nie wysyła.
 --
--- Uwaga: na darmowym planie Vercel (Hobby) zadania cron uruchamiają się co najwyżej raz
--- dziennie, więc dokładna godzina jest tu raczej "od której godziny wysłać tego dnia" niż
--- gwarantowaną minutą — stąd last_sent_date (pilnuje, żeby nie wysłać dwa razy tego samego
--- dnia) zamiast dokładnego znacznika czasu.
+-- Uwaga: plan Vercel Hobby pozwala na cron co najwyżej raz dziennie (częstsze wywołania
+-- Vercel odrzuca już przy wdrożeniu), więc last_sent_date pilnuje, żeby nie wysłać dwa razy
+-- tego samego dnia — a send_time jest na razie "preferowaną porą" w UI, nie gwarantowaną
+-- minutą wysyłki (patrz komentarz w route.ts).
 
 create table public.notification_schedules (
   id uuid primary key default gen_random_uuid(),
