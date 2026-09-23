@@ -7,10 +7,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { employeeFormSchema, type EmployeeFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
-import type { Location } from "@/lib/types";
+import type { Department, Location } from "@/lib/types";
 import { addEmployeeAction } from "@/lib/supabase/actions/employee-actions";
 
-export function NowyPracownikForm({ locations }: { locations: Location[] }) {
+export function NowyPracownikForm({ locations, departments }: { locations: Location[]; departments: Department[] }) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -29,7 +29,7 @@ export function NowyPracownikForm({ locations }: { locations: Location[] }) {
       lastName: values.lastName,
       email: values.email || null,
       phone: values.phone || null,
-      department: values.department || null,
+      departmentId: values.departmentId || null,
       locationId: values.locationId || null,
     });
     if (!result.ok) {
@@ -62,8 +62,17 @@ export function NowyPracownikForm({ locations }: { locations: Location[] }) {
           <FormField label="Telefon" htmlFor="phone" error={errors.phone?.message}>
             <input id="phone" type="tel" className={inputClass} {...register("phone")} />
           </FormField>
-          <FormField label="Dział" htmlFor="department" error={errors.department?.message}>
-            <input id="department" className={inputClass} {...register("department")} />
+          <FormField label="Dział" htmlFor="departmentId" error={errors.departmentId?.message}>
+            <select id="departmentId" className={inputClass} {...register("departmentId")}>
+              <option value="">Brak działu</option>
+              {departments
+                .filter((d) => !d.isArchived)
+                .map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+            </select>
           </FormField>
           <FormField label="Lokalizacja" htmlFor="locationId" error={errors.locationId?.message} full>
             <select id="locationId" className={inputClass} {...register("locationId")}>

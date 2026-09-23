@@ -11,10 +11,10 @@ import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { formatDate } from "@/lib/format";
-import { employeeFullName, getCategoryName, getLocationName } from "@/lib/equipment-helpers";
+import { employeeFullName, getCategoryName, getDepartmentName, getLocationName } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
 import { employeeFormSchema, type EmployeeFormValues } from "@/lib/schemas";
-import type { Assignment, Category, Employee, Equipment, Location } from "@/lib/types";
+import type { Assignment, Category, Department, Employee, Equipment, Location } from "@/lib/types";
 import {
   deleteEmployeeAction,
   setEmployeeActiveAction,
@@ -34,6 +34,7 @@ export function PracownikDetailClient({
   history,
   personalLicenses,
   locations,
+  departments,
 }: {
   employee: Employee;
   equipment: Equipment[];
@@ -41,6 +42,7 @@ export function PracownikDetailClient({
   history: Assignment[];
   personalLicenses: PersonalLicense[];
   locations: Location[];
+  departments: Department[];
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -65,7 +67,7 @@ export function PracownikDetailClient({
       lastName: employee.lastName ?? "",
       email: employee.email ?? "",
       phone: employee.phone ?? "",
-      department: employee.department ?? "",
+      departmentId: employee.departmentId ?? "",
       locationId: employee.locationId ?? "",
     },
   });
@@ -98,7 +100,7 @@ export function PracownikDetailClient({
       lastName: values.lastName,
       email: values.email || null,
       phone: values.phone || null,
-      department: values.department || null,
+      departmentId: values.departmentId || null,
       locationId: values.locationId || null,
     });
     if (!result.ok) {
@@ -134,8 +136,17 @@ export function PracownikDetailClient({
             <FormField label="Telefon" htmlFor="phone" error={errors.phone?.message}>
               <input id="phone" type="tel" className={inputClass} {...register("phone")} />
             </FormField>
-            <FormField label="Dział" htmlFor="department" error={errors.department?.message}>
-              <input id="department" className={inputClass} {...register("department")} />
+            <FormField label="Dział" htmlFor="departmentId" error={errors.departmentId?.message}>
+              <select id="departmentId" className={inputClass} {...register("departmentId")}>
+                <option value="">Brak działu</option>
+                {departments
+                  .filter((d) => !d.isArchived || d.id === employee.departmentId)
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+              </select>
             </FormField>
             <FormField label="Lokalizacja" htmlFor="locationId" error={errors.locationId?.message} full>
               <select id="locationId" className={inputClass} {...register("locationId")}>
@@ -170,7 +181,7 @@ export function PracownikDetailClient({
             <h1 className="text-xl font-semibold">{employeeFullName(employee)}</h1>
             <p className="text-sm text-muted">
               {[
-                employee.department ?? "bez działu",
+                employee.departmentId ? getDepartmentName(departments, employee.departmentId) : "bez działu",
                 getLocationName(locations, employee.locationId),
                 employee.email,
                 employee.phone,

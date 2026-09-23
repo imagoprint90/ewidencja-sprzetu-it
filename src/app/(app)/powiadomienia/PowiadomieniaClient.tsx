@@ -3,6 +3,7 @@
 import { Tabs } from "@/components/ui/Tabs";
 import type {
   Assignment,
+  Department,
   Employee,
   Equipment,
   NotificationLogEntry,
@@ -16,6 +17,7 @@ import { HistoryTab } from "./HistoryTab";
 
 export function PowiadomieniaClient({
   employees,
+  departments,
   assignments,
   equipment,
   templates,
@@ -23,6 +25,7 @@ export function PowiadomieniaClient({
   log,
 }: {
   employees: Employee[];
+  departments: Department[];
   assignments: Assignment[];
   equipment: Equipment[];
   templates: NotificationTemplate[];
@@ -45,13 +48,21 @@ export function PowiadomieniaClient({
             key: "wyslij",
             label: "Wyślij",
             content: (
-              <SendTab employees={employees} assignments={assignments} equipment={equipment} templates={templates} />
+              <SendTab
+                employees={employees}
+                departments={departments}
+                assignments={assignments}
+                equipment={equipment}
+                templates={templates}
+              />
             ),
           },
           {
             key: "harmonogramy",
             label: "Automatyczne",
-            content: <SchedulesTab schedules={schedules} employees={employees} templates={templates} />,
+            content: (
+              <SchedulesTab schedules={schedules} employees={employees} departments={departments} templates={templates} />
+            ),
           },
           {
             key: "szablony",

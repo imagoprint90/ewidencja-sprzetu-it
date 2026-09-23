@@ -5,6 +5,7 @@ import { requireTabAccess } from "@/lib/supabase/require-tab";
 import {
   getAssignments,
   getCategories,
+  getDepartments,
   getEmployees,
   getEquipment,
   getEquipmentLinks,
@@ -29,6 +30,7 @@ export default async function PrzekazSprzetPage({
     equipment,
     categories,
     employees,
+    departments,
     assignments,
     equipmentLinks,
     installedSoftware,
@@ -39,6 +41,7 @@ export default async function PrzekazSprzetPage({
     getEquipment(supabase),
     getCategories(supabase),
     getEmployees(supabase),
+    getDepartments(supabase),
     getAssignments(supabase),
     getEquipmentLinks(supabase),
     getInstalledSoftware(supabase),
@@ -69,6 +72,7 @@ export default async function PrzekazSprzetPage({
         allEquipment={equipment}
         categories={categories}
         employees={employees}
+        departments={departments}
         assignments={assignments}
         equipmentLinks={equipmentLinks}
         installedSoftware={installedSoftware}

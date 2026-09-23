@@ -3,16 +3,19 @@ import { employeeFullName } from "@/lib/equipment-helpers";
 
 // Podstawia placeholdery (patrz NOTIFICATION_PLACEHOLDERS w types.ts) danymi konkretnego
 // pracownika — używane zarówno w podglądzie przed wysyłką, jak i w samej treści maila.
+// Nazwę działu podaje wywołujący (rozwiązaną z departmentId przez getDepartmentName) —
+// dział jest teraz osobnym słownikiem, nie polem tekstowym na pracowniku.
 export function renderNotificationText(
   text: string,
-  employee: Pick<Employee, "firstName" | "lastName" | "email" | "department">,
+  employee: Pick<Employee, "firstName" | "lastName" | "email">,
+  departmentName: string | null,
   assignedEquipmentNames: string[]
 ): string {
   return text
     .replaceAll("{{imie}}", employee.firstName)
     .replaceAll("{{nazwisko}}", employee.lastName ?? "")
     .replaceAll("{{email}}", employee.email ?? "")
-    .replaceAll("{{dzial}}", employee.department ?? "")
+    .replaceAll("{{dzial}}", departmentName ?? "")
     .replaceAll("{{sprzet}}", assignedEquipmentNames.length > 0 ? assignedEquipmentNames.join(", ") : "brak");
 }
 

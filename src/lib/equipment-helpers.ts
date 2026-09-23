@@ -1,4 +1,4 @@
-import type { Assignment, Category, Employee, Equipment, EquipmentLink, Location } from "./types";
+import type { Assignment, Category, Department, Employee, Equipment, EquipmentLink, Location } from "./types";
 import type { EquipmentInput } from "./supabase/actions/equipment-actions";
 
 export function equipmentToInput(item: Equipment): EquipmentInput {
@@ -19,6 +19,10 @@ export function equipmentToInput(item: Equipment): EquipmentInput {
 
 export function getLocationName(locations: Location[], locationId: string | null): string {
   return locations.find((l) => l.id === locationId)?.name ?? "—";
+}
+
+export function getDepartmentName(departments: Department[], departmentId: string | null): string {
+  return departments.find((d) => d.id === departmentId)?.name ?? "—";
 }
 
 export function getCategoryName(categories: Category[], categoryId: string): string {

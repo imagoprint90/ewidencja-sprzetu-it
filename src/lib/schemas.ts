@@ -51,7 +51,7 @@ export const employeeFormSchema = z.object({
     .optional()
     .refine((v) => !v || z.string().email().safeParse(v).success, "Nieprawidłowy adres e-mail."),
   phone: z.string().trim().optional(),
-  department: z.string().trim().optional(),
+  departmentId: z.string().optional(),
   locationId: z.string().optional(),
 });
 

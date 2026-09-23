@@ -4,6 +4,7 @@ import { requireTabAccess } from "@/lib/supabase/require-tab";
 import {
   getAssignments,
   getCategories,
+  getDepartments,
   getEmployees,
   getEquipment,
   getLicenseAssignments,
@@ -23,7 +24,7 @@ export default async function PracownikDetailPage({
   const { id } = await params;
   await requireTabAccess("pracownicy");
   const supabase = await createSupabaseServerClient();
-  const [employees, equipment, categories, assignments, licenses, licenseAssignments, products, locations] =
+  const [employees, equipment, categories, assignments, licenses, licenseAssignments, products, locations, departments] =
     await Promise.all([
       getEmployees(supabase),
       getEquipment(supabase),
@@ -33,6 +34,7 @@ export default async function PracownikDetailPage({
       getLicenseAssignments(supabase),
       getSoftwareProducts(supabase),
       getLocations(supabase),
+      getDepartments(supabase),
     ]);
 
   const employee = employees.find((e) => e.id === id);
@@ -71,6 +73,7 @@ export default async function PracownikDetailPage({
       history={history}
       personalLicenses={personalLicenses}
       locations={locations}
+      departments={departments}
     />
   );
 }

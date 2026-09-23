@@ -72,28 +72,33 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   prywatnym Storage, dostępna do pobrania/usunięcia stamtąd; kolumna **FV** na liście Sprzęt
   pokazuje ikonkę, gdy faktura jest załączona (kliknięcie od razu ją otwiera), a pustą komórkę,
   gdy jej nie ma.
-- Kategorie i Lokalizacje: dodawanie, zmiana nazwy, oraz trwałe usuwanie (zablokowane, gdy
-  lokalizacja/kategoria jest przypisana do pracowników lub sprzętu). Lokalizacje mają kolumnę
-  **Aktywna: Tak/Nie** (przycisk Dezaktywuj/Aktywuj) — nieaktywna lokalizacja nie jest
-  proponowana przy wyborze lokalizacji pracownika, ale zostaje widoczna na liście z filtrem
-  po statusie (zamiast osobnej sekcji „zarchiwizowane”). Kolumny „Pracownicy” i „Sprzęt”
-  pokazują konkretne imiona i nazwiska / nazwy sprzętu przypisane do danej lokalizacji (nie
-  tylko liczbę), a wybór widocznych kolumn i ich kolejności (przycisk „Kolumny”) działa tak
-  samo jak na liście Sprzęt. Lokalizacja **sprzętu nie jest
-  ręcznie edytowalna** — jest zsynchronizowana automatycznie z lokalizacją aktualnie
-  przypisanego pracownika, a przy zwrocie do magazynu wraca do domyślnej lokalizacji
-  „Magazyn” (ustawiane w `transfer_equipment_set`). Zmiana lokalizacji pracownika aktualizuje
-  też lokalizację jego aktualnie przydzielonego sprzętu.
+- Kategorie, Lokalizacje i Działy: dodawanie, zmiana nazwy, oraz trwałe usuwanie (zablokowane,
+  gdy lokalizacja/dział/kategoria jest przypisana do pracowników lub sprzętu). **Działy są
+  osobną zakładką w środku strony Lokalizacje** (druga karta obok „Lokalizacje”) — z góry
+  ustalona lista, tylko przypisywana pracownikom (tak samo jak lokalizacja), a nie wpisywana
+  ręcznie przy każdym z nich. Lokalizacje i Działy mają kolumnę **Aktywna/Aktywny: Tak/Nie**
+  (przycisk Dezaktywuj/Aktywuj) — nieaktywna pozycja nie jest proponowana przy wyborze u
+  pracownika, ale zostaje widoczna na liście z filtrem po statusie (zamiast osobnej sekcji
+  „zarchiwizowane”). Kolumny „Pracownicy” (obie zakładki) i „Sprzęt” (tylko Lokalizacje)
+  pokazują konkretne imiona i nazwiska / nazwy sprzętu przypisane do danej pozycji (nie tylko
+  liczbę), a wybór widocznych kolumn i ich kolejności (przycisk „Kolumny”) działa tak samo
+  jak na liście Sprzęt. Lokalizacja **sprzętu nie jest ręcznie edytowalna** — jest
+  zsynchronizowana automatycznie z lokalizacją aktualnie przypisanego pracownika, a przy
+  zwrocie do magazynu wraca do domyślnej lokalizacji „Magazyn” (ustawiane w
+  `transfer_equipment_set`). Zmiana lokalizacji pracownika aktualizuje też lokalizację jego
+  aktualnie przydzielonego sprzętu.
 - Pracownicy: imię i nazwisko to dwie osobne kolumny (nie jedno pole) — dotyczy listy,
   karty pracownika, formularzy i importu CSV. Lista ma filtry wielokrotnego wyboru
   (lokalizacja, dział, status — zapamiętywane jak w Sprzęcie), wybór widocznych kolumn i ich
   kolejności (przycisk „Kolumny”, tak jak w Sprzęcie) oraz edycję wprost w komórkach tabeli
-  (e-mail, telefon, dział — bez wchodzenia na kartę pracownika). Karta pracownika: dodawanie,
-  edycja, aktywacja/dezaktywacja, usuwanie (zablokowane, gdy pracownik ma historię
-  przydziałów sprzętu — wtedy zamiast usuwania używa się dezaktywacji, żeby zachować
-  historię). Dział i lokalizacja są opcjonalne — nie każdy pracownik musi je mieć
-  uzupełnione. Import z pliku CSV — przycisk „Importuj CSV” obok listy, patrz sekcja
-  „Import pracowników z CSV” niżej po strukturę pliku.
+  (e-mail, telefon, dział, lokalizacja — bez wchodzenia na kartę pracownika; dział i
+  lokalizacja to rozwijane listy z góry ustalonych pozycji, tak jak kategoria sprzętu na
+  liście Sprzęt — nie da się wpisać dowolnego tekstu). Karta pracownika: dodawanie, edycja,
+  aktywacja/dezaktywacja, usuwanie (zablokowane, gdy pracownik ma historię przydziałów
+  sprzętu — wtedy zamiast usuwania używa się dezaktywacji, żeby zachować historię). Dział i
+  lokalizacja są opcjonalne — nie każdy pracownik musi je mieć uzupełnione. Import z pliku
+  CSV — przycisk „Importuj CSV” obok listy, patrz sekcja „Import pracowników z CSV” niżej po
+  strukturę pliku.
 - **Sortowanie list kliknięciem w nagłówek kolumny** — działa na wszystkich tabelach
   w aplikacji (Sprzęt, Pracownicy, Lokalizacje, Kategorie, Protokoły, Użytkownicy). Pierwsze
   kliknięcie sortuje rosnąco, drugie na tym samym nagłówku — malejąco, strzałka przy
@@ -173,7 +178,7 @@ znaki nie mają znaczenia:
 | `Nazwisko` | tak | nazwisko pracownika |
 | `Email` | nie | adres e-mail, może być pusty |
 | `Telefon` | nie | numer telefonu, może być pusty |
-| `Dział` | nie | nazwa działu (dowolny tekst), może być pusta |
+| `Dział` | nie | jeśli podany, musi dokładnie odpowiadać nazwie istniejącego, niezarchiwizowanego działu (patrz strona **Lokalizacje → Działy**) — pusta komórka po prostu zostawia pracownika bez działu |
 | `Lokalizacja` | nie | jeśli podana, musi dokładnie odpowiadać nazwie istniejącej, niezarchiwizowanej lokalizacji (patrz strona **Lokalizacje**) — pusta komórka po prostu zostawia pracownika bez lokalizacji |
 
 Kolumny `Email`, `Telefon`, `Dział` i `Lokalizacja` można też całkiem pominąć w pliku, jeśli
@@ -242,6 +247,10 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 8. `0030_notification_schedules.sql` (nowa tabela `notification_schedules` i kolumna
    `schedule_id` w `notification_log` — zakładka Powiadomienia -> Automatyczne; do działania
    potrzeba też `CRON_SECRET`, patrz „Konfiguracja automatycznych harmonogramów” niżej)
+9. `0031_departments.sql` (nowa tabela `departments` — zakładka Lokalizacje -> Działy; dział
+   pracownika przestaje być wolnym tekstem, kolumna `employees.department` znika na rzecz
+   `department_id`, wartości tekstowe już wprowadzone w systemie są automatycznie migrowane
+   do nowej tabeli)
 
 ## Konfiguracja Supabase
 

@@ -11,7 +11,13 @@ import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { EmployeeMultiSelect } from "@/components/notifications/EmployeeMultiSelect";
 import { employeeFullName } from "@/lib/equipment-helpers";
 import { formatDate } from "@/lib/format";
-import { DAY_OF_WEEK_LABELS, type Employee, type NotificationSchedule, type NotificationTemplate } from "@/lib/types";
+import {
+  DAY_OF_WEEK_LABELS,
+  type Department,
+  type Employee,
+  type NotificationSchedule,
+  type NotificationTemplate,
+} from "@/lib/types";
 import {
   createScheduleAction,
   deleteScheduleAction,
@@ -33,12 +39,14 @@ const EMPTY_FORM: ScheduleInput = {
 function ScheduleForm({
   initial,
   employees,
+  departments,
   templates,
   onCancel,
   onSubmit,
 }: {
   initial: ScheduleInput;
   employees: Employee[];
+  departments: Department[];
   templates: NotificationTemplate[];
   onCancel: () => void;
   onSubmit: (input: ScheduleInput) => Promise<{ ok: boolean; error?: string }>;
@@ -144,6 +152,7 @@ function ScheduleForm({
           </p>
           <EmployeeMultiSelect
             employees={activeEmployees}
+            departments={departments}
             selectedIds={form.employeeIds}
             onChange={(ids) => setForm((f) => ({ ...f, employeeIds: ids }))}
           />
@@ -184,10 +193,12 @@ function ScheduleForm({
 export function SchedulesTab({
   schedules,
   employees,
+  departments,
   templates,
 }: {
   schedules: NotificationSchedule[];
   employees: Employee[];
+  departments: Department[];
   templates: NotificationTemplate[];
 }) {
   const router = useRouter();
@@ -249,6 +260,7 @@ export function SchedulesTab({
         <ScheduleForm
           initial={EMPTY_FORM}
           employees={employees}
+          departments={departments}
           templates={templates}
           onCancel={() => setCreating(false)}
           onSubmit={createScheduleAction}
@@ -275,6 +287,7 @@ export function SchedulesTab({
                     isActive: s.isActive,
                   }}
                   employees={employees}
+                  departments={departments}
                   templates={templates}
                   onCancel={() => setEditingId(null)}
                   onSubmit={(input) => updateScheduleAction(s.id, input)}

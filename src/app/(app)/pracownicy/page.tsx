@@ -1,16 +1,17 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireTabAccess } from "@/lib/supabase/require-tab";
-import { getAssignments, getEmployees, getEquipment, getLocations } from "@/lib/supabase/queries";
+import { getAssignments, getDepartments, getEmployees, getEquipment, getLocations } from "@/lib/supabase/queries";
 import { PracownicyClient } from "./PracownicyClient";
 
 export default async function PracownicyPage() {
   await requireTabAccess("pracownicy");
   const supabase = await createSupabaseServerClient();
-  const [employees, assignments, equipment, locations] = await Promise.all([
+  const [employees, assignments, equipment, locations, departments] = await Promise.all([
     getEmployees(supabase),
     getAssignments(supabase),
     getEquipment(supabase),
     getLocations(supabase),
+    getDepartments(supabase),
   ]);
 
   const assignedEquipmentNames: Record<string, string[]> = {};
@@ -28,6 +29,7 @@ export default async function PracownicyPage() {
       employees={employees}
       assignedEquipmentNames={assignedEquipmentNames}
       locations={locations}
+      departments={departments}
     />
   );
 }

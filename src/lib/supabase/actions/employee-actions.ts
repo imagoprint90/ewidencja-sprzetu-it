@@ -14,7 +14,7 @@ export async function addEmployeeAction(input: {
   lastName: string | null;
   email: string | null;
   phone: string | null;
-  department: string | null;
+  departmentId: string | null;
   locationId: string | null;
 }): Promise<ActionResult<Employee>> {
   const supabase = await createSupabaseServerClient();
@@ -25,7 +25,7 @@ export async function addEmployeeAction(input: {
       last_name: input.lastName,
       email: input.email,
       phone: input.phone,
-      department: input.department,
+      department_id: input.departmentId,
       location_id: input.locationId,
     })
     .select()
@@ -46,7 +46,7 @@ export async function updateEmployeeAction(
     lastName: string | null;
     email: string | null;
     phone: string | null;
-    department: string | null;
+    departmentId: string | null;
     locationId: string | null;
   }
 ): Promise<ActionResult<undefined>> {
@@ -65,7 +65,7 @@ export async function updateEmployeeAction(
       last_name: input.lastName,
       email: input.email,
       phone: input.phone,
-      department: input.department,
+      department_id: input.departmentId,
       location_id: input.locationId,
     })
     .eq("id", id);
@@ -155,10 +155,16 @@ export async function importEmployeesAction(
 ): Promise<ActionResult<{ imported: number; errors: EmployeeImportError[] }>> {
   const supabase = await createSupabaseServerClient();
 
-  const { data: locations } = await supabase.from("locations").select("id, name, is_archived");
+  const [{ data: locations }, { data: departments }] = await Promise.all([
+    supabase.from("locations").select("id, name, is_archived"),
+    supabase.from("departments").select("id, name, is_archived"),
+  ]);
   const normalize = (s: string) => s.trim().toLowerCase();
   const locationByName = new Map(
     (locations ?? []).filter((l) => !l.is_archived).map((l) => [normalize(l.name), l.id])
+  );
+  const departmentByName = new Map(
+    (departments ?? []).filter((d) => !d.is_archived).map((d) => [normalize(d.name), d.id])
   );
 
   const errors: EmployeeImportError[] = [];
@@ -183,8 +189,9 @@ export async function importEmployeesAction(
     }
 
     // Dział i lokalizacja są opcjonalne — puste pole po prostu zostaje bez wartości.
-    // Podaną, ale nierozpoznaną lokalizację traktujemy jako błąd (żeby literówka w nazwie
-    // nie zniknęła bez śladu), a nie jako "brak lokalizacji".
+    // Podaną, ale nierozpoznaną lokalizację/dział traktujemy jako błąd (żeby literówka w
+    // nazwie nie zniknęła bez śladu), a nie jako "brak lokalizacji/działu" — obie listy są z
+    // góry ustalone (zakładka Lokalizacje), CSV tylko przypisuje istniejące wartości.
     let locationId: string | null = null;
     if (locationName) {
       const found = locationByName.get(normalize(locationName));
@@ -195,12 +202,22 @@ export async function importEmployeesAction(
       locationId = found;
     }
 
+    let departmentId: string | null = null;
+    if (department) {
+      const found = departmentByName.get(normalize(department));
+      if (!found) {
+        errors.push({ row: rowNumber, reason: `nieznany dział „${department}”` });
+        continue;
+      }
+      departmentId = found;
+    }
+
     const { error } = await supabase.from("employees").insert({
       first_name: firstName,
       last_name: lastName,
       email: email || null,
       phone: phone || null,
-      department: department || null,
+      department_id: departmentId,
       location_id: locationId,
     });
 

@@ -1,12 +1,12 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireTabAccess } from "@/lib/supabase/require-tab";
-import { getLocations } from "@/lib/supabase/queries";
+import { getDepartments, getLocations } from "@/lib/supabase/queries";
 import { NowyPracownikForm } from "./NowyPracownikForm";
 
 export default async function NowyPracownikPage() {
   await requireTabAccess("pracownicy");
   const supabase = await createSupabaseServerClient();
-  const locations = await getLocations(supabase);
+  const [locations, departments] = await Promise.all([getLocations(supabase), getDepartments(supabase)]);
 
-  return <NowyPracownikForm locations={locations} />;
+  return <NowyPracownikForm locations={locations} departments={departments} />;
 }

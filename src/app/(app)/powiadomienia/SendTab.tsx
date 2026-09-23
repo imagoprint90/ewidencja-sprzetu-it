@@ -6,19 +6,21 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { EmployeeMultiSelect } from "@/components/notifications/EmployeeMultiSelect";
-import { employeeFullName, getAssignedEquipmentNames } from "@/lib/equipment-helpers";
+import { employeeFullName, getAssignedEquipmentNames, getDepartmentName } from "@/lib/equipment-helpers";
 import { renderNotificationText } from "@/lib/notification-helpers";
 import { NOTIFICATION_PLACEHOLDERS } from "@/lib/types";
-import type { Assignment, Employee, Equipment, NotificationTemplate } from "@/lib/types";
+import type { Assignment, Department, Employee, Equipment, NotificationTemplate } from "@/lib/types";
 import { sendNotificationAction } from "@/lib/supabase/actions/notification-actions";
 
 export function SendTab({
   employees,
+  departments,
   assignments,
   equipment,
   templates,
 }: {
   employees: Employee[];
+  departments: Department[];
   assignments: Assignment[];
   equipment: Equipment[];
   templates: NotificationTemplate[];
@@ -42,8 +44,15 @@ export function SendTab({
     [assignments, equipment, previewEmployee]
   );
 
-  const previewSubject = previewEmployee ? renderNotificationText(subject, previewEmployee, previewAssignedEquipmentNames) : subject;
-  const previewBody = previewEmployee ? renderNotificationText(body, previewEmployee, previewAssignedEquipmentNames) : body;
+  const previewDepartmentName = previewEmployee?.departmentId
+    ? getDepartmentName(departments, previewEmployee.departmentId)
+    : null;
+  const previewSubject = previewEmployee
+    ? renderNotificationText(subject, previewEmployee, previewDepartmentName, previewAssignedEquipmentNames)
+    : subject;
+  const previewBody = previewEmployee
+    ? renderNotificationText(body, previewEmployee, previewDepartmentName, previewAssignedEquipmentNames)
+    : body;
 
   function handleTemplateChange(id: string) {
     setTemplateId(id);
@@ -77,8 +86,9 @@ export function SendTab({
           continue;
         }
         const assignedEquipmentNames = getAssignedEquipmentNames(assignments, equipment, employee.id);
-        const renderedSubject = renderNotificationText(subject, employee, assignedEquipmentNames);
-        const renderedBody = renderNotificationText(body, employee, assignedEquipmentNames);
+        const departmentName = employee.departmentId ? getDepartmentName(departments, employee.departmentId) : null;
+        const renderedSubject = renderNotificationText(subject, employee, departmentName, assignedEquipmentNames);
+        const renderedBody = renderNotificationText(body, employee, departmentName, assignedEquipmentNames);
 
         const res = await sendNotificationAction({
           employeeId: employee.id,
@@ -106,7 +116,12 @@ export function SendTab({
           <p className="mb-1.5 text-sm font-medium">
             Pracownicy <span className="text-danger">*</span>
           </p>
-          <EmployeeMultiSelect employees={activeEmployees} selectedIds={employeeIds} onChange={setEmployeeIds} />
+          <EmployeeMultiSelect
+            employees={activeEmployees}
+            departments={departments}
+            selectedIds={employeeIds}
+            onChange={setEmployeeIds}
+          />
         </div>
         <FormField label="Szablon (opcjonalnie)" htmlFor="templateId" full>
           <select

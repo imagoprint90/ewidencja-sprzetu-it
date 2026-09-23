@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import type { Location } from "@/lib/types";
+import type { Department, Location } from "@/lib/types";
 import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
 
 export type EmployeeStatusFilter = "aktywny" | "nieaktywny";
@@ -9,14 +9,14 @@ export type EmployeeStatusFilter = "aktywny" | "nieaktywny";
 export interface EmployeeFiltersState {
   query: string;
   locationIds: string[];
-  departments: string[];
+  departmentIds: string[];
   statuses: EmployeeStatusFilter[];
 }
 
 export const DEFAULT_EMPLOYEE_FILTERS: EmployeeFiltersState = {
   query: "",
   locationIds: [],
-  departments: [],
+  departmentIds: [],
   statuses: ["aktywny"],
 };
 
@@ -29,7 +29,7 @@ export function EmployeeFilters({
   value: EmployeeFiltersState;
   onChange: (next: EmployeeFiltersState) => void;
   locations: Location[];
-  departments: string[];
+  departments: Department[];
 }) {
   function set<K extends keyof EmployeeFiltersState>(key: K, val: EmployeeFiltersState[K]) {
     onChange({ ...value, [key]: val });
@@ -56,9 +56,9 @@ export function EmployeeFilters({
 
       <MultiSelectFilter
         label="Dział"
-        options={departments.map((d) => ({ value: d, label: d }))}
-        selected={value.departments}
-        onChange={(v) => set("departments", v)}
+        options={departments.map((d) => ({ value: d.id, label: d.name }))}
+        selected={value.departmentIds}
+        onChange={(v) => set("departmentIds", v)}
       />
 
       <MultiSelectFilter

@@ -52,13 +52,20 @@ export interface Location {
   createdAt: string;
 }
 
+export interface Department {
+  id: string;
+  name: string;
+  isArchived: boolean;
+  createdAt: string;
+}
+
 export interface Employee {
   id: string;
   firstName: string;
   lastName: string | null;
   email: string | null;
   phone: string | null;
-  department: string | null;
+  departmentId: string | null;
   locationId: string | null;
   isActive: boolean;
   createdAt: string;

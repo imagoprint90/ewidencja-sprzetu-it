@@ -8,11 +8,12 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { StatusBadge } from "@/components/ui/Badge";
 import { formatDate, todayIsoDate } from "@/lib/format";
-import { employeeFullName, getActiveAssignment, getCategoryName, getLinkedEquipment } from "@/lib/equipment-helpers";
+import { employeeFullName, getActiveAssignment, getCategoryName, getDepartmentName, getLinkedEquipment } from "@/lib/equipment-helpers";
 import {
   TECHNICAL_CONDITION_LABELS,
   type Assignment,
   type Category,
+  type Department,
   type Employee,
   type Equipment,
   type EquipmentLink,
@@ -33,6 +34,7 @@ export function PrzekazForm({
   allEquipment,
   categories,
   employees,
+  departments,
   assignments,
   equipmentLinks,
   installedSoftware,
@@ -44,6 +46,7 @@ export function PrzekazForm({
   allEquipment: Equipment[];
   categories: Category[];
   employees: Employee[];
+  departments: Department[];
   assignments: Assignment[];
   equipmentLinks: EquipmentLink[];
   installedSoftware: InstalledSoftware[];
@@ -341,7 +344,9 @@ export function PrzekazForm({
                 .filter((e) => e.id !== activeAssignment?.employeeId)
                 .map((e) => (
                   <option key={e.id} value={e.id}>
-                    {e.department ? `${employeeFullName(e)} (${e.department})` : employeeFullName(e)}
+                    {e.departmentId
+                      ? `${employeeFullName(e)} (${getDepartmentName(departments, e.departmentId)})`
+                      : employeeFullName(e)}
                   </option>
                 ))}
             </select>

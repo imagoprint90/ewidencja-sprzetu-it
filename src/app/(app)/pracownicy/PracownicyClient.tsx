@@ -15,7 +15,7 @@ import { useIsAdmin } from "@/lib/current-user-context";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useSort } from "@/lib/useSort";
 import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
-import { getLocationName } from "@/lib/equipment-helpers";
+import { getDepartmentName, getLocationName } from "@/lib/equipment-helpers";
 import { parseCsv, normalizeHeader } from "@/lib/csv";
 import {
   DEFAULT_EMPLOYEE_FILTERS,
@@ -27,7 +27,7 @@ import {
   updateEmployeeAction,
   type EmployeeCsvRow,
 } from "@/lib/supabase/actions/employee-actions";
-import type { Employee, Location } from "@/lib/types";
+import type { Department, Employee, Location } from "@/lib/types";
 
 const FIRST_NAME_ALIASES = ["imie"];
 const LAST_NAME_ALIASES = ["nazwisko"];
@@ -77,10 +77,12 @@ export function PracownicyClient({
   employees,
   assignedEquipmentNames,
   locations,
+  departments,
 }: {
   employees: Employee[];
   assignedEquipmentNames: Record<string, string[]>;
   locations: Location[];
+  departments: Department[];
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -103,7 +105,7 @@ export function PracownicyClient({
     patch: Partial<{
       email: string | null;
       phone: string | null;
-      department: string | null;
+      departmentId: string | null;
       locationId: string | null;
     }>
   ) {
@@ -112,20 +114,12 @@ export function PracownicyClient({
       lastName: item.lastName,
       email: patch.email !== undefined ? patch.email : item.email,
       phone: patch.phone !== undefined ? patch.phone : item.phone,
-      department: patch.department !== undefined ? patch.department : item.department,
+      departmentId: patch.departmentId !== undefined ? patch.departmentId : item.departmentId,
       locationId: patch.locationId !== undefined ? patch.locationId : item.locationId,
     });
     if (result.ok) router.refresh();
     return result.ok ? { ok: true as const } : { ok: false as const, error: result.error };
   }
-
-  const departments = useMemo(
-    () =>
-      Array.from(new Set(employees.map((e) => e.department).filter((d): d is string => Boolean(d)))).sort(
-        (a, b) => a.localeCompare(b)
-      ),
-    [employees]
-  );
 
   const filtered = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
@@ -136,15 +130,25 @@ export function PracownicyClient({
       }
       if (filters.locationIds.length > 0 && (!e.locationId || !filters.locationIds.includes(e.locationId)))
         return false;
-      if (filters.departments.length > 0 && (!e.department || !filters.departments.includes(e.department)))
+      if (
+        filters.departmentIds.length > 0 &&
+        (!e.departmentId || !filters.departmentIds.includes(e.departmentId))
+      )
         return false;
       if (!q) return true;
-      return [e.firstName, e.lastName ?? "", e.email ?? "", e.phone ?? "", e.department ?? "", getLocationName(locations, e.locationId)]
+      return [
+        e.firstName,
+        e.lastName ?? "",
+        e.email ?? "",
+        e.phone ?? "",
+        getDepartmentName(departments, e.departmentId),
+        getLocationName(locations, e.locationId),
+      ]
         .join(" ")
         .toLowerCase()
         .includes(q);
     });
-  }, [employees, filters, locations]);
+  }, [employees, filters, locations, departments]);
 
   const sorted = useMemo(() => {
     const comparators: Record<string, (a: Employee, b: Employee) => number> = {
@@ -152,7 +156,8 @@ export function PracownicyClient({
       lastName: (a, b) => compareStrings(a.lastName ?? "", b.lastName ?? ""),
       email: (a, b) => compareStrings(a.email ?? "", b.email ?? ""),
       phone: (a, b) => compareStrings(a.phone ?? "", b.phone ?? ""),
-      department: (a, b) => compareStrings(a.department ?? "", b.department ?? ""),
+      department: (a, b) =>
+        compareStrings(getDepartmentName(departments, a.departmentId), getDepartmentName(departments, b.departmentId)),
       location: (a, b) =>
         compareStrings(getLocationName(locations, a.locationId), getLocationName(locations, b.locationId)),
       assignedEquipment: (a, b) =>
@@ -160,7 +165,7 @@ export function PracownicyClient({
       status: (a, b) => compareNumbers(Number(a.isActive), Number(b.isActive)),
     };
     return applySort(filtered, sortKey, sortDir, comparators);
-  }, [filtered, sortKey, sortDir, locations, assignedEquipmentNames]);
+  }, [filtered, sortKey, sortDir, locations, departments, assignedEquipmentNames]);
 
   function handleFilePicked(file: File) {
     setImportError(null);
@@ -357,12 +362,18 @@ export function PracownicyClient({
                       {col === "department" &&
                         (isAdmin ? (
                           <EditableCell
-                            value={e.department ?? ""}
-                            displayValue={e.department ?? <span className="text-muted">—</span>}
-                            onSave={(v) => saveField(e, { department: v || null })}
+                            value={e.departmentId ?? ""}
+                            displayValue={getDepartmentName(departments, e.departmentId)}
+                            options={[
+                              { value: "", label: "— brak —" },
+                              ...departments
+                                .filter((d) => !d.isArchived || d.id === e.departmentId)
+                                .map((d) => ({ value: d.id, label: d.name })),
+                            ]}
+                            onSave={(v) => saveField(e, { departmentId: v || null })}
                           />
                         ) : (
-                          (e.department ?? "—")
+                          getDepartmentName(departments, e.departmentId)
                         ))}
                       {col === "location" &&
                         (isAdmin ? (

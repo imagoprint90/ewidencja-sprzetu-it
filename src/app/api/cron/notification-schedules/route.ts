@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { sendSmtpEmail } from "@/lib/email";
 import { renderNotificationText } from "@/lib/notification-helpers";
-import { employeeFullName, getAssignedEquipmentNames } from "@/lib/equipment-helpers";
-import { mapAssignment, mapEmployee, mapEquipment, mapNotificationSchedule, mapNotificationTemplate } from "@/lib/supabase/mappers";
+import { employeeFullName, getAssignedEquipmentNames, getDepartmentName } from "@/lib/equipment-helpers";
+import {
+  mapAssignment,
+  mapDepartment,
+  mapEmployee,
+  mapEquipment,
+  mapNotificationSchedule,
+  mapNotificationTemplate,
+} from "@/lib/supabase/mappers";
 
 // Wywoływane raz dziennie przez Vercel Cron (patrz vercel.json) — sprawdza harmonogramy
 // automatycznych powiadomień i wysyła te, których dziś dotyczą. Bez sesji użytkownika, więc
@@ -51,18 +58,26 @@ export async function GET(request: Request) {
   const supabase = createSupabaseServiceClient();
   const { isoWeekday, date } = getWarsawNow();
 
-  const [{ data: scheduleRows }, { data: templateRows }, { data: employeeRows }, { data: equipmentRows }, { data: assignmentRows }] =
-    await Promise.all([
-      supabase.from("notification_schedules").select("*").eq("is_active", true),
-      supabase.from("notification_templates").select("*"),
-      supabase.from("employees").select("*"),
-      supabase.from("equipment").select("*"),
-      supabase.from("assignments").select("*"),
-    ]);
+  const [
+    { data: scheduleRows },
+    { data: templateRows },
+    { data: employeeRows },
+    { data: departmentRows },
+    { data: equipmentRows },
+    { data: assignmentRows },
+  ] = await Promise.all([
+    supabase.from("notification_schedules").select("*").eq("is_active", true),
+    supabase.from("notification_templates").select("*"),
+    supabase.from("employees").select("*"),
+    supabase.from("departments").select("*"),
+    supabase.from("equipment").select("*"),
+    supabase.from("assignments").select("*"),
+  ]);
 
   const schedules = (scheduleRows ?? []).map(mapNotificationSchedule);
   const templates = (templateRows ?? []).map(mapNotificationTemplate);
   const employees = (employeeRows ?? []).map(mapEmployee);
+  const departments = (departmentRows ?? []).map(mapDepartment);
   const equipment = (equipmentRows ?? []).map(mapEquipment);
   const assignments = (assignmentRows ?? []).map(mapAssignment);
 
@@ -96,8 +111,9 @@ export async function GET(request: Request) {
       }
 
       const assignedEquipmentNames = getAssignedEquipmentNames(assignments, equipment, employee.id);
-      const subject = renderNotificationText(template.subject, employee, assignedEquipmentNames);
-      const body = renderNotificationText(template.body, employee, assignedEquipmentNames);
+      const departmentName = employee.departmentId ? getDepartmentName(departments, employee.departmentId) : null;
+      const subject = renderNotificationText(template.subject, employee, departmentName, assignedEquipmentNames);
+      const body = renderNotificationText(template.body, employee, departmentName, assignedEquipmentNames);
 
       const result = await sendSmtpEmail({ to: employee.email, subject, text: body });
       if (result.ok) sentCount += 1;

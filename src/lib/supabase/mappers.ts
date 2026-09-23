@@ -1,6 +1,7 @@
 import type {
   Assignment,
   Category,
+  Department,
   Employee,
   Equipment,
   EquipmentLink,
@@ -55,7 +56,7 @@ export function mapEmployee(row: {
   last_name: string | null;
   email: string | null;
   phone: string | null;
-  department: string | null;
+  department_id: string | null;
   location_id: string | null;
   is_active: boolean;
   created_at: string;
@@ -66,9 +67,23 @@ export function mapEmployee(row: {
     lastName: row.last_name,
     email: row.email,
     phone: row.phone,
-    department: row.department,
+    departmentId: row.department_id,
     locationId: row.location_id,
     isActive: row.is_active,
+    createdAt: row.created_at,
+  };
+}
+
+export function mapDepartment(row: {
+  id: string;
+  name: string;
+  is_archived: boolean;
+  created_at: string;
+}): Department {
+  return {
+    id: row.id,
+    name: row.name,
+    isArchived: row.is_archived,
     createdAt: row.created_at,
   };
 }

@@ -2,17 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
-import type { Employee } from "@/lib/types";
-import { employeeFullName } from "@/lib/equipment-helpers";
+import type { Department, Employee } from "@/lib/types";
+import { employeeFullName, getDepartmentName } from "@/lib/equipment-helpers";
 
 // Wyszukiwarka + lista checkboxów do zaznaczania kilku pracowników naraz — używana zarówno
 // przy ręcznej wysyłce (SendTab), jak i przy definiowaniu harmonogramów (SchedulesTab).
 export function EmployeeMultiSelect({
   employees,
+  departments,
   selectedIds,
   onChange,
 }: {
   employees: Employee[];
+  departments: Department[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
 }) {
@@ -22,10 +24,12 @@ export function EmployeeMultiSelect({
     const q = query.trim().toLowerCase();
     if (!q) return employees;
     return employees.filter((e) => {
-      const haystack = [employeeFullName(e), e.email ?? "", e.department ?? ""].join(" ").toLowerCase();
+      const haystack = [employeeFullName(e), e.email ?? "", getDepartmentName(departments, e.departmentId)]
+        .join(" ")
+        .toLowerCase();
       return haystack.includes(q);
     });
-  }, [employees, query]);
+  }, [employees, departments, query]);
 
   function toggle(id: string) {
     if (selectedIds.includes(id)) onChange(selectedIds.filter((v) => v !== id));

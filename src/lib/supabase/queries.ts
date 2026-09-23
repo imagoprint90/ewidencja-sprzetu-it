@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   mapAssignment,
   mapCategory,
+  mapDepartment,
   mapEmployee,
   mapEquipment,
   mapEquipmentLink,
@@ -17,6 +18,7 @@ import {
 } from "./mappers";
 import type {
   Category,
+  Department,
   Employee,
   Equipment,
   Assignment,
@@ -38,6 +40,12 @@ export async function getCategories(supabase: SupabaseClient): Promise<Category[
   const { data, error } = await supabase.from("categories").select("*").order("name");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapCategory);
+}
+
+export async function getDepartments(supabase: SupabaseClient): Promise<Department[]> {
+  const { data, error } = await supabase.from("departments").select("*").order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapDepartment);
 }
 
 export async function getLocations(supabase: SupabaseClient): Promise<Location[]> {
