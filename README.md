@@ -39,17 +39,30 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   i uprawnień dodatkowych, wybór widocznych zakładek oraz wybór kategorii sprzętu (do edycji i
   do widoczności protokołów). Lista kont ma osobną kolumnę **Kategorie sprzętu do edycji**.
   Patrz sekcja „Zakładanie kont użytkowników” niżej.
-- **Powiadomienia** (zakładka `/powiadomienia`, tylko dla administratora): ręczne wysyłanie
-  maili do pracowników — zapisane, wielokrotnego użytku **szablony** (temat + treść z
-  placeholderami typu `{{imie}}`, `{{sprzet}}`, podstawianymi danymi konkretnego pracownika
-  przy wysyłce), formularz **Wyślij** z podglądem treści przed wysyłką, oraz **Historia**
-  wysłanych wiadomości (status, treść, kto wysłał). Wysyłka idzie bezpośrednio przez SMTP
-  skrzynki pocztowej administratora (bez zewnętrznej usługi pośredniczącej) — wymaga
-  zmiennych środowiskowych `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/
-  `SMTP_FROM_EMAIL` (patrz `.env.example` i sekcja „Konfiguracja wysyłki maili” niżej); bez
-  nich przycisk „Wyślij” zwraca czytelny błąd zamiast się wywalać. Na razie tylko ręczne
-  wysyłanie — automatyczne powiadomienia (np. o kończącej się gwarancji sprzętu) to kolejny
-  etap.
+- **Powiadomienia** (zakładka `/powiadomienia`, tylko dla administratora): wysyłanie maili do
+  pracowników, ręcznie albo automatycznie.
+  - **Wyślij** — wybór **kilku pracowników naraz** (wyszukiwarka po imieniu/nazwisku/e-mailu/
+    dziale + zaznaczanie checkboxami, z podglądem zaznaczonych jako „chipy”), opcjonalny
+    zapisany szablon albo własna treść, podgląd z podstawionymi placeholderami przed wysyłką,
+    podsumowanie po wysyłce (ile się udało, komu i dlaczego nie).
+  - **Automatyczne** — harmonogramy: „wyślij szablon X do wybranych pracowników, o godzinie Y,
+    w wybrane dni tygodnia”. Sprawdzane cyklicznie przez zadanie cron (Vercel Cron, patrz
+    `vercel.json` i `src/app/api/cron/notification-schedules/route.ts`) — **uwaga:** na
+    darmowym planie Vercel (Hobby) zadania cron uruchamiają się co najwyżej raz dziennie, więc
+    dokładna godzina jest w praktyce przybliżona (wysyłka nastąpi tego samego dnia, ale
+    niekoniecznie co do minuty — pełna precyzja wymaga planu Pro).
+  - **Szablony** — zapisane, wielokrotnego użytku treści (temat + treść) z placeholderami
+    typu `{{imie}}`, `{{nazwisko}}`, `{{email}}`, `{{dzial}}`, `{{sprzet}}`, podstawianymi
+    danymi konkretnego pracownika przy wysyłce.
+  - **Historia** — log wysłanych wiadomości (status, treść, kto/co wysłało — konkretny
+    administrator albo nazwa harmonogramu).
+
+  Wysyłka idzie bezpośrednio przez SMTP skrzynki pocztowej administratora (bez zewnętrznej
+  usługi pośredniczącej) — wymaga zmiennych środowiskowych `SMTP_HOST`/`SMTP_PORT`/
+  `SMTP_USER`/`SMTP_PASSWORD`/`SMTP_FROM_EMAIL` (patrz `.env.example` i sekcja „Konfiguracja
+  wysyłki maili” niżej); harmonogramy dodatkowo wymagają `CRON_SECRET` (patrz „Konfiguracja
+  automatycznych harmonogramów”). Bez tych zmiennych przyciski zwracają czytelny błąd zamiast
+  się wywalać.
 - Sprzęt: lista z wyszukiwarką, filtrami wielokrotnego wyboru (checkboxy — np. kilka statusów
   albo kilka lokalizacji naraz), wyborem widocznych kolumn, dodawanie i edycja (walidacja
   unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane w bazie.
@@ -224,7 +237,11 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
    sprzętu, patrz zakładka „Szczegóły” na karcie sprzętu i kolumna „FV” na liście Sprzęt)
 7. `0029_notifications.sql` (nowe tabele `notification_templates`/`notification_log` — zakładka
    Powiadomienia, patrz opis wyżej; do działania wysyłki potrzeba też zmiennych
-   środowiskowych `RESEND_API_KEY`/`RESEND_FROM_EMAIL`, ale sama migracja działa bez nich)
+   środowiskowych `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/`SMTP_FROM_EMAIL`, ale
+   sama migracja działa bez nich)
+8. `0030_notification_schedules.sql` (nowa tabela `notification_schedules` i kolumna
+   `schedule_id` w `notification_log` — zakładka Powiadomienia -> Automatyczne; do działania
+   potrzeba też `CRON_SECRET`, patrz „Konfiguracja automatycznych harmonogramów” niżej)
 
 ## Konfiguracja Supabase
 
@@ -278,6 +295,29 @@ Dodaj w Vercelu (**Project Settings → Environment Variables**) i w swoim `.env
 wpisujesz je bezpośrednio w panelu Vercela i w `.env.local`, tak samo jak klucze Supabase
 powyżej. Po dodaniu zmiennych w Vercelu zrób redeploy (albo poczekaj na kolejny push), żeby
 je podłączył.
+
+### Konfiguracja automatycznych harmonogramów (Powiadomienia → Automatyczne)
+
+Opcjonalne — bez tego zakładka „Automatyczne” działa normalnie (dodawanie/edycja
+harmonogramów), tylko nic się faktycznie nie wyśle, dopóki nie uzupełnisz `CRON_SECRET`.
+
+Harmonogramy sprawdza zadanie cron zdefiniowane w `vercel.json`
+(`/api/cron/notification-schedules`) — Vercel wywołuje ten adres cyklicznie, a endpoint
+weryfikuje, że żądanie naprawdę przyszło od Vercela, porównując nagłówek `Authorization` ze
+zmienną środowiskową `CRON_SECRET`.
+
+1. Wymyśl dowolny długi, losowy ciąg znaków (nie musi nic znaczyć — to tylko hasło między
+   Vercelem a Twoją aplikacją, np. wygenerowane w menedżerze haseł).
+2. Dodaj go w Vercelu (**Project Settings → Environment Variables**) i w `.env.local` jako
+   `CRON_SECRET` — **nie wklejaj go do rozmowy ze mną**, tak jak pozostałych sekretów powyżej.
+3. Zrób redeploy.
+
+**Ważne o precyzji godziny**: darmowy plan Vercel (Hobby) ogranicza zadania cron do
+maksymalnie raz na dobę, niezależnie od częstotliwości ustawionej w `vercel.json` — więc
+wybrana w harmonogramie godzina jest w praktyce przybliżona (wiadomość pójdzie tego samego
+dnia, ale nie zawsze co do minuty). Jeśli zależy Ci na dokładnej godzinie, trzeba przejść na
+płatny plan Vercel Pro — sama aplikacja tego nie wymaga zmieniać, `vercel.json` już jest
+ustawiony na sprawdzanie co 15 minut i zacznie działać precyzyjnie od razu po zmianie planu.
 
 ### Zakładanie kont użytkowników
 

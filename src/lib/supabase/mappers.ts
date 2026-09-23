@@ -8,6 +8,7 @@ import type {
   LicenseType,
   Location,
   NotificationLogEntry,
+  NotificationSchedule,
   NotificationStatus,
   NotificationTemplate,
   Protocol,
@@ -270,6 +271,7 @@ export function mapNotificationLogEntry(row: {
   error_message: string | null;
   sent_by: string | null;
   sent_by_name: string;
+  schedule_id: string | null;
   created_at: string;
 }): NotificationLogEntry {
   return {
@@ -285,6 +287,34 @@ export function mapNotificationLogEntry(row: {
     errorMessage: row.error_message,
     sentBy: row.sent_by,
     sentByName: row.sent_by_name,
+    scheduleId: row.schedule_id,
     createdAt: row.created_at,
+  };
+}
+
+export function mapNotificationSchedule(row: {
+  id: string;
+  name: string;
+  template_id: string;
+  employee_ids: string[];
+  send_time: string;
+  days_of_week: number[];
+  is_active: boolean;
+  last_sent_date: string | null;
+  created_at: string;
+  updated_at: string;
+}): NotificationSchedule {
+  return {
+    id: row.id,
+    name: row.name,
+    templateId: row.template_id,
+    employeeIds: row.employee_ids,
+    // Postgres "time" zwraca "HH:MM:SS" — tu przycinamy do "HH:MM" na potrzeby UI.
+    sendTime: row.send_time.slice(0, 5),
+    daysOfWeek: row.days_of_week,
+    isActive: row.is_active,
+    lastSentDate: row.last_sent_date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }

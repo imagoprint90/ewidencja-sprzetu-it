@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
+import { EmployeeMultiSelect } from "@/components/notifications/EmployeeMultiSelect";
 import { employeeFullName, getAssignedEquipmentNames } from "@/lib/equipment-helpers";
-import { employeeDisplayLabel, renderNotificationText } from "@/lib/notification-helpers";
+import { renderNotificationText } from "@/lib/notification-helpers";
 import { NOTIFICATION_PLACEHOLDERS } from "@/lib/types";
 import type { Assignment, Employee, Equipment, NotificationTemplate } from "@/lib/types";
 import { sendNotificationAction } from "@/lib/supabase/actions/notification-actions";
@@ -23,25 +24,26 @@ export function SendTab({
   templates: NotificationTemplate[];
 }) {
   const router = useRouter();
-  const [employeeId, setEmployeeId] = useState("");
+  const [employeeIds, setEmployeeIds] = useState<string[]>([]);
   const [templateId, setTemplateId] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [result, setResult] = useState<{ sent: number; failed: { name: string; error: string }[] } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const activeEmployees = employees.filter((e) => e.isActive);
-  const employee = employees.find((e) => e.id === employeeId);
+  const selectedEmployees = activeEmployees.filter((e) => employeeIds.includes(e.id));
   const template = templates.find((t) => t.id === templateId);
+  const previewEmployee = selectedEmployees[0];
 
-  const assignedEquipmentNames = useMemo(
-    () => (employeeId ? getAssignedEquipmentNames(assignments, equipment, employeeId) : []),
-    [assignments, equipment, employeeId]
+  const previewAssignedEquipmentNames = useMemo(
+    () => (previewEmployee ? getAssignedEquipmentNames(assignments, equipment, previewEmployee.id) : []),
+    [assignments, equipment, previewEmployee]
   );
 
-  const previewSubject = employee ? renderNotificationText(subject, employee, assignedEquipmentNames) : subject;
-  const previewBody = employee ? renderNotificationText(body, employee, assignedEquipmentNames) : body;
+  const previewSubject = previewEmployee ? renderNotificationText(subject, previewEmployee, previewAssignedEquipmentNames) : subject;
+  const previewBody = previewEmployee ? renderNotificationText(body, previewEmployee, previewAssignedEquipmentNames) : body;
 
   function handleTemplateChange(id: string) {
     setTemplateId(id);
@@ -54,57 +56,59 @@ export function SendTab({
 
   function handleSend() {
     setError(null);
-    setSuccess(null);
-    if (!employee) {
-      setError("Wybierz pracownika.");
-      return;
-    }
-    if (!employee.email) {
-      setError("Ten pracownik nie ma zapisanego adresu e-mail — uzupełnij go w zakładce Pracownicy.");
+    setResult(null);
+    if (selectedEmployees.length === 0) {
+      setError("Wybierz co najmniej jednego pracownika.");
       return;
     }
     if (!subject.trim() || !body.trim()) {
       setError("Podaj temat i treść wiadomości.");
       return;
     }
+
     startTransition(async () => {
-      const result = await sendNotificationAction({
-        employeeId: employee.id,
-        employeeName: employeeFullName(employee),
-        employeeEmail: employee.email!,
-        templateId: template?.id ?? null,
-        templateName: template?.name ?? null,
-        subject: previewSubject,
-        body: previewBody,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      let sent = 0;
+      const failed: { name: string; error: string }[] = [];
+
+      for (const employee of selectedEmployees) {
+        const name = employeeFullName(employee);
+        if (!employee.email) {
+          failed.push({ name, error: "brak adresu e-mail" });
+          continue;
+        }
+        const assignedEquipmentNames = getAssignedEquipmentNames(assignments, equipment, employee.id);
+        const renderedSubject = renderNotificationText(subject, employee, assignedEquipmentNames);
+        const renderedBody = renderNotificationText(body, employee, assignedEquipmentNames);
+
+        const res = await sendNotificationAction({
+          employeeId: employee.id,
+          employeeName: name,
+          employeeEmail: employee.email,
+          templateId: template?.id ?? null,
+          templateName: template?.name ?? null,
+          subject: renderedSubject,
+          body: renderedBody,
+        });
+
+        if (res.ok) sent += 1;
+        else failed.push({ name, error: res.error });
       }
-      setSuccess(`Wysłano do ${employeeFullName(employee)}.`);
+
+      setResult({ sent, failed });
       router.refresh();
     });
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <FormSection title="Odbiorca i szablon">
-        <FormField label="Pracownik" htmlFor="employeeId" required>
-          <select
-            id="employeeId"
-            className={inputClass}
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-          >
-            <option value="">Wybierz pracownika…</option>
-            {activeEmployees.map((e) => (
-              <option key={e.id} value={e.id}>
-                {employeeDisplayLabel(e)}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Szablon (opcjonalnie)" htmlFor="templateId">
+      <FormSection title="Odbiorcy i szablon">
+        <div className="sm:col-span-2">
+          <p className="mb-1.5 text-sm font-medium">
+            Pracownicy <span className="text-danger">*</span>
+          </p>
+          <EmployeeMultiSelect employees={activeEmployees} selectedIds={employeeIds} onChange={setEmployeeIds} />
+        </div>
+        <FormField label="Szablon (opcjonalnie)" htmlFor="templateId" full>
           <select
             id="templateId"
             className={inputClass}
@@ -128,7 +132,8 @@ export function SendTab({
       </FormSection>
 
       <p className="text-xs text-muted">
-        Placeholdery w treści:{" "}
+        Placeholdery w treści (każdy pracownik dostaje wiadomość z podstawionymi własnymi
+        danymi):{" "}
         {NOTIFICATION_PLACEHOLDERS.map((p) => (
           <code key={p.token} className="mx-0.5 rounded bg-black/5 px-1" title={p.description}>
             {p.token}
@@ -136,10 +141,11 @@ export function SendTab({
         ))}
       </p>
 
-      {employee && (subject || body) && (
+      {previewEmployee && (subject || body) && (
         <div className="rounded-xl border border-dashed border-border bg-surface p-4 text-sm">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
-            Podgląd dla {employeeFullName(employee)}
+            Podgląd dla {employeeFullName(previewEmployee)}
+            {selectedEmployees.length > 1 && ` (+ ${selectedEmployees.length - 1} kolejnych, każdy dostanie własną wersję)`}
           </p>
           <p className="font-medium">{previewSubject}</p>
           <p className="mt-1 whitespace-pre-wrap text-foreground/80">{previewBody}</p>
@@ -149,14 +155,27 @@ export function SendTab({
       {error && (
         <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">{error}</p>
       )}
-      {success && (
-        <p className="rounded-lg border border-success/30 bg-green-50 px-4 py-3 text-sm text-success">{success}</p>
+      {result && (
+        <div className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+          <p className={result.failed.length === 0 ? "text-success" : "text-foreground"}>
+            Wysłano do {result.sent} z {result.sent + result.failed.length} pracowników.
+          </p>
+          {result.failed.length > 0 && (
+            <ul className="mt-1.5 list-inside list-disc text-danger">
+              {result.failed.map((f, i) => (
+                <li key={i}>
+                  {f.name}: {f.error}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       <div className="flex justify-end">
         <Button onClick={handleSend} disabled={isPending}>
           <Send size={16} />
-          Wyślij
+          {isPending ? "Wysyłanie…" : "Wyślij"}
         </Button>
       </div>
     </div>

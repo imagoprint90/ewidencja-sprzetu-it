@@ -9,6 +9,7 @@ import {
   mapLicenseAssignment,
   mapLocation,
   mapNotificationLogEntry,
+  mapNotificationSchedule,
   mapNotificationTemplate,
   mapProtocol,
   mapSoftwareLicense,
@@ -22,6 +23,7 @@ import type {
   EquipmentLink,
   CompanySettings,
   NotificationLogEntry,
+  NotificationSchedule,
   NotificationTemplate,
   Protocol,
   SoftwareProduct,
@@ -181,6 +183,17 @@ export async function getNotificationLog(supabase: SupabaseClient): Promise<Noti
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapNotificationLogEntry);
+}
+
+export async function getNotificationSchedules(
+  supabase: SupabaseClient
+): Promise<NotificationSchedule[]> {
+  const { data, error } = await supabase
+    .from("notification_schedules")
+    .select("*")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapNotificationSchedule);
 }
 
 export interface CurrentProfile {

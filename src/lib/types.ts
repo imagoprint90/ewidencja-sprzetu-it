@@ -243,7 +243,33 @@ export interface NotificationLogEntry {
   errorMessage: string | null;
   sentBy: string | null;
   sentByName: string;
+  scheduleId: string | null;
   createdAt: string;
+}
+
+// Dni tygodnia w numeracji ISO-8601 (1 = poniedziałek ... 7 = niedziela), tak jak
+// przechowywane w notification_schedules.days_of_week.
+export const DAY_OF_WEEK_LABELS: Record<number, string> = {
+  1: "Pon",
+  2: "Wt",
+  3: "Śr",
+  4: "Czw",
+  5: "Pt",
+  6: "Sob",
+  7: "Nd",
+};
+
+export interface NotificationSchedule {
+  id: string;
+  name: string;
+  templateId: string;
+  employeeIds: string[];
+  sendTime: string; // "HH:MM"
+  daysOfWeek: number[];
+  isActive: boolean;
+  lastSentDate: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Placeholdery dostępne w treści szablonu — podstawiane danymi konkretnego pracownika przy

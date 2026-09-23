@@ -1,9 +1,17 @@
 "use client";
 
 import { Tabs } from "@/components/ui/Tabs";
-import type { Assignment, Employee, Equipment, NotificationLogEntry, NotificationTemplate } from "@/lib/types";
+import type {
+  Assignment,
+  Employee,
+  Equipment,
+  NotificationLogEntry,
+  NotificationSchedule,
+  NotificationTemplate,
+} from "@/lib/types";
 import { SendTab } from "./SendTab";
 import { TemplatesTab } from "./TemplatesTab";
+import { SchedulesTab } from "./SchedulesTab";
 import { HistoryTab } from "./HistoryTab";
 
 export function PowiadomieniaClient({
@@ -11,12 +19,14 @@ export function PowiadomieniaClient({
   assignments,
   equipment,
   templates,
+  schedules,
   log,
 }: {
   employees: Employee[];
   assignments: Assignment[];
   equipment: Equipment[];
   templates: NotificationTemplate[];
+  schedules: NotificationSchedule[];
   log: NotificationLogEntry[];
 }) {
   return (
@@ -24,9 +34,8 @@ export function PowiadomieniaClient({
       <div>
         <h1 className="text-xl font-semibold">Powiadomienia</h1>
         <p className="text-sm text-muted">
-          Ręczne wysyłanie maili do pracowników, na podstawie zapisanych szablonów albo
-          treści napisanej od razu. Automatyczne powiadomienia (np. o kończącej się
-          gwarancji) pojawią się tu w kolejnym etapie.
+          Ręczne i automatyczne wysyłanie maili do pracowników, na podstawie zapisanych
+          szablonów albo treści napisanej od razu.
         </p>
       </div>
 
@@ -38,6 +47,11 @@ export function PowiadomieniaClient({
             content: (
               <SendTab employees={employees} assignments={assignments} equipment={equipment} templates={templates} />
             ),
+          },
+          {
+            key: "harmonogramy",
+            label: "Automatyczne",
+            content: <SchedulesTab schedules={schedules} employees={employees} templates={templates} />,
           },
           {
             key: "szablony",
