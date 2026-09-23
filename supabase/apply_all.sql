@@ -1425,7 +1425,7 @@ create policy "edycja sprzetu usuwa faktury" on storage.objects
 -- ============================================================
 -- Zakładka "Powiadomienia" (na razie wyłącznie ręczne wysyłanie, bez automatycznych
 -- wyzwalaczy) — szablony wielokrotnego użytku oraz historia wysłanych maili do pracowników.
--- Wysyłka odbywa się przez zewnętrzne API (Resend), nie przez samą bazę — tu tylko
+-- Wysyłka odbywa się przez SMTP skrzynki administratora (nodemailer), nie przez samą bazę — tu tylko
 -- przechowujemy treść szablonów i log tego, co i do kogo zostało wysłane.
 -- Dostęp wyłącznie dla administratora (tak jak zakładka Użytkownicy) — to nowa, wrażliwa
 -- funkcja (wysyłka maili w imieniu firmy), więc na start bez dodatkowych ról.

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import nodemailer from "nodemailer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mapNotificationTemplate } from "@/lib/supabase/mappers";
 import type { NotificationTemplate } from "@/lib/types";
@@ -104,8 +105,11 @@ export async function sendNotificationAction(
     return { ok: false, error: "Ten pracownik nie ma zapisanego adresu e-mail." };
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
+  const host = process.env.SMTP_HOST;
+  const port = process.env.SMTP_PORT;
+  const user = process.env.SMTP_USER;
+  const password = process.env.SMTP_PASSWORD;
+  const from = process.env.SMTP_FROM_EMAIL;
 
   async function logAndReturn(status: "wyslano" | "blad", errorMessage: string | null): Promise<ActionResult<undefined>> {
     if (!guard.ok) return { ok: false, error: "Brak zalogowanego użytkownika." };
@@ -126,36 +130,36 @@ export async function sendNotificationAction(
     return errorMessage ? { ok: false, error: errorMessage } : { ok: true, data: undefined };
   }
 
-  if (!apiKey || !from) {
+  if (!host || !port || !user || !password || !from) {
     return logAndReturn(
       "blad",
-      "Wysyłka mailowa nie jest jeszcze skonfigurowana — brak RESEND_API_KEY / RESEND_FROM_EMAIL w zmiennych środowiskowych."
+      "Wysyłka mailowa nie jest jeszcze skonfigurowana — uzupełnij zmienne środowiskowe SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD i SMTP_FROM_EMAIL."
     );
   }
 
   try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: [input.employeeEmail],
-        subject: input.subject,
-        text: input.body,
-      }),
+    const portNumber = Number(port);
+    // Port 465 = szyfrowanie od razu (SSL/TLS), inne porty (np. 587) = STARTTLS.
+    // Można to też wymusić jawnie zmienną SMTP_SECURE=true, gdyby dostawca odbiegał od normy.
+    const secure = process.env.SMTP_SECURE === "true" || portNumber === 465;
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port: portNumber,
+      secure,
+      auth: { user, pass: password },
     });
 
-    if (!res.ok) {
-      const errBody = await res.json().catch(() => null);
-      const message = errBody?.message || `Resend API zwróciło błąd (${res.status}).`;
-      return logAndReturn("blad", message);
-    }
+    await transporter.sendMail({
+      from,
+      to: input.employeeEmail,
+      subject: input.subject,
+      text: input.body,
+    });
 
     return logAndReturn("wyslano", null);
-  } catch {
-    return logAndReturn("blad", "Nie udało się połączyć z serwerem wysyłki (Resend).");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Nie udało się wysłać wiadomości przez SMTP.";
+    return logAndReturn("blad", message);
   }
 }
