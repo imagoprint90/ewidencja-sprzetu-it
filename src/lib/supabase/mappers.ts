@@ -7,6 +7,9 @@ import type {
   InstalledSoftware,
   LicenseType,
   Location,
+  NotificationLogEntry,
+  NotificationStatus,
+  NotificationTemplate,
   Protocol,
   SoftwareLicense,
   SoftwareLicenseAssignment,
@@ -233,5 +236,55 @@ export function mapEquipmentLink(row: {
     id: row.id,
     equipmentId: row.equipment_id,
     linkedEquipmentId: row.linked_equipment_id,
+  };
+}
+
+export function mapNotificationTemplate(row: {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}): NotificationTemplate {
+  return {
+    id: row.id,
+    name: row.name,
+    subject: row.subject,
+    body: row.body,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapNotificationLogEntry(row: {
+  id: string;
+  employee_id: string | null;
+  employee_name_snapshot: string;
+  employee_email_snapshot: string;
+  template_id: string | null;
+  template_name_snapshot: string | null;
+  subject: string;
+  body: string;
+  status: NotificationStatus;
+  error_message: string | null;
+  sent_by: string | null;
+  sent_by_name: string;
+  created_at: string;
+}): NotificationLogEntry {
+  return {
+    id: row.id,
+    employeeId: row.employee_id,
+    employeeName: row.employee_name_snapshot,
+    employeeEmail: row.employee_email_snapshot,
+    templateId: row.template_id,
+    templateName: row.template_name_snapshot,
+    subject: row.subject,
+    body: row.body,
+    status: row.status,
+    errorMessage: row.error_message,
+    sentBy: row.sent_by,
+    sentByName: row.sent_by_name,
+    createdAt: row.created_at,
   };
 }

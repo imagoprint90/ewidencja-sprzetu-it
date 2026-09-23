@@ -55,3 +55,16 @@ export function getEmployeeName(employees: Employee[], employeeId: string | unde
   const employee = employees.find((e) => e.id === employeeId);
   return employee ? employeeFullName(employee) : "—";
 }
+
+// Nazwy sprzętu aktualnie przydzielonego danemu pracownikowi — używane m.in. jako
+// placeholder {{sprzet}} w treści powiadomień mailowych.
+export function getAssignedEquipmentNames(
+  assignments: Assignment[],
+  equipment: Equipment[],
+  employeeId: string
+): string[] {
+  const equipmentIds = assignments
+    .filter((a) => a.employeeId === employeeId && a.returnedAt === null)
+    .map((a) => a.equipmentId);
+  return equipment.filter((e) => equipmentIds.includes(e.id)).map((e) => e.name);
+}

@@ -8,6 +8,8 @@ import {
   mapInstalledSoftware,
   mapLicenseAssignment,
   mapLocation,
+  mapNotificationLogEntry,
+  mapNotificationTemplate,
   mapProtocol,
   mapSoftwareLicense,
   mapSoftwareProduct,
@@ -19,6 +21,8 @@ import type {
   Assignment,
   EquipmentLink,
   CompanySettings,
+  NotificationLogEntry,
+  NotificationTemplate,
   Protocol,
   SoftwareProduct,
   SoftwareLicense,
@@ -157,6 +161,26 @@ export async function getInstalledSoftware(supabase: SupabaseClient): Promise<In
   const { data, error } = await supabase.from("equipment_installed_software").select("*");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapInstalledSoftware);
+}
+
+export async function getNotificationTemplates(
+  supabase: SupabaseClient
+): Promise<NotificationTemplate[]> {
+  const { data, error } = await supabase
+    .from("notification_templates")
+    .select("*")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapNotificationTemplate);
+}
+
+export async function getNotificationLog(supabase: SupabaseClient): Promise<NotificationLogEntry[]> {
+  const { data, error } = await supabase
+    .from("notification_log")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapNotificationLogEntry);
 }
 
 export interface CurrentProfile {

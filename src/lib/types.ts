@@ -214,6 +214,48 @@ export interface CompanySettings {
   representativeName: string;
 }
 
+export interface NotificationTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type NotificationStatus = "wyslano" | "blad";
+
+export const NOTIFICATION_STATUS_LABELS: Record<NotificationStatus, string> = {
+  wyslano: "Wysłano",
+  blad: "Błąd wysyłki",
+};
+
+export interface NotificationLogEntry {
+  id: string;
+  employeeId: string | null;
+  employeeName: string;
+  employeeEmail: string;
+  templateId: string | null;
+  templateName: string | null;
+  subject: string;
+  body: string;
+  status: NotificationStatus;
+  errorMessage: string | null;
+  sentBy: string | null;
+  sentByName: string;
+  createdAt: string;
+}
+
+// Placeholdery dostępne w treści szablonu — podstawiane danymi konkretnego pracownika przy
+// wysyłce (patrz src/lib/notification-helpers.ts).
+export const NOTIFICATION_PLACEHOLDERS: { token: string; description: string }[] = [
+  { token: "{{imie}}", description: "Imię pracownika" },
+  { token: "{{nazwisko}}", description: "Nazwisko pracownika" },
+  { token: "{{email}}", description: "E-mail pracownika" },
+  { token: "{{dzial}}", description: "Dział pracownika" },
+  { token: "{{sprzet}}", description: "Lista aktualnie przydzielonego sprzętu" },
+];
+
 export interface AuditLogEntry {
   id: string;
   tableName: string;

@@ -12,6 +12,7 @@ import {
   MapPin,
   Settings,
   ShieldCheck,
+  Bell,
   PanelLeftClose,
   PanelLeftOpen,
   X,
@@ -34,6 +35,7 @@ const NAV_ITEMS: {
   { href: "/kategorie", label: "Kategorie", icon: Tags, tab: "kategorie" },
   { href: "/lokalizacje", label: "Lokalizacje", icon: MapPin, tab: "lokalizacje" },
   { href: "/ustawienia", label: "Ustawienia", icon: Settings, tab: "ustawienia" },
+  { href: "/powiadomienia", label: "Powiadomienia", icon: Bell, adminOnly: true },
   { href: "/uzytkownicy", label: "Użytkownicy", icon: ShieldCheck, adminOnly: true },
 ];
 

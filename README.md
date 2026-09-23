@@ -39,6 +39,15 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   i uprawnień dodatkowych, wybór widocznych zakładek oraz wybór kategorii sprzętu (do edycji i
   do widoczności protokołów). Lista kont ma osobną kolumnę **Kategorie sprzętu do edycji**.
   Patrz sekcja „Zakładanie kont użytkowników” niżej.
+- **Powiadomienia** (zakładka `/powiadomienia`, tylko dla administratora): ręczne wysyłanie
+  maili do pracowników — zapisane, wielokrotnego użytku **szablony** (temat + treść z
+  placeholderami typu `{{imie}}`, `{{sprzet}}`, podstawianymi danymi konkretnego pracownika
+  przy wysyłce), formularz **Wyślij** z podglądem treści przed wysyłką, oraz **Historia**
+  wysłanych wiadomości (status, treść, kto wysłał). Wysyłka idzie przez zewnętrzne API
+  ([Resend](https://resend.com)) — wymaga zmiennych środowiskowych `RESEND_API_KEY` i
+  `RESEND_FROM_EMAIL` (patrz `.env.example`); bez nich przycisk „Wyślij” zwraca czytelny błąd
+  zamiast się wywalać. Na razie tylko ręczne wysyłanie — automatyczne powiadomienia (np. o
+  kończącej się gwarancji sprzętu) to kolejny etap.
 - Sprzęt: lista z wyszukiwarką, filtrami wielokrotnego wyboru (checkboxy — np. kilka statusów
   albo kilka lokalizacji naraz), wyborem widocznych kolumn, dodawanie i edycja (walidacja
   unikalności numeru inwentarzowego, spójność dat gwarancji) — wszystko zapisywane w bazie.
@@ -211,6 +220,9 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 6. `0028_equipment_purchase_invoice.sql` (dodaje kolumnę `purchase_invoice_path` w `equipment`
    i nowy prywatny bucket Storage `faktury` — faktura zakupu jako załącznik PDF do karty
    sprzętu, patrz zakładka „Szczegóły” na karcie sprzętu i kolumna „FV” na liście Sprzęt)
+7. `0029_notifications.sql` (nowe tabele `notification_templates`/`notification_log` — zakładka
+   Powiadomienia, patrz opis wyżej; do działania wysyłki potrzeba też zmiennych
+   środowiskowych `RESEND_API_KEY`/`RESEND_FROM_EMAIL`, ale sama migracja działa bez nich)
 
 ## Konfiguracja Supabase
 
@@ -229,6 +241,25 @@ Projekt Supabase jest już utworzony i skonfigurowany (schemat bazy, RLS, dane p
 3. Uruchom ponownie `npm run dev`.
 
 Te same trzy zmienne są już ustawione w Vercelu dla wersji produkcyjnej.
+
+### Konfiguracja wysyłki maili (zakładka Powiadomienia)
+
+Opcjonalne — bez tego zakładka Powiadomienia działa normalnie (szablony, historia), tylko
+przycisk „Wyślij” zwraca błąd tłumaczący, że wysyłka nie jest skonfigurowana.
+
+1. Załóż darmowe konto na [resend.com](https://resend.com).
+2. W panelu Resend zweryfikuj domenę, z której będą wysyłane maile (**Domains → Add Domain**,
+   dodajesz kilka rekordów DNS u swojego dostawcy domeny — Resend pokaże dokładną instrukcję).
+3. Utwórz klucz API (**API Keys → Create API Key**).
+4. Dodaj w Vercelu (**Project Settings → Environment Variables**) i w swoim `.env.local`:
+   - `RESEND_API_KEY` — klucz z kroku 3.
+   - `RESEND_FROM_EMAIL` — adres nadawcy z zweryfikowanej domeny, np.
+     `Ewidencja IT <powiadomienia@twojafirma.pl>`.
+
+   **Nie wklejaj tych wartości do rozmowy ze mną** — wpisujesz je bezpośrednio w panelu
+   Vercela i w `.env.local`, tak samo jak klucze Supabase powyżej.
+5. Po dodaniu zmiennych w Vercelu zrób redeploy (albo poczekaj na kolejny push), żeby je
+   podłączył.
 
 ### Zakładanie kont użytkowników
 
