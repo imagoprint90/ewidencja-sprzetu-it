@@ -100,7 +100,12 @@ export function PracownicyClient({
 
   async function saveField(
     item: Employee,
-    patch: Partial<{ email: string | null; phone: string | null; department: string | null }>
+    patch: Partial<{
+      email: string | null;
+      phone: string | null;
+      department: string | null;
+      locationId: string | null;
+    }>
   ) {
     const result = await updateEmployeeAction(item.id, {
       firstName: item.firstName,
@@ -108,7 +113,7 @@ export function PracownicyClient({
       email: patch.email !== undefined ? patch.email : item.email,
       phone: patch.phone !== undefined ? patch.phone : item.phone,
       department: patch.department !== undefined ? patch.department : item.department,
-      locationId: item.locationId,
+      locationId: patch.locationId !== undefined ? patch.locationId : item.locationId,
     });
     if (result.ok) router.refresh();
     return result.ok ? { ok: true as const } : { ok: false as const, error: result.error };
@@ -359,7 +364,22 @@ export function PracownicyClient({
                         ) : (
                           (e.department ?? "—")
                         ))}
-                      {col === "location" && getLocationName(locations, e.locationId)}
+                      {col === "location" &&
+                        (isAdmin ? (
+                          <EditableCell
+                            value={e.locationId ?? ""}
+                            displayValue={getLocationName(locations, e.locationId)}
+                            options={[
+                              { value: "", label: "— brak —" },
+                              ...locations
+                                .filter((l) => !l.isArchived || l.id === e.locationId)
+                                .map((l) => ({ value: l.id, label: l.name })),
+                            ]}
+                            onSave={(v) => saveField(e, { locationId: v || null })}
+                          />
+                        ) : (
+                          getLocationName(locations, e.locationId)
+                        ))}
                       {col === "assignedEquipment" && (
                         <ExpandableList items={assignedEquipmentNames[e.id] ?? []} />
                       )}
