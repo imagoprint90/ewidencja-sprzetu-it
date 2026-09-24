@@ -27,6 +27,7 @@ import { EditableCell } from "@/components/ui/EditableCell";
 import { SortableTh } from "@/components/ui/SortableTh";
 import { formatDate } from "@/lib/format";
 import { useSort } from "@/lib/useSort";
+import { adaptColorForTheme, useIsDark } from "@/lib/useTheme";
 import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
 import {
   employeeFullName,
@@ -92,6 +93,7 @@ export function EquipmentTable({
   onToggleSelectAll: () => void;
 }) {
   const router = useRouter();
+  const isDark = useIsDark();
   const isAdmin = useIsAdmin();
   const canEditEquipment = useCanEditEquipment();
   const canTransferEquipment = useCanTransferEquipment();
@@ -267,7 +269,7 @@ export function EquipmentTable({
                   "cursor-pointer border-b border-border last:border-0 hover:bg-primary/5",
                   index % 2 === 1 && "bg-black/[0.015]"
                 )}
-                style={{ color: EQUIPMENT_STATUS_COLORS[item.status] }}
+                style={{ color: adaptColorForTheme(EQUIPMENT_STATUS_COLORS[item.status], isDark) }}
                 onClick={() => router.push(`/sprzet/${item.id}`)}
               >
                 {(isAdmin || canEditEquipment || canTransferEquipment) && (
@@ -286,7 +288,7 @@ export function EquipmentTable({
                   <td
                     key={col}
                     className="px-3 py-2 align-middle"
-                    style={columnColors[col] ? { color: columnColors[col] } : undefined}
+                    style={columnColors[col] ? { color: adaptColorForTheme(columnColors[col], isDark) } : undefined}
                   >
                     {renderCell(col, item, {
                       categoryName,

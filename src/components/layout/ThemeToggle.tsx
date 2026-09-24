@@ -1,23 +1,13 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
+import { useIsDark } from "@/lib/useTheme";
 
 // Motyw jest przechowywany jako klasa "dark" na <html> (ustawiana przed pierwszym renderem
 // przez skrypt w layout.tsx, żeby nie było mignięcia jasnego motywu) i zapamiętywany w
 // localStorage. Komponent tylko odczytuje/przełącza tę klasę.
-function subscribe(callback: () => void) {
-  const observer = new MutationObserver(callback);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-  return () => observer.disconnect();
-}
-
 export function ThemeToggle({ className = "" }: { className?: string }) {
-  const dark = useSyncExternalStore(
-    subscribe,
-    () => document.documentElement.classList.contains("dark"),
-    () => false
-  );
+  const dark = useIsDark();
 
   function toggle() {
     const next = !dark;
