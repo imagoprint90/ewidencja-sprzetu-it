@@ -452,8 +452,12 @@ export function OprogramowanieClient({
           <p className="text-sm text-muted">Brak produktów spełniających kryteria.</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {filteredProducts.map((p) => (
-              <li key={p.id} className="rounded-lg border border-border p-3">
+            {filteredProducts.map((p, index) => (
+              <li key={p.id} className="flex gap-3 rounded-lg border border-border p-3">
+                <span className="w-7 shrink-0 pt-1.5 text-xs text-muted" title="L.p.">
+                  {index + 1}.
+                </span>
+                <div className="min-w-0 flex-1">
                 {editingProductId === p.id ? (
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-col gap-2 sm:flex-row">
@@ -494,6 +498,7 @@ export function OprogramowanieClient({
                     )}
                   </div>
                 )}
+                </div>
               </li>
             ))}
           </ul>
@@ -626,7 +631,7 @@ export function OprogramowanieClient({
           <p className="mt-4 text-sm text-muted">Brak licencji spełniających kryteria.</p>
         ) : (
           <div className="mt-4 flex flex-col gap-3">
-            {filteredLicenses.map((license) => {
+            {filteredLicenses.map((license, licenseIndex) => {
               const product = products.find((p) => p.id === license.productId);
               const used = assignments.filter((a) => a.licenseId === license.id);
               const free = license.seatsTotal - used.length;
@@ -635,7 +640,11 @@ export function OprogramowanieClient({
               return (
                 <div key={license.id} className="rounded-xl border border-border p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
+                    <div className="flex gap-3">
+                      <span className="w-7 shrink-0 text-xs text-muted" title="L.p.">
+                        {licenseIndex + 1}.
+                      </span>
+                      <div>
                       <p className="font-medium">{product?.name ?? "Nieznany produkt"}</p>
                       <p className="text-xs text-muted">
                         {LICENSE_TYPE_LABELS[license.licenseType]} · ważna do{" "}
@@ -658,6 +667,7 @@ export function OprogramowanieClient({
                               )
                               .join(", ")}
                       </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge tone={free > 0 ? "success" : "danger"}>
