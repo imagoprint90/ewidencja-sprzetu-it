@@ -7,7 +7,11 @@ import { useState } from "react";
 import { equipmentAddFormSchema, type EquipmentAddFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
-import { TECHNICAL_CONDITION_LABELS, type Category } from "@/lib/types";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
+import { useIsAdmin, useCanTransferEquipment } from "@/lib/current-user-context";
+import { employeeFullName } from "@/lib/equipment-helpers";
+import { transferEquipmentSetAction } from "@/lib/supabase/actions/assignment-actions";
+import { TECHNICAL_CONDITION_LABELS, type Category, type Employee } from "@/lib/types";
 import { addEquipmentAction, uploadEquipmentInvoiceAction } from "@/lib/supabase/actions/equipment-actions";
 
 function readFileAsBase64(file: File): Promise<string> {
@@ -19,8 +23,12 @@ function readFileAsBase64(file: File): Promise<string> {
   });
 }
 
-export function NowySprzetForm({ categories }: { categories: Category[] }) {
+export function NowySprzetForm({ categories, employees }: { categories: Category[]; employees: Employee[] }) {
   const router = useRouter();
+  const isAdmin = useIsAdmin();
+  const canTransfer = useCanTransferEquipment();
+  const canAssign = isAdmin || canTransfer;
+  const [employeeId, setEmployeeId] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
 
@@ -37,6 +45,10 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
     setSubmitError(null);
     if (invoiceFile && !invoiceFile.name.toLowerCase().endsWith(".pdf")) {
       setSubmitError("Faktura musi być plikiem PDF.");
+      return;
+    }
+    if (canAssign && employeeId && !values.technicalCondition) {
+      setSubmitError("Przy przydzielaniu pracownika wybierz stan techniczny sprzętu.");
       return;
     }
     const result = await addEquipmentAction({
@@ -68,6 +80,20 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
         window.alert(`Sprzęt dodano, ale nie udało się wgrać faktury: ${upload.error} Dodasz ją na karcie sprzętu.`);
       }
     }
+    if (canAssign && employeeId && values.technicalCondition) {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const assign = await transferEquipmentSetAction({
+        equipmentIds: [result.data.id],
+        newEmployeeId: employeeId,
+        transferDate: today,
+        condition: values.technicalCondition,
+        notes: null,
+      });
+      if (!assign.ok) {
+        window.alert(`Sprzęt dodano, ale nie udało się go przydzielić: ${assign.error} Przydzielisz go na karcie sprzętu.`);
+      }
+    }
     router.push(`/sprzet/${result.data.id}`);
   }
 
@@ -77,9 +103,9 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
         <h1 className="text-xl font-semibold">Dodaj sprzęt</h1>
         <p className="text-sm text-muted">
           Numer inwentarzowy nadaje się automatycznie (można go później poprawić na karcie
-          sprzętu). Nowy sprzęt trafia domyślnie do statusu „W magazynie”. Przydzielenie do
-          pracownika wykonasz operacją „Przekaż sprzęt” na karcie sprzętu, w zakładce
-          „Przydziały”.
+          sprzętu). Nowy sprzęt trafia domyślnie do statusu „W magazynie” — chyba że od razu
+          wskażesz pracownika w sekcji „Przydział”. Późniejsze przekazania (z protokołem)
+          wykonasz na karcie sprzętu.
         </p>
       </div>
 
@@ -136,6 +162,33 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
             />
           </FormField>
         </FormSection>
+
+        {canAssign && (
+          <FormSection
+            title="Przydział (opcjonalnie)"
+            description="Sprzęt zostanie od razu przydzielony wybranemu pracownikowi (dzisiejszą datą), bez generowania protokołu. Wymaga wybrania stanu technicznego poniżej. Zostaw puste, aby sprzęt trafił do magazynu."
+          >
+            <FormField label="Przydziel pracownikowi" htmlFor="assignEmployee" full>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <SearchableSelect
+                    id="assignEmployee"
+                    options={employees.map((e) => ({ value: e.id, label: employeeFullName(e) }))}
+                    value={employeeId}
+                    onChange={setEmployeeId}
+                    placeholder="Nie przydzielaj (magazyn)"
+                    searchPlaceholder="Szukaj pracownika…"
+                  />
+                </div>
+                {employeeId && (
+                  <Button type="button" variant="secondary" onClick={() => setEmployeeId("")}>
+                    Wyczyść
+                  </Button>
+                )}
+              </div>
+            </FormField>
+          </FormSection>
+        )}
 
         <FormSection
           title="Stan"
