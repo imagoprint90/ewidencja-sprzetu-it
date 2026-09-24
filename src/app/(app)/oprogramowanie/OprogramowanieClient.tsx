@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { formatDate } from "@/lib/format";
 import { employeeFullName } from "@/lib/equipment-helpers";
@@ -560,19 +561,21 @@ export function OprogramowanieClient({
         {showAddLicense && (
           <FormSection title="Nowa licencja">
             <FormField label="Produkt" htmlFor="licenseProductId" required>
-              <select
+              <SearchableSelect
                 id="licenseProductId"
-                className={inputClass}
                 value={licenseProductId}
-                onChange={(e) => setLicenseProductId(e.target.value)}
-              >
-                <option value="">Wybierz produkt…</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setLicenseProductId}
+                placeholder="Wybierz produkt…"
+                searchPlaceholder="Szukaj produktu…"
+                options={products.map((p) => {
+                  const count = licenses.filter((l) => l.productId === p.id).length;
+                  return {
+                    value: p.id,
+                    label: p.name + (p.version ? ` ${p.version}` : ""),
+                    hint: count === 0 ? "jeszcze nie użyty" : `użyty ${count}×`,
+                  };
+                })}
+              />
             </FormField>
             <FormField label="Typ licencji" htmlFor="licenseType" required>
               <select
