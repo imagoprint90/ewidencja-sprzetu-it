@@ -229,6 +229,33 @@ export async function updateSoftwareLicenseAction(
   return { ok: true, data: undefined };
 }
 
+export async function deleteSoftwareProductAction(id: string): Promise<ActionResult<undefined>> {
+  const supabase = await requireAdmin();
+  if (!supabase) return { ok: false, error: "Ta operacja wymaga uprawnień administratora." };
+
+  const { count } = await supabase
+    .from("software_licenses")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", id);
+  if ((count ?? 0) > 0) {
+    return { ok: false, error: "Nie można usunąć produktu, który ma licencje — usuń najpierw jego licencje." };
+  }
+
+  const { error } = await supabase.from("software_products").delete().eq("id", id);
+  if (error) {
+    if (error.code === "23503") {
+      return {
+        ok: false,
+        error: "Nie można usunąć produktu — jest zarejestrowany jako zainstalowany na sprzęcie. Usuń go najpierw z kart sprzętu.",
+      };
+    }
+    return { ok: false, error: "Nie udało się usunąć produktu." };
+  }
+
+  revalidatePath("/oprogramowanie");
+  return { ok: true, data: undefined };
+}
+
 export async function deleteSoftwareLicenseAction(id: string): Promise<ActionResult<undefined>> {
   const supabase = await requireAdmin();
   if (!supabase) return { ok: false, error: "Ta operacja wymaga uprawnień administratora." };

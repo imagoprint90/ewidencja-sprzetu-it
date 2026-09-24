@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, History, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, History, Pencil, Plus, Receipt, Search, Trash2, Upload } from "lucide-react";
 import { parseCsv, normalizeHeader } from "@/lib/csv";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
@@ -32,6 +32,7 @@ import {
   assignLicenseAction,
   deleteLicenseInvoiceAction,
   deleteSoftwareLicenseAction,
+  deleteSoftwareProductAction,
   getLicenseInvoiceUrlAction,
   importSoftwareProductsAction,
   setLicenseKeyAction,
@@ -116,6 +117,7 @@ export function OprogramowanieClient({
   const [historyLicenseId, setHistoryLicenseId] = useState<string | null>(null);
   const [productQuery, setProductQuery] = useState("");
   const [licenseQuery, setLicenseQuery] = useState("");
+  const [deleteProductTarget, setDeleteProductTarget] = useState<SoftwareProduct | null>(null);
   const [deleteLicenseTarget, setDeleteLicenseTarget] = useState<SoftwareLicense | null>(null);
   const [deleteLicenseError, setDeleteLicenseError] = useState<string | null>(null);
   const [productsCollapsed, setProductsCollapsed] = useLocalStorage("oprogramowanie-produkty-zwiniete", false);
@@ -347,6 +349,17 @@ export function OprogramowanieClient({
       })
     : licenses;
 
+  function handleDeleteProduct() {
+    if (!deleteProductTarget) return;
+    const id = deleteProductTarget.id;
+    startTransition(async () => {
+      const result = await deleteSoftwareProductAction(id);
+      setDeleteProductTarget(null);
+      setProductError(result.ok ? null : result.error);
+      if (result.ok) router.refresh();
+    });
+  }
+
   function handleDeleteLicense() {
     if (!deleteLicenseTarget) return;
     const id = deleteLicenseTarget.id;
@@ -441,6 +454,19 @@ export function OprogramowanieClient({
           </div>
         )}
         {productError && <p className="mb-3 text-sm text-danger">{productError}</p>}
+        <ConfirmDialog
+          open={deleteProductTarget !== null}
+          title="Usunąć produkt?"
+          description={
+            deleteProductTarget
+              ? `„${deleteProductTarget.name}${deleteProductTarget.version ? " " + deleteProductTarget.version : ""}” zostanie trwale usunięty z katalogu. Tej operacji nie można cofnąć.`
+              : undefined
+          }
+          confirmLabel="Usuń"
+          danger
+          onCancel={() => setDeleteProductTarget(null)}
+          onConfirm={handleDeleteProduct}
+        />
 
         {products.length > 0 && (
           <SearchBox value={productQuery} onChange={setProductQuery} placeholder="Szukaj produktu: nazwa, wersja…" />
@@ -491,10 +517,23 @@ export function OprogramowanieClient({
                       {p.version ? ` ${p.version}` : ""}
                     </Badge>
                     {isAdmin && (
-                      <Button size="sm" variant="ghost" onClick={() => startEditProduct(p)}>
-                        <Pencil size={14} />
-                        Edytuj
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => startEditProduct(p)}>
+                          <Pencil size={14} />
+                          Edytuj
+                        </Button>
+                        {!licenses.some((l) => l.productId === p.id) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Usuń produkt (możliwe tylko gdy nie ma licencji)"
+                            onClick={() => setDeleteProductTarget(p)}
+                          >
+                            <Trash2 size={14} />
+                            Usuń
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -638,45 +677,51 @@ export function OprogramowanieClient({
               const expanded = expandedLicenseId === license.id;
 
               return (
-                <div key={license.id} className="rounded-xl border border-border p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex gap-3">
-                      <span className="w-7 shrink-0 text-xs text-muted" title="L.p.">
-                        {licenseIndex + 1}.
-                      </span>
-                      <div>
-                      <p className="font-medium">{product?.name ?? "Nieznany produkt"}</p>
-                      <p className="text-xs text-muted">
-                        {LICENSE_TYPE_LABELS[license.licenseType]} · ważna do{" "}
-                        {license.validUntil ? formatDate(license.validUntil) : "bezterminowo"}
-                        {license.purchaseDate && <> · zakup {formatDate(license.purchaseDate)}</>}
-                        {license.invoicePath && <> · faktura załączona</>}
-                      </p>
-                      <p className="mt-0.5 text-xs">
-                        <span className="text-muted">Przydzielona do: </span>
-                        {used.length === 0
-                          ? "—"
-                          : used
-                              .map((a) =>
-                                a.equipmentId
-                                  ? (equipment.find((e) => e.id === a.equipmentId)?.name ?? "usunięty sprzęt")
-                                  : (() => {
-                                      const emp = employees.find((e) => e.id === a.employeeId);
-                                      return emp ? employeeFullName(emp) : "nieaktywny pracownik";
-                                    })()
-                              )
-                              .join(", ")}
-                      </p>
+                <div key={license.id} className="rounded-lg border border-border px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="w-6 shrink-0 text-xs text-muted" title="L.p.">
+                      {licenseIndex + 1}.
+                    </span>
+                    <div className="min-w-0 flex-1 basis-64">
+                      <div className="flex flex-wrap items-baseline gap-x-2">
+                        <span className="font-medium">{product?.name ?? "Nieznany produkt"}</span>
+                        <span className="text-xs text-muted">{LICENSE_TYPE_LABELS[license.licenseType]}</span>
                       </div>
+                      <p className="truncate text-xs text-muted" title={assignedNames(license.id).join(", ")}>
+                        {used.length === 0 ? "Nieprzydzielona" : assignedNames(license.id).join(", ")}
+                        <span className="opacity-70">
+                          {" · "}ważna {license.validUntil ? formatDate(license.validUntil) : "bezterminowo"}
+                          {license.purchaseDate && <>{" · "}zakup {formatDate(license.purchaseDate)}</>}
+                        </span>
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge tone={free > 0 ? "success" : "danger"}>
-                        {used.length} / {license.seatsTotal} zajętych
-                      </Badge>
+                    <Badge tone={free > 0 ? "success" : "danger"}>
+                      {used.length}/{license.seatsTotal}
+                    </Badge>
+                    {license.invoicePath && (
+                      <span title="Faktura załączona" className="text-muted">
+                        <Receipt size={15} />
+                      </span>
+                    )}
+                    <div className="flex items-center">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title="Historia licencji"
+                        aria-label="Historia licencji"
+                        onClick={() => setHistoryLicenseId(historyLicenseId === license.id ? null : license.id)}
+                      >
+                        <History size={15} />
+                      </Button>
                       {isAdmin && (
-                        <Button size="sm" variant="ghost" onClick={() => startEditLicense(license)}>
-                          <Pencil size={14} />
-                          Edytuj
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Edytuj licencję"
+                          aria-label="Edytuj licencję"
+                          onClick={() => startEditLicense(license)}
+                        >
+                          <Pencil size={15} />
                         </Button>
                       )}
                       {isAdmin && used.length === 0 && (
@@ -684,20 +729,12 @@ export function OprogramowanieClient({
                           size="sm"
                           variant="ghost"
                           title="Usuń licencję (możliwe tylko gdy nie jest przydzielona)"
+                          aria-label="Usuń licencję"
                           onClick={() => setDeleteLicenseTarget(license)}
                         >
-                          <Trash2 size={14} />
-                          Usuń
+                          <Trash2 size={15} />
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setHistoryLicenseId(historyLicenseId === license.id ? null : license.id)}
-                      >
-                        <History size={14} />
-                        {historyLicenseId === license.id ? "Ukryj historię" : "Historia"}
-                      </Button>
                       <Button
                         size="sm"
                         variant="secondary"
@@ -707,25 +744,9 @@ export function OprogramowanieClient({
                           setAssignTarget("");
                         }}
                       >
-                        {expanded ? "Zwiń" : "Zarządzaj"}
+                        {expanded ? "Zwiń" : "Szczegóły"}
                       </Button>
                     </div>
-                  </div>
-
-                  <div className="mt-3 grid gap-4 border-t border-border pt-3 sm:grid-cols-2">
-                    <InvoiceAttachment
-                      bare
-                      label="Faktura VAT"
-                      equipmentId={license.id}
-                      path={license.invoicePath}
-                      canEdit={isAdmin}
-                      handlers={{
-                        upload: uploadLicenseInvoiceAction,
-                        remove: deleteLicenseInvoiceAction,
-                        download: getLicenseInvoiceUrlAction,
-                      }}
-                    />
-                    {isAdmin && <LicenseKey licenseId={license.id} hasKey={keyLicenseIds.includes(license.id)} />}
                   </div>
 
                   {historyLicenseId === license.id && (
@@ -785,7 +806,22 @@ export function OprogramowanieClient({
                   )}
 
                   {expanded && (
-                    <div className="mt-3 flex flex-col gap-3 border-t border-border pt-3">
+                    <div className="mt-2 flex flex-col gap-3 border-t border-border pt-3">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <InvoiceAttachment
+                          bare
+                          label="Faktura VAT"
+                          equipmentId={license.id}
+                          path={license.invoicePath}
+                          canEdit={isAdmin}
+                          handlers={{
+                            upload: uploadLicenseInvoiceAction,
+                            remove: deleteLicenseInvoiceAction,
+                            download: getLicenseInvoiceUrlAction,
+                          }}
+                        />
+                        {isAdmin && <LicenseKey licenseId={license.id} hasKey={keyLicenseIds.includes(license.id)} />}
+                      </div>
                       {used.length === 0 ? (
                         <p className="text-sm text-muted">Brak przypisań tej licencji.</p>
                       ) : (
