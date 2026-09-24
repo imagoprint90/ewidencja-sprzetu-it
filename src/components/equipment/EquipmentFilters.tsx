@@ -12,6 +12,7 @@ export interface EquipmentFiltersState {
   statuses: EquipmentStatus[];
   locationIds: string[];
   employeeIds: string[];
+  domains?: ("tak" | "nie")[];
 }
 
 export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
@@ -20,6 +21,7 @@ export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
   statuses: [],
   locationIds: [],
   employeeIds: [],
+  domains: [],
 };
 
 export function EquipmentFilters({
@@ -70,6 +72,16 @@ export function EquipmentFilters({
         options={locations.map((l) => ({ value: l.id, label: l.name }))}
         selected={value.locationIds}
         onChange={(v) => set("locationIds", v)}
+      />
+
+      <MultiSelectFilter
+        label="Domena"
+        options={[
+          { value: "tak", label: "TAK" },
+          { value: "nie", label: "NIE" },
+        ]}
+        selected={value.domains ?? []}
+        onChange={(v) => set("domains", v as ("tak" | "nie")[])}
       />
 
       <MultiSelectFilter

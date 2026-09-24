@@ -112,6 +112,8 @@ function SprzetPageInner({
     return equipment.filter((item) => {
       if (filters.categoryIds.length > 0 && !filters.categoryIds.includes(item.categoryId)) return false;
       if (filters.statuses.length > 0 && !filters.statuses.includes(item.status)) return false;
+      if ((filters.domains ?? []).length > 0 && !filters.domains!.includes(item.inDomain ? "tak" : "nie"))
+        return false;
       if (filters.locationIds.length > 0 && !filters.locationIds.includes(item.locationId)) return false;
       if (filters.employeeIds.length > 0) {
         const active = getActiveAssignment(assignments, item.id);

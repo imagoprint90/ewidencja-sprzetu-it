@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { parseCsv, normalizeHeader } from "@/lib/csv";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -23,7 +24,9 @@ import {
   addSoftwareLicenseAction,
   addSoftwareProductAction,
   assignLicenseAction,
+  importSoftwareProductsAction,
   removeLicenseAssignmentAction,
+  type SoftwareCsvRow,
   updateSoftwareLicenseAction,
   updateSoftwareProductAction,
 } from "@/lib/supabase/actions/software-actions";
@@ -45,6 +48,9 @@ export function OprogramowanieClient({
   const isAdmin = useIsAdmin();
   const [isPending, startTransition] = useTransition();
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [productName, setProductName] = useState("");
   const [productVersion, setProductVersion] = useState("");
@@ -90,6 +96,56 @@ export function OprogramowanieClient({
       setShowAddProduct(false);
       router.refresh();
     });
+  }
+
+  function handleProductsFilePicked(file: File) {
+    setImportError(null);
+    setImportResult(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const rows = parseCsv(reader.result as string);
+      if (rows.length < 2) {
+        setImportError("Plik CSV jest pusty albo zawiera tylko nagłówek.");
+        return;
+      }
+      const [header, ...dataRows] = rows;
+      const norm = header.map(normalizeHeader);
+      const nameIdx = norm.findIndex((h) => ["nazwa", "produkt", "nazwa produktu"].includes(h));
+      const versionIdx = norm.findIndex((h) => ["wersja"].includes(h));
+      const notesIdx = norm.findIndex((h) => ["uwagi", "notatki"].includes(h));
+      if (nameIdx === -1) {
+        setImportError('Nagłówek pliku musi zawierać kolumnę "Nazwa" (kolumny "Wersja" i "Uwagi" są opcjonalne).');
+        return;
+      }
+      const parsed: SoftwareCsvRow[] = dataRows
+        .filter((r) => r.some((c) => c.trim() !== ""))
+        .map((r) => ({
+          name: r[nameIdx] ?? "",
+          version: versionIdx !== -1 ? (r[versionIdx] ?? "") : "",
+          notes: notesIdx !== -1 ? (r[notesIdx] ?? "") : "",
+        }));
+      if (parsed.length === 0) {
+        setImportError("Nie znaleziono żadnych wierszy z danymi.");
+        return;
+      }
+      startTransition(async () => {
+        const result = await importSoftwareProductsAction(parsed);
+        if (!result.ok) {
+          setImportError(result.error);
+          return;
+        }
+        const { imported, skipped } = result.data;
+        setImportResult(
+          skipped.length === 0
+            ? `Zaimportowano ${imported} produktów.`
+            : `Zaimportowano ${imported} z ${parsed.length}. Pominięte wiersze: ${skipped
+                .map((s) => `#${s.row} (${s.reason})`)
+                .join(", ")}.`
+        );
+        router.refresh();
+      });
+    };
+    reader.readAsText(file, "UTF-8");
   }
 
   function startEditProduct(p: SoftwareProduct) {
@@ -218,12 +274,32 @@ export function OprogramowanieClient({
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Produkty</h2>
           {isAdmin && (
-            <Button size="sm" variant="secondary" onClick={() => setShowAddProduct((v) => !v)}>
-              <Plus size={14} />
-              Dodaj produkt
-            </Button>
+            <div className="flex gap-2">
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleProductsFilePicked(file);
+                  e.target.value = "";
+                }}
+              />
+              <Button size="sm" variant="secondary" disabled={isPending} onClick={() => fileInputRef.current?.click()}>
+                <Upload size={14} />
+                Importuj CSV
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setShowAddProduct((v) => !v)}>
+                <Plus size={14} />
+                Dodaj produkt
+              </Button>
+            </div>
           )}
         </div>
+
+        {importError && <p className="mb-3 text-sm text-danger">{importError}</p>}
+        {importResult && <p className="mb-3 text-sm">{importResult}</p>}
 
         {showAddProduct && (
           <div className="mb-4 flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row">

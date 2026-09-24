@@ -25,6 +25,50 @@ export async function addSoftwareProductAction(input: {
   return { ok: true, data: undefined };
 }
 
+export interface SoftwareCsvRow {
+  name: string;
+  version: string;
+  notes: string;
+}
+
+export async function importSoftwareProductsAction(
+  rows: SoftwareCsvRow[]
+): Promise<ActionResult<{ imported: number; skipped: { row: number; reason: string }[] }>> {
+  const supabase = await createSupabaseServerClient();
+  const { data: existing } = await supabase.from("software_products").select("name, version");
+
+  const key = (name: string, version: string) => `${name.trim().toLowerCase()}|${version.trim().toLowerCase()}`;
+  const seen = new Set((existing ?? []).map((p) => key(p.name, p.version ?? "")));
+
+  const skipped: { row: number; reason: string }[] = [];
+  const toInsert: { name: string; version: string | null; notes: string | null }[] = [];
+
+  rows.forEach((r, i) => {
+    const rowNumber = i + 2;
+    const name = r.name.trim();
+    const version = r.version.trim();
+    if (!name) {
+      skipped.push({ row: rowNumber, reason: "brak nazwy" });
+      return;
+    }
+    const k = key(name, version);
+    if (seen.has(k)) {
+      skipped.push({ row: rowNumber, reason: "produkt już istnieje" });
+      return;
+    }
+    seen.add(k);
+    toInsert.push({ name, version: version || null, notes: r.notes.trim() || null });
+  });
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from("software_products").insert(toInsert);
+    if (error) return { ok: false, error: "Nie udało się zapisać produktów w bazie." };
+  }
+
+  revalidatePath("/oprogramowanie");
+  return { ok: true, data: { imported: toInsert.length, skipped } };
+}
+
 export async function addSoftwareLicenseAction(input: {
   productId: string;
   licenseType: LicenseType;

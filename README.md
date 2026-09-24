@@ -164,6 +164,13 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
 - Pełne ukrycie akcji edycji przed rolą „podgląd” we wszystkich miejscach interfejsu (RLS w
   bazie już i tak blokuje te operacje niezależnie od interfejsu).
 
+## Import produktów oprogramowania z CSV
+
+Na stronie **Oprogramowanie** przycisk „Importuj CSV” (tylko administrator) dodaje wiele
+produktów naraz. Wymagana kolumna: `Nazwa`; opcjonalne: `Wersja`, `Uwagi` (separator przecinek
+lub średnik, kodowanie UTF-8). Produkty, które już istnieją (ta sama nazwa i wersja, bez
+względu na wielkość liter), są pomijane i wymienione w podsumowaniu po imporcie.
+
 ## Import pracowników z CSV
 
 Na liście **Pracownicy** przycisk „Importuj CSV” (widoczny tylko dla administratora) wczytuje
