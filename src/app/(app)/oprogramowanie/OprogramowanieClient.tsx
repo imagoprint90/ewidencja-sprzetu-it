@@ -2,8 +2,9 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { History, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { parseCsv, normalizeHeader } from "@/lib/csv";
+import { LicenseHistory } from "./LicenseHistory";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -15,6 +16,7 @@ import {
   LICENSE_TYPE_LABELS,
   type Employee,
   type Equipment,
+  type LicenseHistoryEntry,
   type LicenseType,
   type SoftwareLicense,
   type SoftwareLicenseAssignment,
@@ -37,12 +39,14 @@ export function OprogramowanieClient({
   assignments,
   equipment,
   employees,
+  history,
 }: {
   products: SoftwareProduct[];
   licenses: SoftwareLicense[];
   assignments: SoftwareLicenseAssignment[];
   equipment: Equipment[];
   employees: Employee[];
+  history: LicenseHistoryEntry[];
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -76,6 +80,7 @@ export function OprogramowanieClient({
   const [licenseError, setLicenseError] = useState<string | null>(null);
 
   const [expandedLicenseId, setExpandedLicenseId] = useState<string | null>(null);
+  const [historyLicenseId, setHistoryLicenseId] = useState<string | null>(null);
   const [assignTarget, setAssignTarget] = useState("");
   const [assignError, setAssignError] = useState<string | null>(null);
 
@@ -484,6 +489,14 @@ export function OprogramowanieClient({
                       )}
                       <Button
                         size="sm"
+                        variant="ghost"
+                        onClick={() => setHistoryLicenseId(historyLicenseId === license.id ? null : license.id)}
+                      >
+                        <History size={14} />
+                        {historyLicenseId === license.id ? "Ukryj historię" : "Historia"}
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="secondary"
                         onClick={() => {
                           setExpandedLicenseId(expanded ? null : license.id);
@@ -495,6 +508,12 @@ export function OprogramowanieClient({
                       </Button>
                     </div>
                   </div>
+
+                  {historyLicenseId === license.id && (
+                    <div className="mt-3 border-t border-border pt-3">
+                      <LicenseHistory entries={history.filter((h) => h.licenseId === license.id)} />
+                    </div>
+                  )}
 
                   {editingLicenseId === license.id && (
                     <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:items-end">

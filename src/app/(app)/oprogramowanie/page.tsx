@@ -8,9 +8,7 @@ import {
   getSoftwareLicenses,
   getSoftwareProducts,
 } from "@/lib/supabase/queries";
-import { Tabs } from "@/components/ui/Tabs";
 import { OprogramowanieClient } from "./OprogramowanieClient";
-import { LicenseHistory } from "./LicenseHistory";
 
 export default async function OprogramowaniePage() {
   await requireTabAccess("oprogramowanie");
@@ -25,23 +23,13 @@ export default async function OprogramowaniePage() {
   ]);
 
   return (
-    <Tabs
-      tabs={[
-        {
-          key: "licencje",
-          label: "Produkty i licencje",
-          content: (
-            <OprogramowanieClient
-              products={products}
-              licenses={licenses}
-              assignments={assignments}
-              equipment={equipment}
-              employees={employees.filter((e) => e.isActive)}
-            />
-          ),
-        },
-        { key: "historia", label: "Historia licencji", content: <LicenseHistory history={history} /> },
-      ]}
+    <OprogramowanieClient
+      products={products}
+      licenses={licenses}
+      assignments={assignments}
+      equipment={equipment}
+      employees={employees.filter((e) => e.isActive)}
+      history={history}
     />
   );
 }

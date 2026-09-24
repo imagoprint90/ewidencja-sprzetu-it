@@ -1,4 +1,4 @@
-# Ewidencja sprzętu IT
+﻿# Ewidencja sprzętu IT
 
 Wewnętrzny system inwentaryzacji sprzętu IT: sprzęt, pracownicy, przydziały, zestawy
 powiązanego sprzętu, oprogramowanie/licencje i protokoły PDF.
@@ -262,7 +262,7 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
    sprzęcie: w formularzach, na karcie sprzętu i jako edytowalna kolumna „Domena” na liście
    Sprzęt; istniejący sprzęt dostaje domyślnie NIE)
 11. `0033_license_history.sql` (tabela `license_assignment_history` + wyzwalacz — zakładka
-   „Historia licencji” na stronie Oprogramowanie pokazuje, kiedy i kto przypisał licencję do
+   przycisk „Historia” przy każdej licencji na stronie Oprogramowanie pokazuje, kiedy i kto przypisał licencję do
    komputera/pracownika oraz kiedy przypisanie usunięto; istniejące przypisania trafiają do
    historii jako „Przypisano”)
 
