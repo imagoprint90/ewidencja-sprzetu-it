@@ -261,6 +261,10 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 10. `0032_equipment_domain.sql` (kolumna `equipment.in_domain` — pole „Domena” TAK/NIE przy
    sprzęcie: w formularzach, na karcie sprzętu i jako edytowalna kolumna „Domena” na liście
    Sprzęt; istniejący sprzęt dostaje domyślnie NIE)
+11. `0033_license_history.sql` (tabela `license_assignment_history` + wyzwalacz — zakładka
+   „Historia licencji” na stronie Oprogramowanie pokazuje, kiedy i kto przypisał licencję do
+   komputera/pracownika oraz kiedy przypisanie usunięto; istniejące przypisania trafiają do
+   historii jako „Przypisano”)
 
 ## Konfiguracja Supabase
 
