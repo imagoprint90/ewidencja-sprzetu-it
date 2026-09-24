@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, History, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, History, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
 import { parseCsv, normalizeHeader } from "@/lib/csv";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
@@ -41,6 +41,28 @@ import {
   updateSoftwareLicenseAction,
   updateSoftwareProductAction,
 } from "@/lib/supabase/actions/software-actions";
+
+function SearchBox({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="relative mb-3 max-w-md">
+      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-lg border border-border bg-surface py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary"
+      />
+    </div>
+  );
+}
 
 export function OprogramowanieClient({
   products,
@@ -92,6 +114,8 @@ export function OprogramowanieClient({
 
   const [expandedLicenseId, setExpandedLicenseId] = useState<string | null>(null);
   const [historyLicenseId, setHistoryLicenseId] = useState<string | null>(null);
+  const [productQuery, setProductQuery] = useState("");
+  const [licenseQuery, setLicenseQuery] = useState("");
   const [deleteLicenseTarget, setDeleteLicenseTarget] = useState<SoftwareLicense | null>(null);
   const [deleteLicenseError, setDeleteLicenseError] = useState<string | null>(null);
   const [productsCollapsed, setProductsCollapsed] = useLocalStorage("oprogramowanie-produkty-zwiniete", false);
@@ -288,6 +312,41 @@ export function OprogramowanieClient({
     });
   }
 
+  const pq = productQuery.trim().toLowerCase();
+  const filteredProducts = pq
+    ? products.filter((p) => [p.name, p.version ?? "", p.notes ?? ""].join(" ").toLowerCase().includes(pq))
+    : products;
+
+  function assignedNames(licenseId: string): string[] {
+    return assignments
+      .filter((a) => a.licenseId === licenseId)
+      .map((a) =>
+        a.equipmentId
+          ? (equipment.find((e) => e.id === a.equipmentId)?.name ?? "")
+          : (() => {
+              const emp = employees.find((e) => e.id === a.employeeId);
+              return emp ? employeeFullName(emp) : "";
+            })()
+      );
+  }
+
+  const lq = licenseQuery.trim().toLowerCase();
+  const filteredLicenses = lq
+    ? licenses.filter((l) => {
+        const product = products.find((p) => p.id === l.productId);
+        return [
+          product?.name ?? "",
+          product?.version ?? "",
+          LICENSE_TYPE_LABELS[l.licenseType],
+          l.notes ?? "",
+          ...assignedNames(l.id),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(lq);
+      })
+    : licenses;
+
   function handleDeleteLicense() {
     if (!deleteLicenseTarget) return;
     const id = deleteLicenseTarget.id;
@@ -383,11 +442,17 @@ export function OprogramowanieClient({
         )}
         {productError && <p className="mb-3 text-sm text-danger">{productError}</p>}
 
+        {products.length > 0 && (
+          <SearchBox value={productQuery} onChange={setProductQuery} placeholder="Szukaj produktu: nazwa, wersja…" />
+        )}
+
         {products.length === 0 ? (
           <p className="text-sm text-muted">Brak produktów w katalogu.</p>
+        ) : filteredProducts.length === 0 ? (
+          <p className="text-sm text-muted">Brak produktów spełniających kryteria.</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {products.map((p) => (
+            {filteredProducts.map((p) => (
               <li key={p.id} className="rounded-lg border border-border p-3">
                 {editingProductId === p.id ? (
                   <div className="flex flex-col gap-2">
@@ -547,11 +612,21 @@ export function OprogramowanieClient({
           onConfirm={handleDeleteLicense}
         />
 
+        {licenses.length > 0 && (
+          <SearchBox
+            value={licenseQuery}
+            onChange={setLicenseQuery}
+            placeholder="Szukaj licencji: produkt, komputer, pracownik, uwagi…"
+          />
+        )}
+
         {licenses.length === 0 ? (
           <EmptyState title="Brak zarejestrowanych licencji" />
+        ) : filteredLicenses.length === 0 ? (
+          <p className="mt-4 text-sm text-muted">Brak licencji spełniających kryteria.</p>
         ) : (
           <div className="mt-4 flex flex-col gap-3">
-            {licenses.map((license) => {
+            {filteredLicenses.map((license) => {
               const product = products.find((p) => p.id === license.productId);
               const used = assignments.filter((a) => a.licenseId === license.id);
               const free = license.seatsTotal - used.length;
