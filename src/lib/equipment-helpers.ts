@@ -1,4 +1,4 @@
-import type { Assignment, Category, Department, Employee, Equipment, EquipmentLink, Location } from "./types";
+import type { Assignment, Category, Department, Employee, Equipment, EquipmentLink, Location, Protocol } from "./types";
 import type { EquipmentInput } from "./supabase/actions/equipment-actions";
 
 export function equipmentToInput(item: Equipment): EquipmentInput {
@@ -73,3 +73,27 @@ export function getAssignedEquipmentNames(
     .map((a) => a.equipmentId);
   return equipment.filter((e) => equipmentIds.includes(e.id)).map((e) => e.name);
 }
+
+// Ostatni protokół (wg daty utworzenia), w którym występował dany sprzęt.
+export function getLastProtocolFor(
+  equipmentId: string,
+  protocols: Protocol[],
+  protocolItemLinks: { protocolId: string; equipmentId: string }[]
+): Protocol | undefined {
+  const ids = new Set(
+    protocolItemLinks.filter((l) => l.equipmentId === equipmentId).map((l) => l.protocolId)
+  );
+  return protocols
+    .filter((p) => ids.has(p.id))
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+}
+
+// Stan techniczny zapisany w protokole dla danej pozycji (per-pozycja, a w starszych
+// protokołach — jedno pole globalne). null, gdy sprzęt nie ma jeszcze żadnego protokołu.
+export function getProtocolCondition(protocol: Protocol | undefined, inventoryNumber: string): string | null {
+  if (!protocol) return null;
+  const item = protocol.snapshot.items.find((i) => i.inventoryNumber === inventoryNumber);
+  return item?.technicalConditionLabel ?? protocol.snapshot.technicalConditionLabel ?? null;
+}
+
+export const NO_PROTOCOL_CONDITION = "__brak";

@@ -17,7 +17,13 @@ import { EquipmentTable } from "@/components/equipment/EquipmentTable";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useIsAdmin, useCanEditEquipment, useCanTransferEquipment } from "@/lib/current-user-context";
 import { EQUIPMENT_COLUMNS, type EquipmentColumnKey, type EquipmentStatus } from "@/lib/types";
-import { employeeFullName, getActiveAssignment } from "@/lib/equipment-helpers";
+import {
+  employeeFullName,
+  getActiveAssignment,
+  getLastProtocolFor,
+  getProtocolCondition,
+  NO_PROTOCOL_CONDITION,
+} from "@/lib/equipment-helpers";
 import { deleteEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
 import type {
   Assignment,
@@ -42,6 +48,7 @@ const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "name",
   "serialNumber",
   "status",
+  "protocolCondition",
   "location",
   "lastProtocol",
   "invoice",
@@ -114,6 +121,12 @@ function SprzetPageInner({
       if (filters.statuses.length > 0 && !filters.statuses.includes(item.status)) return false;
       if ((filters.domains ?? []).length > 0 && !filters.domains!.includes(item.inDomain ? "tak" : "nie"))
         return false;
+      if ((filters.conditions ?? []).length > 0) {
+        const cond =
+          getProtocolCondition(getLastProtocolFor(item.id, protocols, protocolItemLinks), item.inventoryNumber) ??
+          NO_PROTOCOL_CONDITION;
+        if (!filters.conditions!.includes(cond)) return false;
+      }
       if (filters.locationIds.length > 0 && !filters.locationIds.includes(item.locationId)) return false;
       if (filters.employeeIds.length > 0) {
         const active = getActiveAssignment(assignments, item.id);
@@ -130,7 +143,7 @@ function SprzetPageInner({
       }
       return true;
     });
-  }, [equipment, filters, assignments, employees]);
+  }, [equipment, filters, assignments, employees, protocols, protocolItemLinks]);
 
   // Zaznaczenie jest pamiętane niezależnie od filtrów, ale do wyświetlania i akcji zbiorczych
   // liczą się tylko pozycje aktualnie widoczne na liście — unika to niejawnych operacji na

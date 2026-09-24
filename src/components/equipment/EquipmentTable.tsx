@@ -34,8 +34,10 @@ import {
   equipmentToInput,
   getActiveAssignment,
   getCategoryName,
+  getLastProtocolFor,
   getLinkedEquipment,
   getLocationName,
+  getProtocolCondition,
 } from "@/lib/equipment-helpers";
 import {
   useCanEditEquipment,
@@ -138,15 +140,6 @@ export function EquipmentTable({
     return result.ok ? { ok: true } : { ok: false, error: result.error };
   }
 
-  function getLastProtocol(equipmentId: string): Protocol | undefined {
-    const protocolIds = protocolItemLinks
-      .filter((l) => l.equipmentId === equipmentId)
-      .map((l) => l.protocolId);
-    return protocols
-      .filter((p) => protocolIds.includes(p.id))
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
-  }
-
   async function handleOpenProtocol(e: React.MouseEvent, protocol: Protocol) {
     e.stopPropagation();
     if (!protocol.pdfPath) return;
@@ -179,7 +172,8 @@ export function EquipmentTable({
         })
         .filter((name): name is string => Boolean(name));
       const software = Array.from(new Set([...installedNames, ...licensedNames]));
-      const lastProtocol = getLastProtocol(item.id);
+      const lastProtocol = getLastProtocolFor(item.id, protocols, protocolItemLinks);
+      const protocolCondition = getProtocolCondition(lastProtocol, item.inventoryNumber);
       const categoryName = getCategoryName(categories, item.categoryId);
       const locationName = getLocationName(locations, item.locationId);
       const employeeName = employee ? employeeFullName(employee) : undefined;
@@ -192,6 +186,7 @@ export function EquipmentTable({
         linked,
         software,
         lastProtocol,
+        protocolCondition,
         categoryName,
         locationName,
       };
@@ -215,6 +210,7 @@ export function EquipmentTable({
       location: (a, b) => compareStrings(a.locationName, b.locationName),
       notes: (a, b) => compareStrings(a.item.notes ?? "", b.item.notes ?? ""),
       lastProtocol: (a, b) => compareStrings(a.lastProtocol?.createdAt ?? "", b.lastProtocol?.createdAt ?? ""),
+      protocolCondition: (a, b) => compareStrings(a.protocolCondition ?? "", b.protocolCondition ?? ""),
       domain: (a, b) => compareNumbers(a.item.inDomain ? 1 : 0, b.item.inDomain ? 1 : 0),
       invoice: (a, b) => compareNumbers(a.item.purchaseInvoicePath ? 1 : 0, b.item.purchaseInvoicePath ? 1 : 0),
     };
@@ -261,7 +257,7 @@ export function EquipmentTable({
           </tr>
         </thead>
         <tbody>
-          {sortedRows.map(({ item, activeAssignment, employeeName, linked, software, lastProtocol, categoryName, locationName }, index) => {
+          {sortedRows.map(({ item, activeAssignment, employeeName, linked, software, lastProtocol, protocolCondition, categoryName, locationName }, index) => {
             return (
               <tr
                 key={item.id}
@@ -300,6 +296,7 @@ export function EquipmentTable({
                       categories: editableCategories,
                       canEdit: canEditEquipment,
                       lastProtocol,
+                      protocolCondition,
                       onSave: (patch) => saveField(item, patch),
                       onSaveStatus: (status) => saveStatus(item, status),
                       onOpenProtocol: handleOpenProtocol,
@@ -378,6 +375,7 @@ function renderCell(
     categories: Category[];
     canEdit: boolean;
     lastProtocol?: Protocol;
+    protocolCondition?: string | null;
     onSave: (patch: Partial<EquipmentInput>) => Promise<{ ok: boolean; error?: string }>;
     onSaveStatus: (status: string) => Promise<{ ok: boolean; error?: string }>;
     onOpenProtocol: (e: React.MouseEvent, protocol: Protocol) => void;
@@ -489,6 +487,8 @@ function renderCell(
           <FileText size={16} />
         </button>
       );
+    case "protocolCondition":
+      return extra.protocolCondition ?? <span>—</span>;
     case "domain":
       if (!extra.canEdit) return item.inDomain ? "TAK" : "NIE";
       return (

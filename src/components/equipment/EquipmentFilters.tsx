@@ -2,9 +2,9 @@
 
 import { Search } from "lucide-react";
 import type { Category, Employee, EquipmentStatus, Location } from "@/lib/types";
-import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
+import { EQUIPMENT_STATUS_LABELS, TECHNICAL_CONDITION_LABELS } from "@/lib/types";
 import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
-import { employeeFullName } from "@/lib/equipment-helpers";
+import { employeeFullName, NO_PROTOCOL_CONDITION } from "@/lib/equipment-helpers";
 
 export interface EquipmentFiltersState {
   query: string;
@@ -13,6 +13,7 @@ export interface EquipmentFiltersState {
   locationIds: string[];
   employeeIds: string[];
   domains?: ("tak" | "nie")[];
+  conditions?: string[];
 }
 
 export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
@@ -22,6 +23,7 @@ export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
   locationIds: [],
   employeeIds: [],
   domains: [],
+  conditions: [],
 };
 
 export function EquipmentFilters({
@@ -82,6 +84,16 @@ export function EquipmentFilters({
         ]}
         selected={value.domains ?? []}
         onChange={(v) => set("domains", v as ("tak" | "nie")[])}
+      />
+
+      <MultiSelectFilter
+        label="Stan techniczny"
+        options={[
+          ...Object.values(TECHNICAL_CONDITION_LABELS).map((l) => ({ value: l, label: l })),
+          { value: NO_PROTOCOL_CONDITION, label: "Brak protokołu" },
+        ]}
+        selected={value.conditions ?? []}
+        onChange={(v) => set("conditions", v)}
       />
 
       <MultiSelectFilter
