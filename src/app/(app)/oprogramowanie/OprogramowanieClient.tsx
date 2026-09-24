@@ -11,6 +11,7 @@ import { LicenseKey } from "./LicenseKey";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { formatDate } from "@/lib/format";
 import { employeeFullName } from "@/lib/equipment-helpers";
@@ -30,6 +31,7 @@ import {
   addSoftwareProductAction,
   assignLicenseAction,
   deleteLicenseInvoiceAction,
+  deleteSoftwareLicenseAction,
   getLicenseInvoiceUrlAction,
   importSoftwareProductsAction,
   setLicenseKeyAction,
@@ -90,6 +92,8 @@ export function OprogramowanieClient({
 
   const [expandedLicenseId, setExpandedLicenseId] = useState<string | null>(null);
   const [historyLicenseId, setHistoryLicenseId] = useState<string | null>(null);
+  const [deleteLicenseTarget, setDeleteLicenseTarget] = useState<SoftwareLicense | null>(null);
+  const [deleteLicenseError, setDeleteLicenseError] = useState<string | null>(null);
   const [productsCollapsed, setProductsCollapsed] = useLocalStorage("oprogramowanie-produkty-zwiniete", false);
   const [purchaseDate, setPurchaseDate] = useState("");
   const [newLicenseKey, setNewLicenseKey] = useState("");
@@ -280,6 +284,21 @@ export function OprogramowanieClient({
       }
       setAssignTarget("");
       setAssignError(null);
+      router.refresh();
+    });
+  }
+
+  function handleDeleteLicense() {
+    if (!deleteLicenseTarget) return;
+    const id = deleteLicenseTarget.id;
+    startTransition(async () => {
+      const result = await deleteSoftwareLicenseAction(id);
+      setDeleteLicenseTarget(null);
+      if (!result.ok) {
+        setDeleteLicenseError(result.error);
+        return;
+      }
+      setDeleteLicenseError(null);
       router.refresh();
     });
   }
@@ -516,6 +535,18 @@ export function OprogramowanieClient({
           </FormSection>
         )}
 
+        {deleteLicenseError && <p className="mt-3 text-sm text-danger">{deleteLicenseError}</p>}
+
+        <ConfirmDialog
+          open={deleteLicenseTarget !== null}
+          title="Usunąć licencję?"
+          description="Licencja, jej klucz i załączona faktura zostaną trwale usunięte. Wpisy w historii licencji zostaną zachowane. Tej operacji nie można cofnąć."
+          confirmLabel="Usuń"
+          danger
+          onCancel={() => setDeleteLicenseTarget(null)}
+          onConfirm={handleDeleteLicense}
+        />
+
         {licenses.length === 0 ? (
           <EmptyState title="Brak zarejestrowanych licencji" />
         ) : (
@@ -561,6 +592,17 @@ export function OprogramowanieClient({
                         <Button size="sm" variant="ghost" onClick={() => startEditLicense(license)}>
                           <Pencil size={14} />
                           Edytuj
+                        </Button>
+                      )}
+                      {isAdmin && used.length === 0 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          title="Usuń licencję (możliwe tylko gdy nie jest przydzielona)"
+                          onClick={() => setDeleteLicenseTarget(license)}
+                        >
+                          <Trash2 size={14} />
+                          Usuń
                         </Button>
                       )}
                       <Button

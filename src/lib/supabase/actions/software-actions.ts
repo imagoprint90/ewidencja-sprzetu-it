@@ -229,6 +229,28 @@ export async function updateSoftwareLicenseAction(
   return { ok: true, data: undefined };
 }
 
+export async function deleteSoftwareLicenseAction(id: string): Promise<ActionResult<undefined>> {
+  const supabase = await requireAdmin();
+  if (!supabase) return { ok: false, error: "Ta operacja wymaga uprawnień administratora." };
+
+  const { count } = await supabase
+    .from("software_license_assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("license_id", id);
+  if ((count ?? 0) > 0) {
+    return { ok: false, error: "Nie można usunąć licencji, która jest przydzielona — usuń najpierw przypisania." };
+  }
+
+  const { data: license } = await supabase.from("software_licenses").select("invoice_path").eq("id", id).single();
+  const { error } = await supabase.from("software_licenses").delete().eq("id", id);
+  if (error) return { ok: false, error: "Nie udało się usunąć licencji." };
+  if (license?.invoice_path) await supabase.storage.from("faktury").remove([license.invoice_path]);
+
+  revalidatePath("/oprogramowanie");
+  revalidatePath("/pulpit");
+  return { ok: true, data: undefined };
+}
+
 export async function assignLicenseAction(input: {
   licenseId: string;
   equipmentId: string | null;
