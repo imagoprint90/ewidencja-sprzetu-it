@@ -16,14 +16,26 @@ export function InvoiceAttachment({
   path,
   canEdit,
   bare = false,
+  handlers,
+  label = "Faktura zakupu",
 }: {
+  // Id encji, do której załączamy fakturę (sprzęt albo — z własnymi handlers — licencja).
   equipmentId: string;
   path: string | null;
   canEdit: boolean;
   // Bez własnej karty/etykiety — do osadzenia wewnątrz sekcji, która już ma tytuł
   // ("Zakup i gwarancja"), zamiast dublować oprawę wizualną.
   bare?: boolean;
+  handlers?: {
+    upload: (id: string, base64: string, fileName: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+    remove: (id: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+    download: (path: string) => Promise<{ ok: true; data: { url: string } } | { ok: false; error: string }>;
+  };
+  label?: string;
 }) {
+  const upload = handlers?.upload ?? uploadEquipmentInvoiceAction;
+  const remove = handlers?.remove ?? deleteEquipmentInvoiceAction;
+  const download = handlers?.download ?? getEquipmentInvoiceDownloadUrlAction;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +46,7 @@ export function InvoiceAttachment({
     if (!path) return;
     setError(null);
     startTransition(async () => {
-      const result = await getEquipmentInvoiceDownloadUrlAction(path);
+      const result = await download(path);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -49,7 +61,7 @@ export function InvoiceAttachment({
     reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1] ?? "";
       startTransition(async () => {
-        const result = await uploadEquipmentInvoiceAction(equipmentId, base64, file.name);
+        const result = await upload(equipmentId, base64, file.name);
         if (!result.ok) {
           setError(result.error);
           return;
@@ -64,7 +76,7 @@ export function InvoiceAttachment({
     setConfirmOpen(false);
     setError(null);
     startTransition(async () => {
-      const result = await deleteEquipmentInvoiceAction(equipmentId);
+      const result = await remove(equipmentId);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -129,7 +141,7 @@ export function InvoiceAttachment({
 
   return (
     <div className="rounded-xl border border-border bg-surface p-5">
-      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">Faktura zakupu</p>
+      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
       {content}
     </div>
   );

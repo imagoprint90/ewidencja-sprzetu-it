@@ -2,9 +2,12 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { History, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, History, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { parseCsv, normalizeHeader } from "@/lib/csv";
+import { useLocalStorage } from "@/lib/useLocalStorage";
+import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
 import { LicenseHistory } from "./LicenseHistory";
+import { LicenseKey } from "./LicenseKey";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -26,7 +29,11 @@ import {
   addSoftwareLicenseAction,
   addSoftwareProductAction,
   assignLicenseAction,
+  deleteLicenseInvoiceAction,
+  getLicenseInvoiceUrlAction,
   importSoftwareProductsAction,
+  setLicenseKeyAction,
+  uploadLicenseInvoiceAction,
   removeLicenseAssignmentAction,
   type SoftwareCsvRow,
   updateSoftwareLicenseAction,
@@ -40,6 +47,7 @@ export function OprogramowanieClient({
   equipment,
   employees,
   history,
+  keyLicenseIds,
 }: {
   products: SoftwareProduct[];
   licenses: SoftwareLicense[];
@@ -47,6 +55,7 @@ export function OprogramowanieClient({
   equipment: Equipment[];
   employees: Employee[];
   history: LicenseHistoryEntry[];
+  keyLicenseIds: string[];
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -81,6 +90,10 @@ export function OprogramowanieClient({
 
   const [expandedLicenseId, setExpandedLicenseId] = useState<string | null>(null);
   const [historyLicenseId, setHistoryLicenseId] = useState<string | null>(null);
+  const [productsCollapsed, setProductsCollapsed] = useLocalStorage("oprogramowanie-produkty-zwiniete", false);
+  const [purchaseDate, setPurchaseDate] = useState("");
+  const [newLicenseKey, setNewLicenseKey] = useState("");
+  const [editPurchaseDate, setEditPurchaseDate] = useState("");
   const [assignTarget, setAssignTarget] = useState("");
   const [assignError, setAssignError] = useState<string | null>(null);
 
@@ -180,6 +193,7 @@ export function OprogramowanieClient({
     setEditingLicenseId(license.id);
     setEditSeatsTotal(String(license.seatsTotal));
     setEditValidUntil(license.validUntil ?? "");
+    setEditPurchaseDate(license.purchaseDate ?? "");
     setEditLicenseNotes(license.notes ?? "");
     setEditLicenseError(null);
   }
@@ -194,6 +208,7 @@ export function OprogramowanieClient({
       const result = await updateSoftwareLicenseAction(id, {
         seatsTotal: seats,
         validUntil: editValidUntil || null,
+        purchaseDate: editPurchaseDate || null,
         notes: editLicenseNotes.trim() || null,
       });
       if (!result.ok) {
@@ -221,15 +236,26 @@ export function OprogramowanieClient({
         licenseType,
         seatsTotal: seats,
         validUntil: validUntil || null,
+        purchaseDate: purchaseDate || null,
         notes: licenseNotes.trim() || null,
       });
       if (!result.ok) {
         setLicenseError(result.error);
         return;
       }
+      if (newLicenseKey.trim()) {
+        const keyResult = await setLicenseKeyAction(result.data.id, newLicenseKey);
+        if (!keyResult.ok) {
+          setLicenseError(`Licencję dodano, ale nie zapisano klucza: ${keyResult.error}`);
+          router.refresh();
+          return;
+        }
+      }
       setLicenseProductId("");
       setSeatsTotal("1");
       setValidUntil("");
+      setPurchaseDate("");
+      setNewLicenseKey("");
       setLicenseNotes("");
       setLicenseError(null);
       setShowAddLicense(false);
@@ -270,15 +296,24 @@ export function OprogramowanieClient({
       <div>
         <h1 className="text-xl font-semibold">Oprogramowanie</h1>
         <p className="text-sm text-muted">
-          Katalog produktów oprogramowania i rejestr licencji. Klucze aktywacyjne nie są
-          przechowywane ani wyświetlane w systemie.
+          Katalog produktów oprogramowania i rejestr licencji. Klucze licencji widzi i zarządza
+          nimi wyłącznie administrator (ukryte domyślnie, pokazywane na żądanie).
         </p>
       </div>
 
       <section className="rounded-xl border border-border bg-surface p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Produkty</h2>
-          {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setProductsCollapsed((v) => !v)}
+            aria-expanded={!productsCollapsed}
+            className="flex items-center gap-1.5 text-sm font-semibold hover:text-primary"
+          >
+            {productsCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+            Produkty
+            <span className="text-xs font-normal text-muted">({products.length})</span>
+          </button>
+          {isAdmin && !productsCollapsed && (
             <div className="flex gap-2">
               <input
                 type="file"
@@ -303,6 +338,8 @@ export function OprogramowanieClient({
           )}
         </div>
 
+        {!productsCollapsed && (
+          <>
         {importError && <p className="mb-3 text-sm text-danger">{importError}</p>}
         {importResult && <p className="mb-3 text-sm">{importResult}</p>}
 
@@ -377,6 +414,8 @@ export function OprogramowanieClient({
             ))}
           </ul>
         )}
+          </>
+        )}
       </section>
 
       <section className="rounded-xl border border-border bg-surface p-5">
@@ -440,6 +479,26 @@ export function OprogramowanieClient({
                 onChange={(e) => setValidUntil(e.target.value)}
               />
             </FormField>
+            <FormField label="Data zakupu" htmlFor="purchaseDate">
+              <input
+                id="purchaseDate"
+                type="date"
+                className={inputClass}
+                value={purchaseDate}
+                onChange={(e) => setPurchaseDate(e.target.value)}
+              />
+            </FormField>
+            {isAdmin && (
+              <FormField label="Klucz licencji (opcjonalnie)" htmlFor="newLicenseKey">
+                <input
+                  id="newLicenseKey"
+                  className={inputClass + " font-mono"}
+                  autoComplete="off"
+                  value={newLicenseKey}
+                  onChange={(e) => setNewLicenseKey(e.target.value)}
+                />
+              </FormField>
+            )}
             <FormField label="Uwagi" htmlFor="licenseNotes" full>
               <input
                 id="licenseNotes"
@@ -475,6 +534,23 @@ export function OprogramowanieClient({
                       <p className="text-xs text-muted">
                         {LICENSE_TYPE_LABELS[license.licenseType]} · ważna do{" "}
                         {license.validUntil ? formatDate(license.validUntil) : "bezterminowo"}
+                        {license.purchaseDate && <> · zakup {formatDate(license.purchaseDate)}</>}
+                        {license.invoicePath && <> · faktura załączona</>}
+                      </p>
+                      <p className="mt-0.5 text-xs">
+                        <span className="text-muted">Przydzielona do: </span>
+                        {used.length === 0
+                          ? "—"
+                          : used
+                              .map((a) =>
+                                a.equipmentId
+                                  ? (equipment.find((e) => e.id === a.equipmentId)?.name ?? "usunięty sprzęt")
+                                  : (() => {
+                                      const emp = employees.find((e) => e.id === a.employeeId);
+                                      return emp ? employeeFullName(emp) : "nieaktywny pracownik";
+                                    })()
+                              )
+                              .join(", ")}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -509,6 +585,22 @@ export function OprogramowanieClient({
                     </div>
                   </div>
 
+                  <div className="mt-3 grid gap-4 border-t border-border pt-3 sm:grid-cols-2">
+                    <InvoiceAttachment
+                      bare
+                      label="Faktura VAT"
+                      equipmentId={license.id}
+                      path={license.invoicePath}
+                      canEdit={isAdmin}
+                      handlers={{
+                        upload: uploadLicenseInvoiceAction,
+                        remove: deleteLicenseInvoiceAction,
+                        download: getLicenseInvoiceUrlAction,
+                      }}
+                    />
+                    {isAdmin && <LicenseKey licenseId={license.id} hasKey={keyLicenseIds.includes(license.id)} />}
+                  </div>
+
                   {historyLicenseId === license.id && (
                     <div className="mt-3 border-t border-border pt-3">
                       <LicenseHistory entries={history.filter((h) => h.licenseId === license.id)} />
@@ -534,6 +626,15 @@ export function OprogramowanieClient({
                           className={inputClass}
                           value={editValidUntil}
                           onChange={(e) => setEditValidUntil(e.target.value)}
+                        />
+                      </FormField>
+                      <FormField label="Data zakupu" htmlFor={`purchase-${license.id}`}>
+                        <input
+                          id={`purchase-${license.id}`}
+                          type="date"
+                          className={inputClass}
+                          value={editPurchaseDate}
+                          onChange={(e) => setEditPurchaseDate(e.target.value)}
                         />
                       </FormField>
                       <FormField label="Uwagi" htmlFor={`notes-${license.id}`}>

@@ -265,6 +265,11 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
    przycisk „Historia” przy każdej licencji na stronie Oprogramowanie pokazuje, kiedy i kto przypisał licencję do
    komputera/pracownika oraz kiedy przypisanie usunięto; istniejące przypisania trafiają do
    historii jako „Przypisano”)
+12. `0034_license_purchase_invoice_key.sql` (licencje: data zakupu, faktura VAT jako PDF w
+   buckecie `faktury` oraz klucz licencji w osobnej tabeli `license_keys` widocznej wyłącznie
+   dla administratora — klucz jest ukryty domyślnie i pobierany dopiero po kliknięciu
+   „Pokaż”/„Kopiuj”; lista licencji pokazuje też, do jakich komputerów są przydzielone, a
+   sekcję „Produkty” można zwinąć)
 
 ## Konfiguracja Supabase
 

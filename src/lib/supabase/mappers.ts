@@ -201,6 +201,8 @@ export function mapSoftwareLicense(row: {
   license_type: LicenseType;
   seats_total: number;
   valid_until: string | null;
+  purchase_date: string | null;
+  invoice_path: string | null;
   notes: string | null;
 }): SoftwareLicense {
   return {
@@ -209,6 +211,8 @@ export function mapSoftwareLicense(row: {
     licenseType: row.license_type,
     seatsTotal: row.seats_total,
     validUntil: row.valid_until,
+    purchaseDate: row.purchase_date,
+    invoicePath: row.invoice_path,
     notes: row.notes,
   };
 }

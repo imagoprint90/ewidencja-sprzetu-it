@@ -74,23 +74,106 @@ export async function addSoftwareLicenseAction(input: {
   licenseType: LicenseType;
   seatsTotal: number;
   validUntil: string | null;
+  purchaseDate: string | null;
   notes: string | null;
-}): Promise<ActionResult<undefined>> {
+}): Promise<ActionResult<{ id: string }>> {
   if (!input.productId) return { ok: false, error: "Wybierz produkt." };
   if (input.seatsTotal < 1) return { ok: false, error: "Liczba stanowisk musi być większa od zera." };
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("software_licenses").insert({
-    product_id: input.productId,
-    license_type: input.licenseType,
-    seats_total: input.seatsTotal,
-    valid_until: input.validUntil,
-    notes: input.notes,
-  });
+  const { data, error } = await supabase
+    .from("software_licenses")
+    .insert({
+      product_id: input.productId,
+      license_type: input.licenseType,
+      seats_total: input.seatsTotal,
+      valid_until: input.validUntil,
+      purchase_date: input.purchaseDate,
+      notes: input.notes,
+    })
+    .select("id")
+    .single();
 
-  if (error) return { ok: false, error: "Nie udało się dodać licencji." };
+  if (error || !data) return { ok: false, error: "Nie udało się dodać licencji." };
+  revalidatePath("/oprogramowanie");
+  return { ok: true, data: { id: data.id } };
+}
+
+async function requireAdmin() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  return profile?.role === "administrator" ? supabase : null;
+}
+
+// Klucz licencji: tabela license_keys jest dostępna wyłącznie dla administratora (RLS), a
+// klucz pobieramy dopiero na żądanie — nie jest częścią listy licencji.
+export async function getLicenseKeyAction(licenseId: string): Promise<ActionResult<{ key: string | null }>> {
+  const supabase = await requireAdmin();
+  if (!supabase) return { ok: false, error: "Ta operacja wymaga uprawnień administratora." };
+  const { data } = await supabase.from("license_keys").select("license_key").eq("license_id", licenseId).maybeSingle();
+  return { ok: true, data: { key: data?.license_key ?? null } };
+}
+
+export async function setLicenseKeyAction(licenseId: string, key: string): Promise<ActionResult<undefined>> {
+  const supabase = await requireAdmin();
+  if (!supabase) return { ok: false, error: "Ta operacja wymaga uprawnień administratora." };
+  const trimmed = key.trim();
+  if (!trimmed) {
+    await supabase.from("license_keys").delete().eq("license_id", licenseId);
+  } else {
+    const { error } = await supabase
+      .from("license_keys")
+      .upsert({ license_id: licenseId, license_key: trimmed, updated_at: new Date().toISOString() });
+    if (error) return { ok: false, error: "Nie udało się zapisać klucza." };
+  }
   revalidatePath("/oprogramowanie");
   return { ok: true, data: undefined };
+}
+
+export async function uploadLicenseInvoiceAction(
+  licenseId: string,
+  fileBase64: string,
+  fileName: string
+): Promise<ActionResult<undefined>> {
+  if (!fileName.toLowerCase().endsWith(".pdf")) return { ok: false, error: "Faktura musi być plikiem PDF." };
+  const supabase = await requireAdmin();
+  if (!supabase) return { ok: false, error: "Ta operacja wymaga uprawnień administratora." };
+
+  const path = `licencje/${licenseId}.pdf`;
+  const { error: uploadError } = await supabase.storage
+    .from("faktury")
+    .upload(path, Buffer.from(fileBase64, "base64"), { contentType: "application/pdf", upsert: true });
+  if (uploadError) return { ok: false, error: "Nie udało się wgrać faktury." };
+
+  const { error } = await supabase.from("software_licenses").update({ invoice_path: path }).eq("id", licenseId);
+  if (error) {
+    await supabase.storage.from("faktury").remove([path]);
+    return { ok: false, error: "Nie udało się zapisać faktury przy licencji." };
+  }
+  revalidatePath("/oprogramowanie");
+  return { ok: true, data: undefined };
+}
+
+export async function deleteLicenseInvoiceAction(licenseId: string): Promise<ActionResult<undefined>> {
+  const supabase = await requireAdmin();
+  if (!supabase) return { ok: false, error: "Ta operacja wymaga uprawnień administratora." };
+  const { data } = await supabase.from("software_licenses").select("invoice_path").eq("id", licenseId).single();
+  const { error } = await supabase.from("software_licenses").update({ invoice_path: null }).eq("id", licenseId);
+  if (error) return { ok: false, error: "Nie udało się usunąć faktury." };
+  if (data?.invoice_path) await supabase.storage.from("faktury").remove([data.invoice_path]);
+  revalidatePath("/oprogramowanie");
+  return { ok: true, data: undefined };
+}
+
+export async function getLicenseInvoiceUrlAction(path: string): Promise<ActionResult<{ url: string }>> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.storage.from("faktury").createSignedUrl(path, 60);
+  if (error || !data) return { ok: false, error: "Nie udało się przygotować linku do pobrania." };
+  return { ok: true, data: { url: data.signedUrl } };
 }
 
 export async function updateSoftwareProductAction(
@@ -112,7 +195,7 @@ export async function updateSoftwareProductAction(
 
 export async function updateSoftwareLicenseAction(
   id: string,
-  input: { seatsTotal: number; validUntil: string | null; notes: string | null }
+  input: { seatsTotal: number; validUntil: string | null; purchaseDate: string | null; notes: string | null }
 ): Promise<ActionResult<undefined>> {
   if (input.seatsTotal < 1) return { ok: false, error: "Liczba stanowisk musi być większa od zera." };
 
@@ -132,7 +215,12 @@ export async function updateSoftwareLicenseAction(
 
   const { error } = await supabase
     .from("software_licenses")
-    .update({ seats_total: input.seatsTotal, valid_until: input.validUntil, notes: input.notes })
+    .update({
+      seats_total: input.seatsTotal,
+      valid_until: input.validUntil,
+      purchase_date: input.purchaseDate,
+      notes: input.notes,
+    })
     .eq("id", id);
 
   if (error) return { ok: false, error: "Nie udało się zapisać zmian licencji." };

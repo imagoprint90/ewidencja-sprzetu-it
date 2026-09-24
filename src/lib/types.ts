@@ -130,6 +130,8 @@ export interface SoftwareLicense {
   licenseType: LicenseType;
   seatsTotal: number;
   validUntil: string | null;
+  purchaseDate: string | null;
+  invoicePath: string | null;
   notes: string | null;
 }
 

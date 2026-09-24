@@ -22,6 +22,10 @@ export default async function OprogramowaniePage() {
     getLicenseHistory(supabase),
   ]);
 
+  // Tylko identyfikatory licencji, które mają klucz (sam klucz pobierany jest na żądanie);
+  // dla kont innych niż administrator RLS zwraca pustą listę.
+  const { data: keyRows } = await supabase.from("license_keys").select("license_id");
+
   return (
     <OprogramowanieClient
       products={products}
@@ -30,6 +34,7 @@ export default async function OprogramowaniePage() {
       equipment={equipment}
       employees={employees.filter((e) => e.isActive)}
       history={history}
+      keyLicenseIds={(keyRows ?? []).map((r) => r.license_id as string)}
     />
   );
 }
