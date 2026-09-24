@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, History, Pencil, Plus, Receipt, Search, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, History, Pencil, Plus, Receipt, Search, Trash2, Upload } from "lucide-react";
 import { parseCsv, normalizeHeader } from "@/lib/csv";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
@@ -125,6 +125,9 @@ export function OprogramowanieClient({
   const [purchaseDate, setPurchaseDate] = useState("");
   const [newLicenseKey, setNewLicenseKey] = useState("");
   const [editPurchaseDate, setEditPurchaseDate] = useState("");
+  const [licenseOrder, setLicenseOrder] = useLocalStorage<string[]>("oprogramowanie-kolejnosc-licencji", []);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [assignTarget, setAssignTarget] = useState("");
   const [assignError, setAssignError] = useState<string | null>(null);
 
@@ -247,6 +250,7 @@ export function OprogramowanieClient({
         return;
       }
       setEditingLicenseId(null);
+      setExpandedLicenseId(null);
       router.refresh();
     });
   }
@@ -333,9 +337,22 @@ export function OprogramowanieClient({
       );
   }
 
+  // Własna kolejność licencji (przeciąganie) zapamiętana w przeglądarce; nowe licencje trafiają na koniec.
+  const rank = new Map(licenseOrder.map((id, i) => [id, i]));
+  const orderedLicenses = [...licenses].sort((a, b) => (rank.get(a.id) ?? 1e9) - (rank.get(b.id) ?? 1e9));
+
+  function moveLicense(fromId: string, toId: string) {
+    if (fromId === toId) return;
+    const ids = orderedLicenses.map((l) => l.id);
+    const toIndex = ids.indexOf(toId);
+    ids.splice(ids.indexOf(fromId), 1);
+    ids.splice(toIndex, 0, fromId);
+    setLicenseOrder(ids);
+  }
+
   const lq = licenseQuery.trim().toLowerCase();
   const filteredLicenses = lq
-    ? licenses.filter((l) => {
+    ? orderedLicenses.filter((l) => {
         const product = products.find((p) => p.id === l.productId);
         return [
           product?.name ?? "",
@@ -348,7 +365,7 @@ export function OprogramowanieClient({
           .toLowerCase()
           .includes(lq);
       })
-    : licenses;
+    : orderedLicenses;
 
   function handleDeleteProduct() {
     if (!deleteProductTarget) return;
@@ -659,6 +676,15 @@ export function OprogramowanieClient({
           onConfirm={handleDeleteLicense}
         />
 
+        {licenses.length > 0 && licenseOrder.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setLicenseOrder([])}
+            className="mb-2 text-xs text-primary hover:underline"
+          >
+            Przywróć domyślną kolejność licencji
+          </button>
+        )}
         {licenses.length > 0 && (
           <SearchBox
             value={licenseQuery}
@@ -680,8 +706,47 @@ export function OprogramowanieClient({
               const expanded = expandedLicenseId === license.id;
 
               return (
-                <div key={license.id} className="rounded-lg border border-border px-3 py-2">
+                <div
+                  key={license.id}
+                  onDragOver={(e) => {
+                    if (draggingId) {
+                      e.preventDefault();
+                      setDragOverId(license.id);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggingId) moveLicense(draggingId, license.id);
+                    setDraggingId(null);
+                    setDragOverId(null);
+                  }}
+                  className={`rounded-lg border px-3 py-2 ${
+                    dragOverId === license.id && draggingId && draggingId !== license.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border"
+                  } ${draggingId === license.id ? "opacity-40" : ""}`}
+                >
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {!lq && (
+                      <span
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggingId(license.id);
+                          e.dataTransfer.effectAllowed = "move";
+                          const row = (e.currentTarget as HTMLElement).closest("div[class*=rounded-lg]");
+                          if (row) e.dataTransfer.setDragImage(row, 16, 16);
+                        }}
+                        onDragEnd={() => {
+                          setDraggingId(null);
+                          setDragOverId(null);
+                        }}
+                        className="-mx-1 shrink-0 cursor-grab text-muted hover:text-foreground active:cursor-grabbing"
+                        title="Przeciągnij, żeby zmienić kolejność"
+                        aria-label="Przeciągnij, żeby zmienić kolejność"
+                      >
+                        <GripVertical size={16} />
+                      </span>
+                    )}
                     <span className="w-6 shrink-0 text-xs text-muted" title="L.p.">
                       {licenseIndex + 1}.
                     </span>
@@ -722,7 +787,17 @@ export function OprogramowanieClient({
                           variant="ghost"
                           title="Edytuj licencję"
                           aria-label="Edytuj licencję"
-                          onClick={() => startEditLicense(license)}
+                          onClick={() => {
+                            if (editingLicenseId === license.id) {
+                              setEditingLicenseId(null);
+                              setExpandedLicenseId(null);
+                              return;
+                            }
+                            startEditLicense(license);
+                            setExpandedLicenseId(license.id);
+                            setAssignError(null);
+                            setAssignTarget("");
+                          }}
                         >
                           <Pencil size={15} />
                         </Button>
@@ -738,17 +813,15 @@ export function OprogramowanieClient({
                           <Trash2 size={15} />
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          setExpandedLicenseId(expanded ? null : license.id);
-                          setAssignError(null);
-                          setAssignTarget("");
-                        }}
-                      >
-                        {expanded ? "Zwiń" : "Szczegóły"}
-                      </Button>
+                      {!isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setExpandedLicenseId(expanded ? null : license.id)}
+                        >
+                          {expanded ? "Zwiń" : "Szczegóły"}
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -800,7 +873,14 @@ export function OprogramowanieClient({
                         <Button size="sm" disabled={isPending} onClick={() => handleSaveLicense(license.id)}>
                           Zapisz
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingLicenseId(null)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingLicenseId(null);
+                            setExpandedLicenseId(null);
+                          }}
+                        >
                           Anuluj
                         </Button>
                       </div>
