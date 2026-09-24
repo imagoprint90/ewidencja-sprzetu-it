@@ -99,6 +99,14 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   lokalizacja są opcjonalne — nie każdy pracownik musi je mieć uzupełnione. Import z pliku
   CSV — przycisk „Importuj CSV” obok listy, patrz sekcja „Import pracowników z CSV” niżej po
   strukturę pliku.
+- **Tryb ciemny** — przycisk księżyc/słońce w prawym górnym rogu (pasek górny aplikacji oraz
+  strony logowania). Pierwszy raz używa ustawienia systemu, potem zapamiętuje wybór w
+  przeglądarce (localStorage). Motyw ustawia skrypt w `layout.tsx` przed pierwszym
+  malowaniem, więc nie ma mignięcia jasnego ekranu; kolory ciemnego motywu to zmienne w
+  `globals.css` (`:root.dark`) plus kilka nadpisań twardo zakodowanych klas Tailwinda.
+- Dodawanie sprzętu: pole „Faktura zakupu (PDF)” w formularzu — plik jest wgrywany zaraz po
+  utworzeniu sprzętu (jeśli wgranie się nie uda, sprzęt i tak zostaje dodany, a fakturę
+  można dodać na jego karcie).
 - **Sortowanie list kliknięciem w nagłówek kolumny** — działa na wszystkich tabelach
   w aplikacji (Sprzęt, Pracownicy, Lokalizacje, Kategorie, Protokoły, Użytkownicy). Pierwsze
   kliknięcie sortuje rosnąco, drugie na tym samym nagłówku — malejąco, strzałka przy

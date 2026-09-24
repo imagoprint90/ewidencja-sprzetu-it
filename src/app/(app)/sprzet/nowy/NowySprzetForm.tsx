@@ -8,11 +8,21 @@ import { equipmentAddFormSchema, type EquipmentAddFormValues } from "@/lib/schem
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
 import { TECHNICAL_CONDITION_LABELS, type Category } from "@/lib/types";
-import { addEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
+import { addEquipmentAction, uploadEquipmentInvoiceAction } from "@/lib/supabase/actions/equipment-actions";
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(((reader.result as string) ?? "").split(",")[1] ?? "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 export function NowySprzetForm({ categories }: { categories: Category[] }) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
 
   const {
     register,
@@ -25,6 +35,10 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
 
   async function onSubmit(values: EquipmentAddFormValues) {
     setSubmitError(null);
+    if (invoiceFile && !invoiceFile.name.toLowerCase().endsWith(".pdf")) {
+      setSubmitError("Faktura musi być plikiem PDF.");
+      return;
+    }
     const result = await addEquipmentAction({
       categoryId: values.categoryId,
       name: values.name,
@@ -41,6 +55,18 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
     if (!result.ok) {
       setSubmitError(result.error);
       return;
+    }
+    if (invoiceFile) {
+      const upload = await uploadEquipmentInvoiceAction(
+        result.data.id,
+        await readFileAsBase64(invoiceFile),
+        invoiceFile.name
+      );
+      if (!upload.ok) {
+        // Sprzęt już istnieje — nie ponawiamy zapisu (byłby duplikat), tylko kierujemy na kartę,
+        // gdzie fakturę można dodać ponownie.
+        window.alert(`Sprzęt dodano, ale nie udało się wgrać faktury: ${upload.error} Dodasz ją na karcie sprzętu.`);
+      }
     }
     router.push(`/sprzet/${result.data.id}`);
   }
@@ -99,6 +125,15 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
           </FormField>
           <FormField label="Cena zakupu (PLN)" htmlFor="purchasePrice" error={errors.purchasePrice?.message}>
             <input id="purchasePrice" type="number" step="0.01" className={inputClass} {...register("purchasePrice")} />
+          </FormField>
+          <FormField label="Faktura zakupu (PDF)" htmlFor="invoiceFile" full>
+            <input
+              id="invoiceFile"
+              type="file"
+              accept="application/pdf"
+              className={inputClass}
+              onChange={(e) => setInvoiceFile(e.target.files?.[0] ?? null)}
+            />
           </FormField>
         </FormSection>
 

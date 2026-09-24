@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, KeyRound, LogOut, Menu, UserCircle } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Topbar({
   onMenuClick,
@@ -46,6 +47,8 @@ export function Topbar({
       </button>
       <div className="hidden lg:block" />
 
+      <div className="flex items-center gap-1">
+      <ThemeToggle />
       <div className="relative" ref={menuRef}>
         <button
           onClick={() => setMenuOpen((v) => !v)}
@@ -78,6 +81,7 @@ export function Topbar({
             </button>
           </div>
         )}
+      </div>
       </div>
 
       <ChangePasswordDialog
