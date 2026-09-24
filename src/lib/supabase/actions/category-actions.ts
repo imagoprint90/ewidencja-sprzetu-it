@@ -16,9 +16,13 @@ export async function addCategoryAction(name: string): Promise<ActionResult> {
     .order("sort_order", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const { error } = await supabase
+  let { error } = await supabase
     .from("categories")
     .insert({ name: trimmed, sort_order: (last?.sort_order ?? 0) + 1 });
+  if (error?.code === "42703" || error?.code === "PGRST204") {
+    // Brak kolumny sort_order (migracja 0035 jeszcze nie uruchomiona) — dodaj bez kolejności.
+    ({ error } = await supabase.from("categories").insert({ name: trimmed }));
+  }
 
   if (error) {
     if (error.code === "23505") {

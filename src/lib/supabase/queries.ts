@@ -38,7 +38,10 @@ import type {
 import type { AppRole } from "@/lib/access";
 
 export async function getCategories(supabase: SupabaseClient): Promise<Category[]> {
-  const { data, error } = await supabase.from("categories").select("*").order("sort_order").order("name");
+  const ordered = await supabase.from("categories").select("*").order("sort_order").order("name");
+  if (!ordered.error) return (ordered.data ?? []).map(mapCategory);
+  // Migracja 0035 (kolumna sort_order) mogła nie zostać jeszcze uruchomiona — wtedy sortujemy po nazwie.
+  const { data, error } = await supabase.from("categories").select("*").order("name");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapCategory);
 }
