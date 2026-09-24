@@ -33,6 +33,7 @@ import type {
   SoftwareLicenseAssignment,
   InstalledSoftware,
   Location,
+  LicenseHistoryEntry,
 } from "@/lib/types";
 import type { AppRole } from "@/lib/access";
 
@@ -171,6 +172,25 @@ export async function getInstalledSoftware(supabase: SupabaseClient): Promise<In
   const { data, error } = await supabase.from("equipment_installed_software").select("*");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapInstalledSoftware);
+}
+
+export async function getLicenseHistory(supabase: SupabaseClient): Promise<LicenseHistoryEntry[]> {
+  const { data, error } = await supabase
+    .from("license_assignment_history")
+    .select("*")
+    .order("happened_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    licenseId: r.license_id,
+    productName: r.product_name,
+    licenseType: r.license_type,
+    action: r.action,
+    equipmentName: r.equipment_name,
+    employeeName: r.employee_name,
+    actorName: r.actor_name,
+    happenedAt: r.happened_at,
+  }));
 }
 
 export async function getNotificationTemplates(

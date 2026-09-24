@@ -141,6 +141,18 @@ export interface SoftwareLicenseAssignment {
   assignedAt: string;
 }
 
+export interface LicenseHistoryEntry {
+  id: string;
+  licenseId: string | null;
+  productName: string;
+  licenseType: string;
+  action: "przypisano" | "usunieto";
+  equipmentName: string | null;
+  employeeName: string | null;
+  actorName: string | null;
+  happenedAt: string;
+}
+
 export interface InstalledSoftware {
   id: string;
   equipmentId: string;
