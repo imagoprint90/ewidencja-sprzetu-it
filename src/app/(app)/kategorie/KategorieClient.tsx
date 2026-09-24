@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Archive, Check, X } from "lucide-react";
+import { Plus, Pencil, Archive, Check, X, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -16,6 +16,7 @@ import {
   addCategoryAction,
   archiveCategoryAction,
   renameCategoryAction,
+  reorderCategoriesAction,
 } from "@/lib/supabase/actions/category-actions";
 
 type SortKey = "name" | "count";
@@ -30,7 +31,9 @@ export function KategorieClient({
   const router = useRouter();
   const isAdmin = useIsAdmin();
   const [isPending, startTransition] = useTransition();
-  const { sortKey, sortDir, toggleSort } = useSort<SortKey>("name");
+  const { sortKey, sortDir, toggleSort } = useSort<SortKey>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
 
   const [newName, setNewName] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
@@ -86,7 +89,22 @@ export function KategorieClient({
     });
   }
 
-  const active = categories.filter((c) => !c.isArchived);
+  const active = useMemo(() => categories.filter((c) => !c.isArchived), [categories]);
+  const canDrag = isAdmin && !sortKey;
+
+  function moveCategory(fromId: string, toId: string) {
+    if (fromId === toId) return;
+    const ids = active.map((c) => c.id);
+    const from = ids.indexOf(fromId);
+    const to = ids.indexOf(toId);
+    if (from < 0 || to < 0) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    startTransition(async () => {
+      const result = await reorderCategoriesAction(ids);
+      if (!result.ok) setArchiveError(result.error);
+      router.refresh();
+    });
+  }
   const archived = categories.filter((c) => c.isArchived);
 
   const sortedActive = useMemo(() => {
@@ -136,6 +154,7 @@ export function KategorieClient({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
+              {canDrag && <th className="w-8 px-2 py-3" />}
               <SortableTh label="Nazwa" sortKey="name" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
               <SortableTh label="Liczba sprzętu" sortKey="count" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
               {isAdmin && <th className="px-4 py-3 font-medium text-right">Działania</th>}
@@ -143,7 +162,45 @@ export function KategorieClient({
           </thead>
           <tbody>
             {sortedActive.map((c) => (
-              <tr key={c.id} className="border-b border-border last:border-0">
+              <tr
+                key={c.id}
+                onDragOver={(e) => {
+                  if (dragId) {
+                    e.preventDefault();
+                    setOverId(c.id);
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragId) moveCategory(dragId, c.id);
+                  setDragId(null);
+                  setOverId(null);
+                }}
+                className={`border-b border-border last:border-0 ${dragId === c.id ? "opacity-40" : ""} ${
+                  overId === c.id && dragId && dragId !== c.id ? "bg-primary/10" : ""
+                }`}
+              >
+                {canDrag && (
+                  <td className="px-2 py-3">
+                    <span
+                      draggable
+                      onDragStart={(e) => {
+                        setDragId(c.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        const row = e.currentTarget.closest("tr");
+                        if (row) e.dataTransfer.setDragImage(row, 10, 10);
+                      }}
+                      onDragEnd={() => {
+                        setDragId(null);
+                        setOverId(null);
+                      }}
+                      className="inline-flex cursor-grab text-muted hover:text-foreground"
+                      title="Przeciągnij, aby zmienić kolejność"
+                    >
+                      <GripVertical size={16} />
+                    </span>
+                  </td>
+                )}
                 <td className="px-4 py-3">
                   {editingId === c.id ? (
                     <div className="flex flex-col gap-1">

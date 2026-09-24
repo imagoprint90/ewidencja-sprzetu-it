@@ -278,6 +278,8 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
    dla administratora — klucz jest ukryty domyślnie i pobierany dopiero po kliknięciu
    „Pokaż”/„Kopiuj”; lista licencji pokazuje też, do jakich komputerów są przydzielone, a
    sekcję „Produkty” można zwinąć)
+13. `0035_category_order.sql` (ręczna kolejność kategorii sprzętu — kolumna `sort_order`,
+    przeciąganie w zakładce Kategorie; ta sama kolejność w filtrach i formularzach)
 
 ## Konfiguracja Supabase
 

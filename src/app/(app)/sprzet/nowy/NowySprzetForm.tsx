@@ -30,7 +30,7 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
     formState: { errors, isSubmitting },
   } = useForm<EquipmentAddFormValues>({
     resolver: zodResolver(equipmentAddFormSchema),
-    defaultValues: { categoryId: categories[0]?.id ?? "", inDomain: "nie" },
+    defaultValues: { categoryId: categories.find((c) => !c.isArchived)?.id ?? "", inDomain: "nie" },
   });
 
   async function onSubmit(values: EquipmentAddFormValues) {

@@ -1685,3 +1685,15 @@ alter table public.license_keys enable row level security;
 
 create policy "admin zarzadza kluczami licencji" on public.license_keys
   for all using (public.is_admin()) with check (public.is_admin());
+
+-- Ręczna kolejność kategorii sprzętu (przeciągnij i upuść w zakładce Kategorie).
+alter table public.categories add column if not exists sort_order integer not null default 0;
+
+-- Początkowa kolejność: alfabetyczna (tylko tam, gdzie kolejność nie była jeszcze ustawiona).
+with ranked as (
+  select id, row_number() over (order by name) as rn from public.categories
+)
+update public.categories c
+set sort_order = ranked.rn
+from ranked
+where c.id = ranked.id and c.sort_order = 0;

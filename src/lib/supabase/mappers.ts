@@ -24,12 +24,14 @@ export function mapCategory(row: {
   id: string;
   name: string;
   is_archived: boolean;
+  sort_order?: number | null;
   created_at: string;
 }): Category {
   return {
     id: row.id,
     name: row.name,
     isArchived: row.is_archived,
+    sortOrder: row.sort_order ?? 0,
     createdAt: row.created_at,
   };
 }

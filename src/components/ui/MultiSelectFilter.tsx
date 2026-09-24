@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { Button } from "./Button";
 
 export interface MultiSelectOption {
@@ -23,6 +23,7 @@ export function MultiSelectFilter({
   onChange: (values: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +39,8 @@ export function MultiSelectFilter({
     else onChange([...selected, value]);
   }
 
+  const q = query.trim().toLowerCase();
+  const visibleOptions = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
   const summary =
     selected.length === 0
       ? "wszystkie"
@@ -50,7 +53,10 @@ export function MultiSelectFilter({
       <Button
         variant="secondary"
         size="sm"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setOpen((v) => !v);
+          setQuery("");
+        }}
         className="whitespace-nowrap"
       >
         {label}: {summary}
@@ -58,6 +64,16 @@ export function MultiSelectFilter({
       </Button>
       {open && (
         <div className="absolute left-0 z-20 mt-2 max-h-72 w-56 overflow-y-auto rounded-lg border border-border bg-surface p-2 shadow-lg">
+          <div className="relative mb-1">
+            <Search size={14} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-muted" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Szukaj…"
+              className="w-full rounded-md border border-border bg-surface py-1.5 pl-7 pr-2 text-sm outline-none focus:border-primary"
+            />
+          </div>
           {selected.length > 0 && (
             <button
               type="button"
@@ -67,10 +83,10 @@ export function MultiSelectFilter({
               Wyczyść ({selected.length})
             </button>
           )}
-          {options.length === 0 ? (
+          {visibleOptions.length === 0 ? (
             <p className="px-2 py-1 text-xs text-muted">Brak opcji</p>
           ) : (
-            options.map((o) => (
+            visibleOptions.map((o) => (
               <label
                 key={o.value}
                 className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-black/5"

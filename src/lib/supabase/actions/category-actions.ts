@@ -10,7 +10,15 @@ export async function addCategoryAction(name: string): Promise<ActionResult> {
   if (!trimmed) return { ok: false, error: "Nazwa kategorii nie może być pusta." };
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("categories").insert({ name: trimmed });
+  const { data: last } = await supabase
+    .from("categories")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { error } = await supabase
+    .from("categories")
+    .insert({ name: trimmed, sort_order: (last?.sort_order ?? 0) + 1 });
 
   if (error) {
     if (error.code === "23505") {
@@ -72,5 +80,18 @@ export async function archiveCategoryAction(id: string): Promise<ActionResult> {
   }
 
   revalidatePath("/kategorie");
+  return { ok: true };
+}
+
+export async function reorderCategoriesAction(ids: string[]): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const results = await Promise.all(
+    ids.map((id, i) => supabase.from("categories").update({ sort_order: i + 1 }).eq("id", id)),
+  );
+  if (results.some((r) => r.error)) {
+    return { ok: false, error: "Nie udało się zapisać kolejności kategorii." };
+  }
+  revalidatePath("/kategorie");
+  revalidatePath("/sprzet");
   return { ok: true };
 }

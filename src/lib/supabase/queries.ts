@@ -38,7 +38,7 @@ import type {
 import type { AppRole } from "@/lib/access";
 
 export async function getCategories(supabase: SupabaseClient): Promise<Category[]> {
-  const { data, error } = await supabase.from("categories").select("*").order("name");
+  const { data, error } = await supabase.from("categories").select("*").order("sort_order").order("name");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapCategory);
 }
