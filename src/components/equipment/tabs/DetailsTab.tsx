@@ -60,6 +60,7 @@ export function DetailsTab({
       warrantyEnd: equipment.warrantyEnd ?? "",
       technicalCondition: equipment.technicalCondition ?? undefined,
       purchasePrice: equipment.purchasePrice?.toString() ?? "",
+      inDomain: equipment.inDomain ? "tak" : "nie",
       notes: equipment.notes ?? "",
     },
   });
@@ -77,6 +78,7 @@ export function DetailsTab({
       warrantyEnd: values.warrantyEnd || null,
       technicalCondition: values.technicalCondition || null,
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
+      inDomain: values.inDomain === "tak",
       notes: values.notes || null,
     });
     if (!result.ok) {
@@ -106,6 +108,7 @@ export function DetailsTab({
             <DetailRow label="Producent" value={equipment.manufacturer ?? "—"} />
             <DetailRow label="Model" value={equipment.model ?? "—"} />
             <DetailRow label="Numer seryjny" value={equipment.serialNumber ?? "—"} />
+            <DetailRow label="Domena" value={equipment.inDomain ? "TAK" : "NIE"} />
             <DetailRow label="Data zakupu" value={formatDate(equipment.purchaseDate)} />
             <DetailRow label="Koniec gwarancji" value={formatDate(equipment.warrantyEnd)} />
             <DetailRow
@@ -164,6 +167,12 @@ export function DetailsTab({
         </FormField>
         <FormField label="Numer seryjny" htmlFor="serialNumber" error={errors.serialNumber?.message}>
           <input id="serialNumber" className={inputClass} {...register("serialNumber")} />
+        </FormField>
+        <FormField label="Domena" htmlFor="inDomain" error={errors.inDomain?.message}>
+          <select id="inDomain" className={inputClass} {...register("inDomain")}>
+            <option value="nie">NIE</option>
+            <option value="tak">TAK</option>
+          </select>
         </FormField>
       </FormSection>
 

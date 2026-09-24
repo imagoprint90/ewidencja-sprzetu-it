@@ -213,6 +213,7 @@ export function EquipmentTable({
       location: (a, b) => compareStrings(a.locationName, b.locationName),
       notes: (a, b) => compareStrings(a.item.notes ?? "", b.item.notes ?? ""),
       lastProtocol: (a, b) => compareStrings(a.lastProtocol?.createdAt ?? "", b.lastProtocol?.createdAt ?? ""),
+      domain: (a, b) => compareNumbers(a.item.inDomain ? 1 : 0, b.item.inDomain ? 1 : 0),
       invoice: (a, b) => compareNumbers(a.item.purchaseInvoicePath ? 1 : 0, b.item.purchaseInvoicePath ? 1 : 0),
     };
     return applySort(rows, sortKey, sortDir, comparators);
@@ -485,6 +486,19 @@ function renderCell(
         >
           <FileText size={16} />
         </button>
+      );
+    case "domain":
+      if (!extra.canEdit) return item.inDomain ? "TAK" : "NIE";
+      return (
+        <EditableCell
+          value={item.inDomain ? "tak" : "nie"}
+          displayValue={item.inDomain ? "TAK" : "NIE"}
+          options={[
+            { value: "tak", label: "TAK" },
+            { value: "nie", label: "NIE" },
+          ]}
+          onSave={(v) => extra.onSave({ inDomain: v === "tak" })}
+        />
       );
     case "invoice":
       if (!item.purchaseInvoicePath) return <span>—</span>;

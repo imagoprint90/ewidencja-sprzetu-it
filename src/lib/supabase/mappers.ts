@@ -100,6 +100,7 @@ export function mapEquipment(row: {
   warranty_end: string | null;
   technical_condition: Equipment["technicalCondition"];
   purchase_price: number | string | null;
+  in_domain: boolean;
   status: Equipment["status"];
   location_id: string;
   notes: string | null;
@@ -119,6 +120,7 @@ export function mapEquipment(row: {
     warrantyEnd: row.warranty_end,
     technicalCondition: row.technical_condition,
     purchasePrice: row.purchase_price === null ? null : Number(row.purchase_price),
+    inDomain: row.in_domain,
     status: row.status,
     locationId: row.location_id,
     notes: row.notes,

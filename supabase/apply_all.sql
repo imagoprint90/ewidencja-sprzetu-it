@@ -1556,3 +1556,12 @@ alter table public.employees drop column department;
 create index idx_employees_department on public.employees(department_id);
 
 
+
+
+-- ============================================================
+-- 0032_equipment_domain.sql
+-- ============================================================
+-- Pole "Domena" przy sprzęcie: TAK/NIE — czy dane urządzenie jest w domenie.
+-- Istniejący sprzęt dostaje domyślnie NIE (do ręcznego uzupełnienia).
+
+alter table public.equipment add column if not exists in_domain boolean not null default false;

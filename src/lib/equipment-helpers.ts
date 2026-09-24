@@ -13,6 +13,7 @@ export function equipmentToInput(item: Equipment): EquipmentInput {
     warrantyEnd: item.warrantyEnd,
     technicalCondition: item.technicalCondition,
     purchasePrice: item.purchasePrice,
+    inDomain: item.inDomain,
     notes: item.notes,
   };
 }

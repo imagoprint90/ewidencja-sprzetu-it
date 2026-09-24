@@ -45,6 +45,7 @@ const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "location",
   "lastProtocol",
   "invoice",
+  "domain",
 ];
 
 function SprzetPageInner({

@@ -101,6 +101,7 @@ export interface Equipment {
   warrantyEnd: string | null;
   technicalCondition: TechnicalCondition | null;
   purchasePrice: number | null;
+  inDomain: boolean;
   status: EquipmentStatus;
   locationId: string;
   notes: string | null;
@@ -314,6 +315,7 @@ export const EQUIPMENT_COLUMNS = [
   "notes",
   "lastProtocol",
   "invoice",
+  "domain",
 ] as const;
 
 export type EquipmentColumnKey = (typeof EQUIPMENT_COLUMNS)[number];
@@ -332,4 +334,5 @@ export const EQUIPMENT_COLUMN_LABELS: Record<EquipmentColumnKey, string> = {
   notes: "Uwagi",
   lastProtocol: "Ostatni protokół",
   invoice: "FV",
+  domain: "Domena",
 };

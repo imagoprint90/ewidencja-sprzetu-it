@@ -20,7 +20,7 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
     formState: { errors, isSubmitting },
   } = useForm<EquipmentAddFormValues>({
     resolver: zodResolver(equipmentAddFormSchema),
-    defaultValues: { categoryId: categories[0]?.id ?? "" },
+    defaultValues: { categoryId: categories[0]?.id ?? "", inDomain: "nie" },
   });
 
   async function onSubmit(values: EquipmentAddFormValues) {
@@ -35,6 +35,7 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
       warrantyEnd: values.warrantyEnd || null,
       technicalCondition: values.technicalCondition || null,
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
+      inDomain: values.inDomain === "tak",
       notes: values.notes || null,
     });
     if (!result.ok) {
@@ -80,6 +81,12 @@ export function NowySprzetForm({ categories }: { categories: Category[] }) {
           </FormField>
           <FormField label="Numer seryjny" htmlFor="serialNumber" error={errors.serialNumber?.message}>
             <input id="serialNumber" className={inputClass} {...register("serialNumber")} />
+          </FormField>
+          <FormField label="Domena" htmlFor="inDomain" error={errors.inDomain?.message}>
+            <select id="inDomain" className={inputClass} {...register("inDomain")}>
+              <option value="nie">NIE</option>
+              <option value="tak">TAK</option>
+            </select>
           </FormField>
         </FormSection>
 

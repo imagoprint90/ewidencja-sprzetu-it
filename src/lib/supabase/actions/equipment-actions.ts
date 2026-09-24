@@ -22,6 +22,7 @@ export interface EquipmentInput {
   warrantyEnd: string | null;
   technicalCondition: TechnicalCondition | null;
   purchasePrice: number | null;
+  inDomain: boolean;
   notes: string | null;
 }
 
@@ -39,6 +40,7 @@ function toRow(input: EquipmentInput) {
     warranty_end: input.warrantyEnd,
     technical_condition: input.technicalCondition,
     purchase_price: input.purchasePrice,
+    in_domain: input.inDomain,
     notes: input.notes,
   };
 }

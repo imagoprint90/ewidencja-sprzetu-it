@@ -251,6 +251,9 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
    pracownika przestaje być wolnym tekstem, kolumna `employees.department` znika na rzecz
    `department_id`, wartości tekstowe już wprowadzone w systemie są automatycznie migrowane
    do nowej tabeli)
+10. `0032_equipment_domain.sql` (kolumna `equipment.in_domain` — pole „Domena” TAK/NIE przy
+   sprzęcie: w formularzach, na karcie sprzętu i jako edytowalna kolumna „Domena” na liście
+   Sprzęt; istniejący sprzęt dostaje domyślnie NIE)
 
 ## Konfiguracja Supabase
 
