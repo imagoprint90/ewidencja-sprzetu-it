@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireTabAccess } from "@/lib/supabase/require-tab";
 import {
-  getAssignments,
+  getActiveAssignments,
   getCategories,
   getEmployees,
   getEquipment,
@@ -37,7 +37,7 @@ export default async function SprzetPage() {
     getEquipment(supabase),
     getCategories(supabase),
     getEmployees(supabase),
-    getAssignments(supabase),
+    getActiveAssignments(supabase),
     getEquipmentLinks(supabase),
     getInstalledSoftware(supabase),
     getSoftwareProducts(supabase),

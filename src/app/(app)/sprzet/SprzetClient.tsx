@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState, useTransition } from "react";
+import { Suspense, useDeferredValue, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
@@ -123,8 +123,11 @@ function SprzetPageInner({
   );
   const employeeById = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
 
+  // Wpisywanie w wyszukiwarkę nie blokuje pola — filtrowanie listy nadąża w tle.
+  const deferredQuery = useDeferredValue(filters.query);
+
   const filtered = useMemo(() => {
-    const q = filters.query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     return equipment.filter((item) => {
       if (filters.categoryIds.length > 0 && !filters.categoryIds.includes(item.categoryId)) return false;
       if (filters.statuses.length > 0 && !filters.statuses.includes(item.status)) return false;
@@ -158,7 +161,7 @@ function SprzetPageInner({
       }
       return true;
     });
-  }, [equipment, filters, activeAssignmentByEquipment, employeeById, lastProtocols, windowsCategoryIds]);
+  }, [equipment, filters, deferredQuery, activeAssignmentByEquipment, employeeById, lastProtocols, windowsCategoryIds]);
 
   // Zaznaczenie jest pamiętane niezależnie od filtrów, ale do wyświetlania i akcji zbiorczych
   // liczą się tylko pozycje aktualnie widoczne na liście — unika to niejawnych operacji na

@@ -88,6 +88,13 @@ export async function getAssignments(supabase: SupabaseClient): Promise<Assignme
   return (data ?? []).map(mapAssignment);
 }
 
+// Tylko aktywne przydziały (bez historii) — lista Sprzęt nie potrzebuje reszty, a historia rośnie.
+export async function getActiveAssignments(supabase: SupabaseClient): Promise<Assignment[]> {
+  const { data, error } = await supabase.from("assignments").select("*").is("returned_at", null);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapAssignment);
+}
+
 export async function getEquipmentLinks(supabase: SupabaseClient): Promise<EquipmentLink[]> {
   const { data, error } = await supabase.from("equipment_links").select("*");
   if (error) throw new Error(error.message);

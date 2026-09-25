@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { ArrowRightLeft, Eye, FileText, Pencil, Receipt, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Button } from "@/components/ui/Button";
 import { EquipmentEditForm } from "@/components/equipment/EquipmentEditForm";
 import type {
   Assignment,
@@ -51,6 +52,8 @@ import {
   type EquipmentInput,
 } from "@/lib/supabase/actions/equipment-actions";
 import { getProtocolDownloadUrlAction } from "@/lib/supabase/actions/protocol-actions";
+
+const ROWS_PER_PAGE = 100;
 
 export function EquipmentTable({
   equipment,
@@ -111,6 +114,9 @@ export function EquipmentTable({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
   const { sortKey, sortDir, toggleSort } = useSort<EquipmentColumnKey>(null, "asc", "sprzet-sortowanie");
+  // Rysujemy wiersze partiami — tysiąc wierszy z edytowalnymi komórkami naraz to główny powód
+  // wolnego działania listy. Filtry i sortowanie nadal dotyczą całego zbioru.
+  const [rowLimit, setRowLimit] = useState(ROWS_PER_PAGE);
 
   function handleDeleteConfirm() {
     if (!deleteTarget) return;
@@ -278,7 +284,7 @@ export function EquipmentTable({
           </tr>
         </thead>
         <tbody>
-          {sortedRows.map(({ item, activeAssignment, employeeName, linked, software, lastProtocol, protocolCondition, supportsWindows, categoryName, locationName }, index) => {
+          {sortedRows.slice(0, rowLimit).map(({ item, activeAssignment, employeeName, linked, software, lastProtocol, protocolCondition, supportsWindows, categoryName, locationName }, index) => {
             return (
               <tr
                 key={item.id}
@@ -383,6 +389,22 @@ export function EquipmentTable({
         </tbody>
       </table>
       </div>
+
+      {sortedRows.length > rowLimit && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
+          <span>
+            Wyświetlono {Math.min(rowLimit, sortedRows.length)} z {sortedRows.length} pozycji
+          </span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setRowLimit((n) => n + ROWS_PER_PAGE)}>
+              Pokaż więcej
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setRowLimit(sortedRows.length)}>
+              Pokaż wszystkie
+            </Button>
+          </div>
+        </div>
+      )}
 
       {editTarget && (
         <div
