@@ -1,4 +1,4 @@
-﻿# Ewidencja sprzętu IT
+# Ewidencja sprzętu IT
 
 Wewnętrzny system inwentaryzacji sprzętu IT: sprzęt, pracownicy, przydziały, zestawy
 powiązanego sprzętu, oprogramowanie/licencje i protokoły PDF.
@@ -280,6 +280,7 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
    sekcję „Produkty” można zwinąć)
 13. `0035_category_order.sql` (ręczna kolejność kategorii sprzętu — kolumna `sort_order`,
     przeciąganie w zakładce Kategorie; ta sama kolejność w filtrach i formularzach)
+14. `0036_transfer_without_protocol.sql` (przekazanie bez protokołu — kolumna `no_history`, bez wpisu w historii)
 
 ## Konfiguracja Supabase
 

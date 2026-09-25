@@ -12,6 +12,8 @@ export interface TransferEquipmentSetInput {
   transferDate: string;
   condition: TechnicalCondition;
   notes: string | null;
+  // Przekazanie bez protokołu — nie zapisuje się w historii przydziałów.
+  skipHistory?: boolean;
 }
 
 export async function transferEquipmentSetAction(
@@ -28,6 +30,8 @@ export async function transferEquipmentSetAction(
     p_transfer_date: input.transferDate,
     p_condition: input.condition,
     p_notes: input.notes,
+    // Parametr wysyłany tylko gdy potrzebny — zwykłe przekazania działają też przed migracją 0036.
+    ...(input.skipHistory ? { p_skip_history: true } : {}),
   });
 
   if (error) {

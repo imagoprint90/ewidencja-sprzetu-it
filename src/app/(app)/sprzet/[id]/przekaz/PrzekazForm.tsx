@@ -108,6 +108,7 @@ export function PrzekazForm({
   const [handoverPersonManual, setHandoverPersonManual] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [skipProtocol, setSkipProtocol] = useState(false);
 
   const handoverPersonName: string | null = !handoverEnabled
     ? null
@@ -137,7 +138,7 @@ export function PrzekazForm({
       return "Wybierz pracownika, któremu przekazujesz sprzęt.";
     }
     if (!transferDate) return "Podaj datę przekazania.";
-    if (!city.trim()) return "Podaj miejscowość sporządzenia protokołu.";
+    if (!skipProtocol && !city.trim()) return "Podaj miejscowość sporządzenia protokołu.";
     if (!condition) return "Wybierz stan techniczny sprzętu.";
     if (handoverEnabled && !handoverPersonName) {
       return "Podaj osobę przekazującą (wybierz z listy albo wpisz ręcznie) albo odznacz checkbox.";
@@ -164,9 +165,16 @@ export function PrzekazForm({
         transferDate,
         condition: condition as TechnicalCondition,
         notes: notes.trim() || null,
+        skipHistory: skipProtocol,
       });
       if (!result.ok) {
         setError(result.error);
+        return;
+      }
+
+      if (skipProtocol) {
+        router.push(`/sprzet/${item.id}`);
+        router.refresh();
         return;
       }
 
@@ -318,6 +326,15 @@ export function PrzekazForm({
             />
             Przekaż innemu pracownikowi
           </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={skipProtocol}
+              onChange={(e) => setSkipProtocol(e.target.checked)}
+              className="h-4 w-4 rounded border-border text-primary"
+            />
+            Nie generuj protokołu
+          </label>
           {activeAssignment && (
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -364,7 +381,7 @@ export function PrzekazForm({
             onChange={(e) => setTransferDate(e.target.value)}
           />
         </FormField>
-        <FormField label="Miejscowość" htmlFor="city" required>
+        <FormField label="Miejscowość" htmlFor="city" required={!skipProtocol}>
           <input
             id="city"
             className={inputClass}
@@ -447,8 +464,9 @@ export function PrzekazForm({
       </FormSection>
 
       <p className="text-xs text-muted">
-        Po zatwierdzeniu system automatycznie wygeneruje protokół PDF (do pobrania w
-        zakładce „Dokumenty” lub na liście Protokołów).
+        {skipProtocol
+          ? "Przekazanie bez protokołu: nie powstanie dokument PDF, a przydział nie zapisze się w historii."
+          : "Po zatwierdzeniu system automatycznie wygeneruje protokół PDF (do pobrania w zakładce „Dokumenty” lub na liście Protokołów)."}
       </p>
 
       {error && (
@@ -484,7 +502,9 @@ export function PrzekazForm({
             condition ? TECHNICAL_CONDITION_LABELS[condition as TechnicalCondition] : "—"
           }. ` +
           (handoverPersonName ? `Osoba przekazująca: ${handoverPersonName}. ` : "") +
-          `Zostanie automatycznie wygenerowany protokół PDF.`
+          (skipProtocol
+            ? "Przekazanie BEZ protokołu — nie zapisze się w historii."
+            : "Zostanie automatycznie wygenerowany protokół PDF.")
         }
         confirmLabel="Zatwierdź"
         onCancel={() => setConfirmOpen(false)}

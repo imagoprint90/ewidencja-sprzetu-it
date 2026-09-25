@@ -89,6 +89,7 @@ export function NowySprzetForm({ categories, employees }: { categories: Category
         transferDate: today,
         condition: values.technicalCondition,
         notes: null,
+        skipHistory: true,
       });
       if (!assign.ok) {
         window.alert(`Sprzęt dodano, ale nie udało się go przydzielić: ${assign.error} Przydzielisz go na karcie sprzętu.`);
