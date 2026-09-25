@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { inputClass } from "@/components/ui/Form";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { formatDate } from "@/lib/format";
 import { useIsAdmin } from "@/lib/current-user-context";
 import type {
@@ -106,18 +106,18 @@ export function SoftwareTab({
 
         {isAdmin && availableProducts.length > 0 && (
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <select
-              className={inputClass}
-              value={selectedProduct}
-              onChange={(e) => setSelectedProduct(e.target.value)}
-            >
-              <option value="">Wybierz oprogramowanie…</option>
-              {availableProducts.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} {p.version ?? ""}
-                </option>
-              ))}
-            </select>
+            <div className="flex-1">
+              <SearchableSelect
+                options={availableProducts.map((p) => ({
+                  value: p.id,
+                  label: `${p.name}${p.version ? ` ${p.version}` : ""}`,
+                }))}
+                value={selectedProduct}
+                onChange={setSelectedProduct}
+                placeholder="Wybierz oprogramowanie…"
+                searchPlaceholder="Szukaj oprogramowania…"
+              />
+            </div>
             <Button variant="secondary" disabled={!selectedProduct || isPending} onClick={handleAdd}>
               <Plus size={14} />
               Oznacz jako zainstalowane
@@ -152,7 +152,7 @@ export function SoftwareTab({
           <Link href="/oprogramowanie" className="text-primary hover:underline">
             Oprogramowanie
           </Link>
-          . Klucze aktywacyjne nie są przechowywane ani wyświetlane.
+          . Klucze licencji widzi wyłącznie administrator na stronie Oprogramowanie.
         </p>
       </div>
     </div>
