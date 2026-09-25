@@ -106,7 +106,7 @@ export function EquipmentTable({
   const [deleteTarget, setDeleteTarget] = useState<Equipment | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
-  const { sortKey, sortDir, toggleSort } = useSort<EquipmentColumnKey>();
+  const { sortKey, sortDir, toggleSort } = useSort<EquipmentColumnKey>(null, "asc", "sprzet-sortowanie");
 
   function handleDeleteConfirm() {
     if (!deleteTarget) return;

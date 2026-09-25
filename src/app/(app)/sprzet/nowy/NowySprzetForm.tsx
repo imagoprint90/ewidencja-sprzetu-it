@@ -95,7 +95,8 @@ export function NowySprzetForm({ categories, employees }: { categories: Category
         window.alert(`Sprzęt dodano, ale nie udało się go przydzielić: ${assign.error} Przydzielisz go na karcie sprzętu.`);
       }
     }
-    router.push(`/sprzet/${result.data.id}`);
+    router.push("/sprzet");
+    router.refresh();
   }
 
   return (
