@@ -55,8 +55,16 @@ export async function renameCategoryAction(id: string, name: string): Promise<Ac
   return { ok: true };
 }
 
-export async function archiveCategoryAction(id: string): Promise<ActionResult> {
+export async function deleteCategoryAction(id: string): Promise<ActionResult> {
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Brak zalogowanego użytkownika." };
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (profile?.role !== "administrator") {
+    return { ok: false, error: "Tylko administrator może usuwać kategorie." };
+  }
 
   const { count, error: countError } = await supabase
     .from("equipment")
@@ -69,24 +77,35 @@ export async function archiveCategoryAction(id: string): Promise<ActionResult> {
   if ((count ?? 0) > 0) {
     return {
       ok: false,
-      error:
-        "Nie można zarchiwizować kategorii — jest przypisana do istniejącego sprzętu. Przypisz ten sprzęt do innej kategorii.",
+      error: `Nie można usunąć kategorii — jest przypisana do ${count} pozycji sprzętu. Zmień najpierw kategorię tego sprzętu.`,
     };
   }
 
-  const { error } = await supabase
-    .from("categories")
-    .update({ is_archived: true })
-    .eq("id", id);
-
+  const { error } = await supabase.from("categories").delete().eq("id", id);
   if (error) {
-    return { ok: false, error: "Nie udało się zarchiwizować kategorii." };
+    if (error.code === "23503") {
+      return { ok: false, error: "Nie można usunąć kategorii — jest przypisana do sprzętu." };
+    }
+    return { ok: false, error: "Nie udało się usunąć kategorii." };
+  }
+
+  // Sprzątanie: usunięta kategoria znika też z uprawnień kont (visible_categories).
+  const { data: affected } = await supabase
+    .from("profiles")
+    .select("id, visible_categories")
+    .contains("visible_categories", [id]);
+  for (const p of affected ?? []) {
+    await supabase
+      .from("profiles")
+      .update({ visible_categories: (p.visible_categories as string[]).filter((c) => c !== id) })
+      .eq("id", p.id);
   }
 
   revalidatePath("/kategorie");
+  revalidatePath("/sprzet");
+  revalidatePath("/uzytkownicy");
   return { ok: true };
 }
-
 export async function reorderCategoriesAction(ids: string[]): Promise<ActionResult> {
   const supabase = await createSupabaseServerClient();
   const results = await Promise.all(

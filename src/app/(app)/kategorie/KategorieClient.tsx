@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Archive, Check, X, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -14,7 +14,7 @@ import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
 import type { Category } from "@/lib/types";
 import {
   addCategoryAction,
-  archiveCategoryAction,
+  deleteCategoryAction,
   renameCategoryAction,
   reorderCategoriesAction,
 } from "@/lib/supabase/actions/category-actions";
@@ -40,8 +40,8 @@ export function KategorieClient({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
-  const [archiveTarget, setArchiveTarget] = useState<string | null>(null);
-  const [archiveError, setArchiveError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   function handleAdd() {
     startTransition(async () => {
@@ -74,17 +74,17 @@ export function KategorieClient({
     });
   }
 
-  function confirmArchive() {
-    if (!archiveTarget) return;
+  function confirmDelete() {
+    if (!deleteTarget) return;
     startTransition(async () => {
-      const result = await archiveCategoryAction(archiveTarget);
+      const result = await deleteCategoryAction(deleteTarget);
       if (!result.ok) {
-        setArchiveError(result.error);
-        setArchiveTarget(null);
+        setActionError(result.error);
+        setDeleteTarget(null);
         return;
       }
-      setArchiveTarget(null);
-      setArchiveError(null);
+      setDeleteTarget(null);
+      setActionError(null);
       router.refresh();
     });
   }
@@ -101,7 +101,7 @@ export function KategorieClient({
     ids.splice(to, 0, ids.splice(from, 1)[0]);
     startTransition(async () => {
       const result = await reorderCategoriesAction(ids);
-      if (!result.ok) setArchiveError(result.error);
+      if (!result.ok) setActionError(result.error);
       router.refresh();
     });
   }
@@ -120,8 +120,8 @@ export function KategorieClient({
       <div>
         <h1 className="text-xl font-semibold">Kategorie</h1>
         <p className="text-sm text-muted">
-          Kategorie sprzętu są zapisane w bazie danych. Kategorii używanej przez istniejący
-          sprzęt nie można zarchiwizować bez wcześniejszej zmiany kategorii tego sprzętu.
+          Kategorie sprzętu są zapisane w bazie danych. Kategorię można usunąć tylko wtedy, gdy żaden
+          sprzęt nie jest do niej przypisany — najpierw zmień kategorię tego sprzętu.
         </p>
       </div>
 
@@ -144,9 +144,9 @@ export function KategorieClient({
         </div>
       )}
 
-      {archiveError && (
+      {actionError && (
         <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
-          {archiveError}
+          {actionError}
         </p>
       )}
 
@@ -247,10 +247,16 @@ export function KategorieClient({
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => setArchiveTarget(c.id)}
+                            disabled={(equipmentCounts[c.id] ?? 0) > 0}
+                            title={
+                              (equipmentCounts[c.id] ?? 0) > 0
+                                ? "Kategoria jest przypisana do sprzętu — nie można jej usunąć"
+                                : "Usuń kategorię"
+                            }
+                            onClick={() => setDeleteTarget(c.id)}
                           >
-                            <Archive size={14} />
-                            Archiwizuj
+                            <Trash2 size={14} />
+                            Usuń
                           </Button>
                         </>
                       )}
@@ -265,22 +271,34 @@ export function KategorieClient({
 
       {archived.length > 0 && (
         <div>
-          <h2 className="mb-2 text-sm font-semibold text-muted">Zarchiwizowane kategorie</h2>
+          <h2 className="mb-2 text-sm font-semibold text-muted">Zarchiwizowane kategorie (dawniej)</h2>
           <div className="flex flex-wrap gap-2">
             {archived.map((c) => (
-              <Badge key={c.id}>{c.name}</Badge>
+              <span key={c.id} className="inline-flex items-center gap-1">
+                <Badge>{c.name}</Badge>
+                {isAdmin && (equipmentCounts[c.id] ?? 0) === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(c.id)}
+                    title="Usuń kategorię"
+                    className="text-muted hover:text-danger"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </span>
             ))}
           </div>
         </div>
       )}
-
       <ConfirmDialog
-        open={archiveTarget !== null}
-        title="Zarchiwizować kategorię?"
-        description="Zarchiwizowana kategoria nie będzie proponowana przy dodawaniu nowego sprzętu, ale pozostanie widoczna w historii."
-        confirmLabel="Archiwizuj"
-        onCancel={() => setArchiveTarget(null)}
-        onConfirm={confirmArchive}
+        open={deleteTarget !== null}
+        title="Usunąć kategorię?"
+        description="Kategoria zostanie trwale usunięta (także z uprawnień kont). Tej operacji nie można cofnąć. Żaden sprzęt nie jest do niej przypisany."
+        confirmLabel="Usuń"
+        danger
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
       />
     </div>
   );
