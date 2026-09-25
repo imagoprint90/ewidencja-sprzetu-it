@@ -34,7 +34,10 @@ import type {
   InstalledSoftware,
   Location,
   LicenseHistoryEntry,
+  EquipmentStatus,
+  StatusColors,
 } from "@/lib/types";
+import { defaultStatusColors } from "@/lib/types";
 import type { AppRole } from "@/lib/access";
 
 export async function getCategories(supabase: SupabaseClient): Promise<Category[]> {
@@ -285,4 +288,17 @@ export async function getProfiles(supabase: SupabaseClient): Promise<UserProfile
     canTransferEquipment: row.can_transfer_equipment,
     createdAt: row.created_at,
   }));
+}
+
+export async function getStatusColors(supabase: SupabaseClient): Promise<StatusColors> {
+  const colors = defaultStatusColors();
+  const { data, error } = await supabase.from("status_colors").select("*");
+  // Brak tabeli (migracja 0038 jeszcze nie uruchomiona) — zostają kolory domyślne.
+  if (error) return colors;
+  for (const row of data ?? []) {
+    if (row.status in colors) {
+      colors[row.status as EquipmentStatus] = { text: row.text_color, background: row.background_color };
+    }
+  }
+  return colors;
 }

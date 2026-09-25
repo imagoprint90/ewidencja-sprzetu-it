@@ -16,11 +16,12 @@ import type {
   InstalledSoftware,
   Location,
   LastProtocolInfo,
+  StatusColors,
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
 } from "@/lib/types";
-import { EQUIPMENT_COLUMN_LABELS, EQUIPMENT_STATUS_COLORS, EQUIPMENT_STATUS_LABELS } from "@/lib/types";
+import { EQUIPMENT_COLUMN_LABELS, EQUIPMENT_STATUS_LABELS } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
 import { EditableCell } from "@/components/ui/EditableCell";
@@ -60,6 +61,7 @@ export function EquipmentTable({
   licenseAssignments,
   locations,
   lastProtocols,
+  statusColors,
   visibleColumns,
   columnColors,
   selectedIds,
@@ -78,6 +80,7 @@ export function EquipmentTable({
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
   lastProtocols: Record<string, LastProtocolInfo>;
+  statusColors: StatusColors;
   visibleColumns: EquipmentColumnKey[];
   columnColors: Partial<Record<EquipmentColumnKey, string>>;
   selectedIds: Set<string>;
@@ -274,7 +277,12 @@ export function EquipmentTable({
                   "cursor-pointer border-b border-border last:border-0 hover:bg-primary/5",
                   index % 2 === 1 && "bg-black/[0.015]"
                 )}
-                style={{ color: adaptColorForTheme(EQUIPMENT_STATUS_COLORS[item.status], isDark) }}
+                style={{
+                  color: adaptColorForTheme(statusColors[item.status].text, isDark),
+                  backgroundColor: statusColors[item.status].background
+                    ? `${statusColors[item.status].background}2e`
+                    : undefined,
+                }}
                 onClick={() => router.push(`/sprzet/${item.id}`)}
               >
                 {(isAdmin || canEditEquipment || canTransferEquipment) && (

@@ -27,6 +27,17 @@ export const EQUIPMENT_STATUS_COLORS: Record<EquipmentStatus, string> = {
   wycofany: "#6b7280",
 };
 
+// Kolory wiersza sprzętu wg statusu (ustawiane w Ustawienia > Statusy sprzętu).
+export type StatusColors = Record<EquipmentStatus, { text: string; background: string | null }>;
+
+export function defaultStatusColors(): StatusColors {
+  const result = {} as StatusColors;
+  for (const s of Object.keys(EQUIPMENT_STATUS_COLORS) as EquipmentStatus[]) {
+    result[s] = { text: EQUIPMENT_STATUS_COLORS[s], background: null };
+  }
+  return result;
+}
+
 export type TechnicalCondition = "nowy" | "bardzo_dobry" | "dobry" | "dostateczny" | "uszkodzony";
 
 export const TECHNICAL_CONDITION_LABELS: Record<TechnicalCondition, string> = {

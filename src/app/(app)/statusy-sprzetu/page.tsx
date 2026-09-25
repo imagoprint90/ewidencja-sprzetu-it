@@ -1,0 +1,11 @@
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdminPage } from "@/lib/supabase/require-tab";
+import { getStatusColors } from "@/lib/supabase/queries";
+import { StatusySprzetuClient } from "./StatusySprzetuClient";
+
+export default async function StatusySprzetuPage() {
+  await requireAdminPage();
+  const supabase = await createSupabaseServerClient();
+  const colors = await getStatusColors(supabase);
+  return <StatusySprzetuClient initialColors={colors} />;
+}
