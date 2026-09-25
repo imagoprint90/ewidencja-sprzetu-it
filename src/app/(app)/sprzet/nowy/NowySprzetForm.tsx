@@ -139,7 +139,7 @@ export function NowySprzetForm({
             </select>
           </FormField>
           <FormField label="Nazwa sprzętu" htmlFor="name" required error={errors.name?.message} full>
-            <input id="name" className={inputClass} placeholder="np. Laptop Dell Latitude 5440" {...register("name")} />
+            <input id="name" className={inputClass} {...register("name")} />
           </FormField>
           <FormField label="Producent" htmlFor="manufacturer" error={errors.manufacturer?.message}>
             <input id="manufacturer" className={inputClass} {...register("manufacturer")} />
