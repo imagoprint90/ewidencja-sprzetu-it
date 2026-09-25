@@ -14,6 +14,7 @@ import {
   Settings,
   ShieldCheck,
   Bell,
+  LogIn,
   ChevronDown,
   Palette,
   PanelLeftClose,
@@ -49,6 +50,7 @@ const SETTINGS_CHILDREN: NavItem[] = [
   { href: "/statusy-sprzetu", label: "Statusy sprzętu", icon: Palette, tab: "statusy" },
   { href: "/powiadomienia", label: "Powiadomienia", icon: Bell, adminOnly: true },
   { href: "/uzytkownicy", label: "Użytkownicy", icon: ShieldCheck, adminOnly: true },
+  { href: "/sesje-logowan", label: "Sesje logowań", icon: LogIn, adminOnly: true },
 ];
 
 function NavLinks({

@@ -9,6 +9,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { ConfigMissing } from "@/components/ui/ConfigMissing";
 import { FormField, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
+import { logLoginEventAction } from "@/lib/supabase/actions/login-event-actions";
 
 function LoginForm() {
   const router = useRouter();
@@ -34,10 +35,14 @@ function LoginForm() {
     });
 
     if (signInError) {
-      setError(translateAuthError(signInError.message));
+      const message = translateAuthError(signInError.message);
+      await logLoginEventAction({ event: "blad_logowania", email, reason: message });
+      setError(message);
       setLoading(false);
       return;
     }
+
+    await logLoginEventAction({ event: "logowanie" });
 
     const dalej = searchParams.get("dalej") || "/pulpit";
     router.push(dalej);

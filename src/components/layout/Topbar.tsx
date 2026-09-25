@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, KeyRound, LogOut, Menu, UserCircle } from "lucide-react";
+import { logLoginEventAction } from "@/lib/supabase/actions/login-event-actions";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import { ThemeToggle } from "./ThemeToggle";
@@ -31,6 +32,7 @@ export function Topbar({
   async function handleLogout() {
     setLoggingOut(true);
     const supabase = createSupabaseBrowserClient();
+    await logLoginEventAction({ event: "wylogowanie" });
     await supabase.auth.signOut();
     router.push("/logowanie");
     router.refresh();
