@@ -532,9 +532,9 @@ function renderCell(
         />
       );
     case "software":
-      return <ExpandableList items={extra.software} />;
+      return <ExpandableList items={extra.software} visibleCount={extra.software.length} />;
     case "linkedEquipment":
-      return <ExpandableList items={extra.linked.map((l) => l.name)} />;
+      return <ExpandableList items={extra.linked.map((l) => l.name)} visibleCount={extra.linked.length} />;
     case "status":
       if (!extra.canEdit) return <StatusBadge status={item.status} />;
       return (
