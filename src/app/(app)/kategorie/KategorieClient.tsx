@@ -17,6 +17,7 @@ import {
   deleteCategoryAction,
   renameCategoryAction,
   reorderCategoriesAction,
+  setCategoryWindowsAction,
 } from "@/lib/supabase/actions/category-actions";
 
 type SortKey = "name" | "count";
@@ -70,6 +71,15 @@ export function KategorieClient({
         return;
       }
       setEditingId(null);
+      router.refresh();
+    });
+  }
+
+  function toggleWindows(id: string, value: boolean) {
+    startTransition(async () => {
+      const result = await setCategoryWindowsAction(id, value);
+      if (!result.ok) setActionError(result.error);
+      else setActionError(null);
       router.refresh();
     });
   }
@@ -157,6 +167,9 @@ export function KategorieClient({
               {canDrag && <th className="w-8 px-2 py-3" />}
               <SortableTh label="Nazwa" sortKey="name" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
               <SortableTh label="Liczba sprzętu" sortKey="count" currentKey={sortKey} direction={sortDir} onSort={(k) => toggleSort(k as SortKey)} />
+              <th className="px-4 py-3 font-medium" title="Sprzęt z tej kategorii ma pole Windows (Pro/Home)">
+                Windows
+              </th>
               {isAdmin && <th className="px-4 py-3 font-medium text-right">Działania</th>}
             </tr>
           </thead>
@@ -217,6 +230,22 @@ export function KategorieClient({
                   )}
                 </td>
                 <td className="px-4 py-3">{equipmentCounts[c.id] ?? 0}</td>
+                <td className="px-4 py-3">
+                  {isAdmin ? (
+                    <input
+                      type="checkbox"
+                      checked={c.supportsWindows}
+                      disabled={isPending}
+                      onChange={(e) => toggleWindows(c.id, e.target.checked)}
+                      aria-label={`Pole Windows dla kategorii ${c.name}`}
+                      className="h-4 w-4 rounded border-border text-primary"
+                    />
+                  ) : c.supportsWindows ? (
+                    "Tak"
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 {isAdmin && (
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">

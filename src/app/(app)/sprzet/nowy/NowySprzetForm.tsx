@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { equipmentAddFormSchema, type EquipmentAddFormValues } from "@/lib/schemas";
@@ -11,7 +11,7 @@ import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { useIsAdmin, useCanTransferEquipment } from "@/lib/current-user-context";
 import { employeeFullName } from "@/lib/equipment-helpers";
 import { transferEquipmentSetAction } from "@/lib/supabase/actions/assignment-actions";
-import { TECHNICAL_CONDITION_LABELS, type Category, type Employee, type Location } from "@/lib/types";
+import { TECHNICAL_CONDITION_LABELS, WINDOWS_EDITION_LABELS, type Category, type Employee, type Location } from "@/lib/types";
 import { addEquipmentAction, uploadEquipmentInvoiceAction } from "@/lib/supabase/actions/equipment-actions";
 
 function readFileAsBase64(file: File): Promise<string> {
@@ -49,11 +49,15 @@ export function NowySprzetForm({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<EquipmentAddFormValues>({
     resolver: zodResolver(equipmentAddFormSchema),
     defaultValues: { categoryId: categories.find((c) => !c.isArchived)?.id ?? "", inDomain: "nie" },
   });
+
+  const selectedCategoryId = useWatch({ control, name: "categoryId" });
+  const supportsWindows = Boolean(categories.find((c) => c.id === selectedCategoryId)?.supportsWindows);
 
   async function onSubmit(values: EquipmentAddFormValues) {
     setSubmitError(null);
@@ -76,6 +80,7 @@ export function NowySprzetForm({
       technicalCondition: values.technicalCondition || null,
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
       inDomain: values.inDomain === "tak",
+      windowsEdition: supportsWindows ? values.windowsEdition || null : undefined,
       notes: values.notes || null,
     }, employeeLocation ? employeeLocation.id : locationId || null);
     if (!result.ok) {
@@ -138,6 +143,18 @@ export function NowySprzetForm({
                 ))}
             </select>
           </FormField>
+          {supportsWindows && (
+            <FormField label="Windows" htmlFor="windowsEdition" error={errors.windowsEdition?.message}>
+              <select id="windowsEdition" className={inputClass} {...register("windowsEdition")}>
+                <option value="">Nie określono</option>
+                {Object.entries(WINDOWS_EDITION_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
           <FormField label="Nazwa sprzętu" htmlFor="name" required error={errors.name?.message} full>
             <input id="name" className={inputClass} {...register("name")} />
           </FormField>

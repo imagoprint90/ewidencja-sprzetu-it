@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mapEquipment } from "@/lib/supabase/mappers";
-import type { Equipment, EquipmentStatus, TechnicalCondition } from "@/lib/types";
+import type { Equipment, EquipmentStatus, TechnicalCondition, WindowsEdition } from "@/lib/types";
 
 type ActionResult<T = undefined> =
   | { ok: true; data: T }
@@ -24,6 +24,8 @@ export interface EquipmentInput {
   purchasePrice: number | null;
   inDomain: boolean;
   notes: string | null;
+  // Pro/Home — tylko dla kategorii z Windows (baza czyści wartość dla pozostałych). undefined = bez zmian.
+  windowsEdition?: WindowsEdition | null;
   // Tylko przy edycji: ręczna zmiana lokalizacji (ignorowana, gdy sprzęt jest przydzielony).
   locationId?: string;
 }
@@ -43,6 +45,7 @@ function toRow(input: EquipmentInput) {
     technical_condition: input.technicalCondition,
     purchase_price: input.purchasePrice,
     in_domain: input.inDomain,
+    ...(input.windowsEdition !== undefined ? { windows_edition: input.windowsEdition } : {}),
     notes: input.notes,
   };
 }

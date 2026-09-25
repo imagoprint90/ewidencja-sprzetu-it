@@ -25,6 +25,7 @@ export function mapCategory(row: {
   name: string;
   is_archived: boolean;
   sort_order?: number | null;
+  supports_windows?: boolean | null;
   created_at: string;
 }): Category {
   return {
@@ -32,6 +33,7 @@ export function mapCategory(row: {
     name: row.name,
     isArchived: row.is_archived,
     sortOrder: row.sort_order ?? 0,
+    supportsWindows: row.supports_windows ?? false,
     createdAt: row.created_at,
   };
 }
@@ -103,6 +105,7 @@ export function mapEquipment(row: {
   technical_condition: Equipment["technicalCondition"];
   purchase_price: number | string | null;
   in_domain: boolean;
+  windows_edition?: Equipment["windowsEdition"];
   status: Equipment["status"];
   location_id: string;
   notes: string | null;
@@ -123,6 +126,7 @@ export function mapEquipment(row: {
     technicalCondition: row.technical_condition,
     purchasePrice: row.purchase_price === null ? null : Number(row.purchase_price),
     inDomain: row.in_domain,
+    windowsEdition: row.windows_edition ?? null,
     status: row.status,
     locationId: row.location_id,
     notes: row.notes,

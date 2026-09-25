@@ -15,6 +15,7 @@ export function equipmentToInput(item: Equipment): EquipmentInput {
     technicalCondition: item.technicalCondition,
     purchasePrice: item.purchasePrice,
     inDomain: item.inDomain,
+    windowsEdition: item.windowsEdition ?? undefined,
     notes: item.notes,
   };
 }

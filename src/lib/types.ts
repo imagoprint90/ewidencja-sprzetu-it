@@ -22,6 +22,13 @@ export const DEFAULT_EQUIPMENT_STATUSES: EquipmentStatusDef[] = [
   { key: "zepsuty", label: "Zepsuty", textColor: "#dc2626", backgroundColor: null, isSystem: true, sortOrder: 4 },
   { key: "wycofany", label: "Wycofany", textColor: "#6b7280", backgroundColor: null, isSystem: true, sortOrder: 5 },
 ];
+export type WindowsEdition = "pro" | "home";
+
+export const WINDOWS_EDITION_LABELS: Record<WindowsEdition, string> = {
+  pro: "Pro",
+  home: "Home",
+};
+
 export type TechnicalCondition = "nowy" | "bardzo_dobry" | "dobry" | "dostateczny" | "uszkodzony";
 
 export const TECHNICAL_CONDITION_LABELS: Record<TechnicalCondition, string> = {
@@ -36,6 +43,8 @@ export interface Category {
   id: string;
   name: string;
   isArchived: boolean;
+  // Sprzęt z tej kategorii ma pole "Windows" (Pro/Home) — domyślnie tylko "Komputery".
+  supportsWindows: boolean;
   sortOrder: number;
   createdAt: string;
 }
@@ -97,6 +106,7 @@ export interface Equipment {
   warrantyEnd: string | null;
   technicalCondition: TechnicalCondition | null;
   purchasePrice: number | null;
+  windowsEdition: WindowsEdition | null;
   inDomain: boolean;
   status: EquipmentStatus;
   locationId: string;
@@ -337,6 +347,7 @@ export const EQUIPMENT_COLUMNS = [
   "invoice",
   "domain",
   "protocolCondition",
+  "windows",
 ] as const;
 
 export type EquipmentColumnKey = (typeof EQUIPMENT_COLUMNS)[number];
@@ -357,4 +368,5 @@ export const EQUIPMENT_COLUMN_LABELS: Record<EquipmentColumnKey, string> = {
   invoice: "FV",
   domain: "Domena",
   protocolCondition: "Stan techniczny",
+  windows: "Windows",
 };

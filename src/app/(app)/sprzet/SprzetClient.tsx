@@ -46,6 +46,7 @@ const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "serialNumber",
   "status",
   "protocolCondition",
+  "windows",
   "location",
   "lastProtocol",
   "invoice",
@@ -114,6 +115,10 @@ function SprzetPageInner({
     for (const a of assignments) if (a.returnedAt === null) map.set(a.equipmentId, a);
     return map;
   }, [assignments]);
+  const windowsCategoryIds = useMemo(
+    () => new Set(categories.filter((c) => c.supportsWindows).map((c) => c.id)),
+    [categories]
+  );
   const employeeById = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
 
   const filtered = useMemo(() => {
@@ -127,6 +132,11 @@ function SprzetPageInner({
         const cond =
           getEffectiveCondition(item, lastProtocols[item.id]) ?? NO_PROTOCOL_CONDITION;
         if (!filters.conditions!.includes(cond)) return false;
+      }
+      if ((filters.windows ?? []).length > 0) {
+        // Sprzęt spoza kategorii z Windows nie pasuje do żadnej opcji tego filtra.
+        if (!windowsCategoryIds.has(item.categoryId)) return false;
+        if (!filters.windows!.includes(item.windowsEdition ?? "brak")) return false;
       }
       if (filters.locationIds.length > 0 && !filters.locationIds.includes(item.locationId)) return false;
       if (filters.employeeIds.length > 0) {
@@ -144,7 +154,7 @@ function SprzetPageInner({
       }
       return true;
     });
-  }, [equipment, filters, activeAssignmentByEquipment, employeeById, lastProtocols]);
+  }, [equipment, filters, activeAssignmentByEquipment, employeeById, lastProtocols, windowsCategoryIds]);
 
   // Zaznaczenie jest pamiętane niezależnie od filtrów, ale do wyświetlania i akcji zbiorczych
   // liczą się tylko pozycje aktualnie widoczne na liście — unika to niejawnych operacji na

@@ -118,3 +118,20 @@ export async function reorderCategoriesAction(ids: string[]): Promise<ActionResu
   revalidatePath("/sprzet");
   return { ok: true };
 }
+
+export async function setCategoryWindowsAction(id: string, supportsWindows: boolean): Promise<ActionResult> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Brak zalogowanego użytkownika." };
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (profile?.role !== "administrator") return { ok: false, error: "Tylko administrator może zmieniać to ustawienie." };
+
+  const { error } = await supabase.from("categories").update({ supports_windows: supportsWindows }).eq("id", id);
+  if (error) return { ok: false, error: "Nie udało się zapisać (czy uruchomiono migrację 0040?)." };
+
+  revalidatePath("/kategorie");
+  revalidatePath("/sprzet");
+  return { ok: true };
+}

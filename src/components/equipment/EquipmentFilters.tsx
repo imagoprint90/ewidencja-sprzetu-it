@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import type { Category, Employee, EquipmentStatus, Location } from "@/lib/types";
-import { TECHNICAL_CONDITION_LABELS } from "@/lib/types";
+import { TECHNICAL_CONDITION_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { useStatuses } from "@/lib/statuses-context";
 import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
 import { employeeFullName, NO_PROTOCOL_CONDITION } from "@/lib/equipment-helpers";
@@ -15,6 +15,7 @@ export interface EquipmentFiltersState {
   employeeIds: string[];
   domains?: ("tak" | "nie")[];
   conditions?: string[];
+  windows?: string[];
 }
 
 export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
@@ -25,6 +26,7 @@ export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
   employeeIds: [],
   domains: [],
   conditions: [],
+  windows: [],
 };
 
 export function EquipmentFilters({
@@ -97,6 +99,16 @@ export function EquipmentFilters({
         ]}
         selected={value.conditions ?? []}
         onChange={(v) => set("conditions", v)}
+      />
+
+      <MultiSelectFilter
+        label="Windows"
+        options={[
+          ...Object.entries(WINDOWS_EDITION_LABELS).map(([value, label]) => ({ value, label })),
+          { value: "brak", label: "Nie określono" },
+        ]}
+        selected={value.windows ?? []}
+        onChange={(v) => set("windows", v)}
       />
 
       <MultiSelectFilter

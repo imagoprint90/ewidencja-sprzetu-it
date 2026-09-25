@@ -22,7 +22,7 @@ import type {
   SoftwareLicenseAssignment,
   SoftwareProduct,
 } from "@/lib/types";
-import { EQUIPMENT_COLUMN_LABELS } from "@/lib/types";
+import { EQUIPMENT_COLUMN_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { getEffectiveCondition } from "@/lib/equipment-helpers";
 import { useStatusLookup, useStatuses } from "@/lib/statuses-context";
 import { StatusBadge } from "@/components/ui/Badge";
@@ -160,6 +160,7 @@ export function EquipmentTable({
     const productNameById = new Map(softwareProducts.map((p) => [p.id, p.name]));
     const licenseProductId = new Map(licenses.map((l) => [l.id, l.productId]));
     const equipmentById = new Map(equipment.map((e) => [e.id, e]));
+    const windowsCategoryIds = new Set(categories.filter((c) => c.supportsWindows).map((c) => c.id));
 
     const activeByEquipment = new Map<string, Assignment>();
     for (const a of assignments) if (a.returnedAt === null) activeByEquipment.set(a.equipmentId, a);
@@ -205,6 +206,7 @@ export function EquipmentTable({
         software,
         lastProtocol,
         protocolCondition: getEffectiveCondition(item, lastProtocol),
+        supportsWindows: windowsCategoryIds.has(item.categoryId),
         categoryName: categoryNameById.get(item.categoryId) ?? "—",
         locationName: locationNameById.get(item.locationId) ?? "—",
       };
@@ -226,6 +228,7 @@ export function EquipmentTable({
       location: (a, b) => compareStrings(a.locationName, b.locationName),
       notes: (a, b) => compareStrings(a.item.notes ?? "", b.item.notes ?? ""),
       lastProtocol: (a, b) => compareStrings(a.lastProtocol?.createdAt ?? "", b.lastProtocol?.createdAt ?? ""),
+      windows: (a, b) => compareStrings(a.item.windowsEdition ?? "", b.item.windowsEdition ?? ""),
       protocolCondition: (a, b) => compareStrings(a.protocolCondition ?? "", b.protocolCondition ?? ""),
       domain: (a, b) => compareNumbers(a.item.inDomain ? 1 : 0, b.item.inDomain ? 1 : 0),
       invoice: (a, b) => compareNumbers(a.item.purchaseInvoicePath ? 1 : 0, b.item.purchaseInvoicePath ? 1 : 0),
@@ -273,7 +276,7 @@ export function EquipmentTable({
           </tr>
         </thead>
         <tbody>
-          {sortedRows.map(({ item, activeAssignment, employeeName, linked, software, lastProtocol, protocolCondition, categoryName, locationName }, index) => {
+          {sortedRows.map(({ item, activeAssignment, employeeName, linked, software, lastProtocol, protocolCondition, supportsWindows, categoryName, locationName }, index) => {
             return (
               <tr
                 key={item.id}
@@ -316,6 +319,7 @@ export function EquipmentTable({
                       software,
                       categories: editableCategories,
                       statuses: statusList,
+                      supportsWindows,
                       canEdit: canEditEquipment,
                       lastProtocol,
                       protocolCondition,
@@ -445,6 +449,7 @@ function renderCell(
     software: string[];
     categories: Category[];
     statuses: EquipmentStatusDef[];
+    supportsWindows: boolean;
     canEdit: boolean;
     lastProtocol?: LastProtocolInfo;
     protocolCondition?: string | null;
@@ -560,6 +565,23 @@ function renderCell(
           <FileText size={16} />
         </button>
       );
+    case "windows": {
+      // Pole dotyczy tylko kategorii z Windows (np. Komputery) — dla reszty zawsze kreska.
+      if (!extra.supportsWindows) return <span>—</span>;
+      const label = item.windowsEdition ? WINDOWS_EDITION_LABELS[item.windowsEdition] : "—";
+      if (!extra.canEdit) return <span>{label}</span>;
+      return (
+        <EditableCell
+          value={item.windowsEdition ?? ""}
+          displayValue={label}
+          options={[
+            { value: "", label: "Nie określono" },
+            ...Object.entries(WINDOWS_EDITION_LABELS).map(([value, l]) => ({ value, label: l })),
+          ]}
+          onSave={(v) => extra.onSave({ windowsEdition: v === "pro" || v === "home" ? v : null })}
+        />
+      );
+    }
     case "protocolCondition":
       return extra.protocolCondition ?? <span>—</span>;
     case "domain":

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Category, Equipment, Location } from "@/lib/types";
-import { TECHNICAL_CONDITION_LABELS } from "@/lib/types";
+import { TECHNICAL_CONDITION_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { equipmentFormSchema, type EquipmentFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
@@ -37,6 +37,7 @@ export function EquipmentEditForm({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<EquipmentFormValues>({
     resolver: zodResolver(equipmentFormSchema),
@@ -52,9 +53,13 @@ export function EquipmentEditForm({
       technicalCondition: equipment.technicalCondition ?? undefined,
       purchasePrice: equipment.purchasePrice?.toString() ?? "",
       inDomain: equipment.inDomain ? "tak" : "nie",
+      windowsEdition: equipment.windowsEdition ?? "",
       notes: equipment.notes ?? "",
     },
   });
+
+  const selectedCategoryId = useWatch({ control, name: "categoryId" });
+  const supportsWindows = Boolean(categories.find((c) => c.id === selectedCategoryId)?.supportsWindows);
 
   async function onSubmit(values: EquipmentFormValues) {
     setError(null);
@@ -70,6 +75,7 @@ export function EquipmentEditForm({
       technicalCondition: values.technicalCondition || null,
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
       inDomain: values.inDomain === "tak",
+      windowsEdition: supportsWindows ? values.windowsEdition || null : undefined,
       notes: values.notes || null,
       locationId: hasActiveAssignment ? undefined : locationId,
     });
@@ -99,6 +105,18 @@ export function EquipmentEditForm({
               ))}
           </select>
         </FormField>
+          {supportsWindows && (
+            <FormField label="Windows" htmlFor="windowsEdition" error={errors.windowsEdition?.message}>
+              <select id="windowsEdition" className={inputClass} {...register("windowsEdition")}>
+                <option value="">Nie określono</option>
+                {Object.entries(WINDOWS_EDITION_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
         <FormField label="Nazwa sprzętu" htmlFor="name" required error={errors.name?.message} full>
           <input id="name" className={inputClass} {...register("name")} />
         </FormField>

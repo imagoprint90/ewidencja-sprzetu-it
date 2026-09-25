@@ -16,6 +16,7 @@ const equipmentBaseSchema = z.object({
     .optional()
     .refine((v) => !v || !Number.isNaN(Number(v)), "Cena musi być liczbą."),
   inDomain: z.enum(["tak", "nie"]).optional(),
+  windowsEdition: z.union([z.literal(""), z.enum(["pro", "home"])]).optional(),
   notes: z.string().trim().optional(),
 });
 
