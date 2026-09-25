@@ -5,7 +5,7 @@ import type { Category, Employee, EquipmentStatus, Location } from "@/lib/types"
 import { TECHNICAL_CONDITION_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { useStatuses } from "@/lib/statuses-context";
 import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
-import { employeeFullName, NO_PROTOCOL_CONDITION } from "@/lib/equipment-helpers";
+import { employeeFullName, NO_LOCATION_FILTER, NO_PROTOCOL_CONDITION } from "@/lib/equipment-helpers";
 
 export interface EquipmentFiltersState {
   query: string;
@@ -76,7 +76,10 @@ export function EquipmentFilters({
 
       <MultiSelectFilter
         label="Lokalizacja"
-        options={locations.map((l) => ({ value: l.id, label: l.name }))}
+        options={[
+          ...locations.map((l) => ({ value: l.id, label: l.name })),
+          { value: NO_LOCATION_FILTER, label: "Bez lokalizacji" },
+        ]}
         selected={value.locationIds}
         onChange={(v) => set("locationIds", v)}
       />

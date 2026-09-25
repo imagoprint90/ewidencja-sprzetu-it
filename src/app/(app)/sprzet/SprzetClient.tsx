@@ -20,6 +20,7 @@ import { EQUIPMENT_COLUMNS, type EquipmentColumnKey, type EquipmentStatus } from
 import {
   employeeFullName,
   getEffectiveCondition,
+  NO_LOCATION_FILTER,
   NO_PROTOCOL_CONDITION,
 } from "@/lib/equipment-helpers";
 import { deleteEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
@@ -139,7 +140,14 @@ function SprzetPageInner({
         if (!windowsCategoryIds.has(item.categoryId)) return false;
         if (!filters.windows!.includes(item.windowsEdition ?? "brak")) return false;
       }
-      if (filters.locationIds.length > 0 && !filters.locationIds.includes(item.locationId)) return false;
+      if (filters.locationIds.length > 0) {
+        // Sprzęt przydzielony pracownikowi bez lokalizacji jest "przy pracowniku", a nie w
+        // magazynie — nie pasuje do lokalizacji z bazy, tylko do opcji "Bez lokalizacji".
+        const active = activeAssignmentByEquipment.get(item.id);
+        const owner = active ? employeeById.get(active.employeeId) : undefined;
+        const effective = active && !owner?.locationId ? NO_LOCATION_FILTER : item.locationId;
+        if (!filters.locationIds.includes(effective)) return false;
+      }
       if (filters.employeeIds.length > 0) {
         const active = activeAssignmentByEquipment.get(item.id);
         if (!active || !filters.employeeIds.includes(active.employeeId)) return false;

@@ -126,4 +126,7 @@ export function getEffectiveCondition(
   );
 }
 
+// Wartość filtra lokalizacji dla sprzętu przydzielonego pracownikowi bez lokalizacji.
+export const NO_LOCATION_FILTER = "__brak_lokalizacji";
+
 export const NO_PROTOCOL_CONDITION = "__brak";
