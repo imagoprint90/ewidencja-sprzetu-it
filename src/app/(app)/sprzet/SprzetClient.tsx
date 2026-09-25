@@ -105,6 +105,7 @@ function SprzetPageInner({
     "sprzet-kolumny",
     DEFAULT_COLUMNS
   );
+  const [showRowNumbers, setShowRowNumbers] = useLocalStorage<boolean>("sprzet-lp", true);
   const [columnColors, setColumnColors] = useLocalStorage<Partial<Record<EquipmentColumnKey, string>>>(
     "sprzet-kolory-kolumn",
     {}
@@ -255,6 +256,8 @@ function SprzetPageInner({
           onChange={setVisibleColumns}
           colors={columnColors}
           onColorsChange={setColumnColors}
+          showRowNumbers={showRowNumbers}
+          onShowRowNumbersChange={setShowRowNumbers}
         />
       </div>
 
@@ -312,6 +315,7 @@ function SprzetPageInner({
           lastProtocols={lastProtocols}
           visibleColumns={visibleColumns.length ? visibleColumns : EQUIPMENT_COLUMNS.slice(0, 3)}
           columnColors={columnColors}
+          showRowNumbers={showRowNumbers}
           selectedIds={visibleSelectedIds}
           allSelected={allFilteredSelected}
           onToggleSelect={toggleSelect}

@@ -10,11 +10,15 @@ export function ColumnPicker({
   onChange,
   colors,
   onColorsChange,
+  showRowNumbers,
+  onShowRowNumbersChange,
 }: {
   visible: EquipmentColumnKey[];
   onChange: (cols: EquipmentColumnKey[]) => void;
   colors: Partial<Record<EquipmentColumnKey, string>>;
   onColorsChange: (colors: Partial<Record<EquipmentColumnKey, string>>) => void;
+  showRowNumbers: boolean;
+  onShowRowNumbersChange: (show: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -66,6 +70,15 @@ export function ColumnPicker({
           <p className="mb-2 text-xs font-medium text-muted">
             Widoczne kolumny — kolejność jak na liście (strzałki zmieniają kolejność)
           </p>
+          <label className="mb-1 flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-black/5">
+            <input
+              type="checkbox"
+              checked={showRowNumbers}
+              onChange={(e) => onShowRowNumbersChange(e.target.checked)}
+              className="h-4 w-4 rounded border-border text-primary"
+            />
+            L.p. (numeracja wierszy, zawsze pierwsza kolumna)
+          </label>
           <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
             {visible.map((col, i) => (
               <div

@@ -66,6 +66,7 @@ export function EquipmentTable({
   lastProtocols,
   visibleColumns,
   columnColors,
+  showRowNumbers,
   selectedIds,
   allSelected,
   onToggleSelect,
@@ -84,6 +85,7 @@ export function EquipmentTable({
   lastProtocols: Record<string, LastProtocolInfo>;
   visibleColumns: EquipmentColumnKey[];
   columnColors: Partial<Record<EquipmentColumnKey, string>>;
+  showRowNumbers: boolean;
   selectedIds: Set<string>;
   allSelected: boolean;
   onToggleSelect: (id: string) => void;
@@ -258,7 +260,7 @@ export function EquipmentTable({
                 />
               </th>
             )}
-            <th className="w-10 px-3 py-2.5 font-medium">L.p.</th>
+            {showRowNumbers && <th className="w-10 px-3 py-2.5 font-medium">L.p.</th>}
             {visibleColumns.map((col) => (
               <SortableTh
                 key={col}
@@ -303,7 +305,7 @@ export function EquipmentTable({
                     />
                   </td>
                 )}
-                <td className="px-3 py-2 align-middle text-xs">{index + 1}</td>
+                {showRowNumbers && <td className="px-3 py-2 align-middle text-xs">{index + 1}</td>}
                 {visibleColumns.map((col) => (
                   <td
                     key={col}
