@@ -11,7 +11,7 @@ import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { useIsAdmin, useCanTransferEquipment } from "@/lib/current-user-context";
 import { employeeFullName } from "@/lib/equipment-helpers";
 import { transferEquipmentSetAction } from "@/lib/supabase/actions/assignment-actions";
-import { TECHNICAL_CONDITION_LABELS, type Category, type Employee } from "@/lib/types";
+import { TECHNICAL_CONDITION_LABELS, type Category, type Employee, type Location } from "@/lib/types";
 import { addEquipmentAction, uploadEquipmentInvoiceAction } from "@/lib/supabase/actions/equipment-actions";
 
 function readFileAsBase64(file: File): Promise<string> {
@@ -23,12 +23,26 @@ function readFileAsBase64(file: File): Promise<string> {
   });
 }
 
-export function NowySprzetForm({ categories, employees }: { categories: Category[]; employees: Employee[] }) {
+export function NowySprzetForm({
+  categories,
+  employees,
+  locations,
+}: {
+  categories: Category[];
+  employees: Employee[];
+  locations: Location[];
+}) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
   const canTransfer = useCanTransferEquipment();
   const canAssign = isAdmin || canTransfer;
   const [employeeId, setEmployeeId] = useState("");
+  const [locationId, setLocationId] = useState(locations.find((l) => l.isWarehouse)?.id ?? locations[0]?.id ?? "");
+  // Lokalizacja przydzielonego pracownika ma pierwszeństwo przed ręcznie wybraną (tak samo
+  // działa późniejsze przekazanie sprzętu) — a gdy pracownik nie ma lokalizacji, zostaje wybrana.
+  const employeeLocation = canAssign && employeeId
+    ? locations.find((l) => l.id === employees.find((e) => e.id === employeeId)?.locationId)
+    : undefined;
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
 
@@ -63,7 +77,7 @@ export function NowySprzetForm({ categories, employees }: { categories: Category
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
       inDomain: values.inDomain === "tak",
       notes: values.notes || null,
-    });
+    }, employeeLocation ? employeeLocation.id : locationId || null);
     if (!result.ok) {
       setSubmitError(result.error);
       return;
@@ -194,8 +208,26 @@ export function NowySprzetForm({ categories, employees }: { categories: Category
 
         <FormSection
           title="Stan"
-          description="Nowy sprzęt trafia automatycznie do lokalizacji „Magazyn” — lokalizacja zmieni się sama po przydzieleniu pracownikowi."
+          description="Domyślnie sprzęt trafia do lokalizacji „Magazyn”. Po przydzieleniu pracownikowi lokalizacja jest brana z tego pracownika (ma pierwszeństwo przed wybraną tutaj)."
         >
+          <FormField label="Lokalizacja" htmlFor="locationId">
+            <select
+              id="locationId"
+              className={inputClass}
+              value={employeeLocation ? employeeLocation.id : locationId}
+              disabled={Boolean(employeeLocation)}
+              onChange={(e) => setLocationId(e.target.value)}
+            >
+              {locations.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+            {employeeLocation && (
+              <p className="mt-1 text-xs text-muted">Lokalizacja pobrana od przydzielonego pracownika.</p>
+            )}
+          </FormField>
           <FormField label="Stan techniczny" htmlFor="technicalCondition" error={errors.technicalCondition?.message}>
             <select id="technicalCondition" className={inputClass} {...register("technicalCondition")}>
               <option value="">Nie określono</option>

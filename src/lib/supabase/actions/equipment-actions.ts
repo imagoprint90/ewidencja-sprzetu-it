@@ -46,7 +46,8 @@ function toRow(input: EquipmentInput) {
 }
 
 export async function addEquipmentAction(
-  input: EquipmentInput
+  input: EquipmentInput,
+  locationId?: string | null
 ): Promise<ActionResult<Equipment>> {
   const supabase = await createSupabaseServerClient();
 
@@ -62,7 +63,7 @@ export async function addEquipmentAction(
 
   const { data, error } = await supabase
     .from("equipment")
-    .insert({ ...toRow(input), status: "w_magazynie", location_id: warehouse.id })
+    .insert({ ...toRow(input), status: "w_magazynie", location_id: locationId || warehouse.id })
     .select()
     .single();
 
