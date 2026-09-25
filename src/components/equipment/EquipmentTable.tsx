@@ -210,7 +210,9 @@ export function EquipmentTable({
         protocolCondition: getEffectiveCondition(item, lastProtocol),
         supportsWindows: windowsCategoryIds.has(item.categoryId),
         categoryName: categoryNameById.get(item.categoryId) ?? "—",
-        locationName: locationNameById.get(item.locationId) ?? "—",
+        // Sprzęt przydzielony pracownikowi bez lokalizacji nie jest "w magazynie" — pokazujemy kreskę.
+        locationName:
+          activeAssignment && !employee?.locationId ? "—" : (locationNameById.get(item.locationId) ?? "—"),
       };
     });
   }, [equipment, assignments, employees, links, installedSoftware, softwareProducts, licenseAssignments, licenses, lastProtocols, categories, locations]);
