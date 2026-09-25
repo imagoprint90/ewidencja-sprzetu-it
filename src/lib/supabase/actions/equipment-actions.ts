@@ -24,6 +24,8 @@ export interface EquipmentInput {
   purchasePrice: number | null;
   inDomain: boolean;
   notes: string | null;
+  // Tylko przy edycji: ręczna zmiana lokalizacji (ignorowana, gdy sprzęt jest przydzielony).
+  locationId?: string;
 }
 
 function toRow(input: EquipmentInput) {
@@ -84,7 +86,17 @@ export async function updateEquipmentAction(
   input: EquipmentInput
 ): Promise<ActionResult<undefined>> {
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("equipment").update(toRow(input)).eq("id", id);
+  const row: ReturnType<typeof toRow> & { location_id?: string } = toRow(input);
+  if (input.locationId) {
+    // Lokalizacja przydzielonego sprzętu wynika z pracownika — nie zmieniamy jej ręcznie.
+    const { count: activeCount } = await supabase
+      .from("assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("equipment_id", id)
+      .is("returned_at", null);
+    if ((activeCount ?? 0) === 0) row.location_id = input.locationId;
+  }
+  const { error } = await supabase.from("equipment").update(row).eq("id", id);
 
   if (error) {
     if (error.code === "23505") {

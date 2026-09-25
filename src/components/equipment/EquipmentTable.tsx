@@ -3,9 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { ArrowRightLeft, FileText, Pencil, Receipt, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Eye, FileText, Pencil, Receipt, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { EquipmentEditForm } from "@/components/equipment/EquipmentEditForm";
 import type {
   Assignment,
   Category,
@@ -104,6 +105,7 @@ export function EquipmentTable({
       ? categories.filter((c) => (visibleCategories ?? []).includes(c.id))
       : categories;
   const [deleteTarget, setDeleteTarget] = useState<Equipment | null>(null);
+  const [editTarget, setEditTarget] = useState<Equipment | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
   const { sortKey, sortDir, toggleSort } = useSort<EquipmentColumnKey>(null, "asc", "sprzet-sortowanie");
@@ -327,15 +329,23 @@ export function EquipmentTable({
                 {(isAdmin || canEditEquipment || canTransferEquipment) && (
                   <td className="px-3 py-2 align-middle" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
+                      <Link
+                        prefetch={false}
+                        href={`/sprzet/${item.id}`}
+                        title="Podgląd karty sprzętu"
+                        className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
+                      >
+                        <Eye size={15} />
+                      </Link>
                       {(isAdmin || canEditEquipment) && (
-                        <Link
-                          prefetch={false}
-                          href={`/sprzet/${item.id}?edit=1`}
+                        <button
+                          type="button"
                           title="Edytuj sprzęt"
+                          onClick={() => setEditTarget(item)}
                           className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
                         >
                           <Pencil size={15} />
-                        </Link>
+                        </button>
                       )}
                       {(isAdmin || canTransferEquipment) && (
                         <Link
@@ -366,6 +376,45 @@ export function EquipmentTable({
         </tbody>
       </table>
       </div>
+
+      {editTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setEditTarget(null);
+          }}
+        >
+          <div role="dialog" aria-modal="true" className="w-full max-w-3xl rounded-xl border border-border bg-background p-5 shadow-xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">Edycja sprzętu</h2>
+                <p className="text-sm text-muted">
+                  {editTarget.name} · {editTarget.inventoryNumber}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditTarget(null)}
+                aria-label="Zamknij"
+                className="rounded-md p-1.5 text-muted hover:bg-black/5 hover:text-foreground"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <EquipmentEditForm
+              equipment={editTarget}
+              categories={editableCategories}
+              locations={locations}
+              hasActiveAssignment={assignments.some((a) => a.equipmentId === editTarget.id && a.returnedAt === null)}
+              onCancel={() => setEditTarget(null)}
+              onSaved={() => {
+                setEditTarget(null);
+                router.refresh();
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={deleteTarget !== null}

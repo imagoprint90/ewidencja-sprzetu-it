@@ -2,17 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import type { Category, Equipment, Location } from "@/lib/types";
 import { TECHNICAL_CONDITION_LABELS } from "@/lib/types";
-import { equipmentFormSchema, type EquipmentFormValues } from "@/lib/schemas";
-import { FormField, FormSection, inputClass } from "@/components/ui/Form";
+import { EquipmentEditForm } from "@/components/equipment/EquipmentEditForm";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getLocationName } from "@/lib/equipment-helpers";
 import { useCanEditEquipment, useCurrentUser } from "@/lib/current-user-context";
-import { updateEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
 import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -29,11 +25,13 @@ export function DetailsTab({
   categories,
   locations,
   startInEdit = false,
+  hasActiveAssignment = false,
 }: {
   equipment: Equipment;
   categories: Category[];
   locations: Location[];
   startInEdit?: boolean;
+  hasActiveAssignment?: boolean;
 }) {
   const router = useRouter();
   const canEdit = useCanEditEquipment();
@@ -41,53 +39,6 @@ export function DetailsTab({
   const editableCategories =
     role === "edycja_podglad" ? categories.filter((c) => (visibleCategories ?? []).includes(c.id)) : categories;
   const [editing, setEditing] = useState(startInEdit && canEdit);
-  const [error, setError] = useState<string | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<EquipmentFormValues>({
-    resolver: zodResolver(equipmentFormSchema),
-    defaultValues: {
-      inventoryNumber: equipment.inventoryNumber,
-      categoryId: equipment.categoryId,
-      name: equipment.name,
-      manufacturer: equipment.manufacturer ?? "",
-      model: equipment.model ?? "",
-      serialNumber: equipment.serialNumber ?? "",
-      purchaseDate: equipment.purchaseDate ?? "",
-      warrantyEnd: equipment.warrantyEnd ?? "",
-      technicalCondition: equipment.technicalCondition ?? undefined,
-      purchasePrice: equipment.purchasePrice?.toString() ?? "",
-      inDomain: equipment.inDomain ? "tak" : "nie",
-      notes: equipment.notes ?? "",
-    },
-  });
-
-  async function onSubmit(values: EquipmentFormValues) {
-    setError(null);
-    const result = await updateEquipmentAction(equipment.id, {
-      inventoryNumber: values.inventoryNumber,
-      categoryId: values.categoryId,
-      name: values.name,
-      manufacturer: values.manufacturer || null,
-      model: values.model || null,
-      serialNumber: values.serialNumber || null,
-      purchaseDate: values.purchaseDate || null,
-      warrantyEnd: values.warrantyEnd || null,
-      technicalCondition: values.technicalCondition || null,
-      purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
-      inDomain: values.inDomain === "tak",
-      notes: values.notes || null,
-    });
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    setEditing(false);
-    router.refresh();
-  }
 
   if (!editing) {
     const category = categories.find((c) => c.id === equipment.categoryId);
@@ -140,96 +91,16 @@ export function DetailsTab({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <FormSection title="Podstawowe informacje">
-        <FormField label="Numer inwentarzowy" htmlFor="inventoryNumber" required error={errors.inventoryNumber?.message}>
-          <input id="inventoryNumber" className={inputClass} {...register("inventoryNumber")} />
-        </FormField>
-        <FormField label="Kategoria" htmlFor="categoryId" required error={errors.categoryId?.message}>
-          <select id="categoryId" className={inputClass} {...register("categoryId")}>
-            {editableCategories
-              .filter((c) => !c.isArchived || c.id === equipment.categoryId)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-          </select>
-        </FormField>
-        <FormField label="Nazwa sprzętu" htmlFor="name" required error={errors.name?.message} full>
-          <input id="name" className={inputClass} {...register("name")} />
-        </FormField>
-        <FormField label="Producent" htmlFor="manufacturer" error={errors.manufacturer?.message}>
-          <input id="manufacturer" className={inputClass} {...register("manufacturer")} />
-        </FormField>
-        <FormField label="Model" htmlFor="model" error={errors.model?.message}>
-          <input id="model" className={inputClass} {...register("model")} />
-        </FormField>
-        <FormField label="Numer seryjny" htmlFor="serialNumber" error={errors.serialNumber?.message}>
-          <input id="serialNumber" className={inputClass} {...register("serialNumber")} />
-        </FormField>
-        <FormField label="Domena" htmlFor="inDomain" error={errors.inDomain?.message}>
-          <select id="inDomain" className={inputClass} {...register("inDomain")}>
-            <option value="nie">NIE</option>
-            <option value="tak">TAK</option>
-          </select>
-        </FormField>
-      </FormSection>
-
-      <FormSection title="Zakup i gwarancja">
-        <FormField label="Data zakupu" htmlFor="purchaseDate" error={errors.purchaseDate?.message}>
-          <input id="purchaseDate" type="date" className={inputClass} {...register("purchaseDate")} />
-        </FormField>
-        <FormField label="Koniec gwarancji" htmlFor="warrantyEnd" error={errors.warrantyEnd?.message}>
-          <input id="warrantyEnd" type="date" className={inputClass} {...register("warrantyEnd")} />
-        </FormField>
-        <FormField label="Cena zakupu (PLN)" htmlFor="purchasePrice" error={errors.purchasePrice?.message}>
-          <input id="purchasePrice" type="number" step="0.01" className={inputClass} {...register("purchasePrice")} />
-        </FormField>
-        <div className="sm:col-span-2">
-          <p className="mb-1.5 block text-sm font-medium">Faktura zakupu (PDF)</p>
-          <InvoiceAttachment
-            equipmentId={equipment.id}
-            path={equipment.purchaseInvoicePath}
-            canEdit={canEdit}
-            bare
-          />
-        </div>
-      </FormSection>
-
-      <FormSection
-        title="Stan"
-        description={`Lokalizacja (obecnie: ${getLocationName(locations, equipment.locationId)}) zmienia się automatycznie przy przekazaniu lub zwrocie sprzętu.`}
-      >
-        <FormField label="Stan techniczny" htmlFor="technicalCondition" error={errors.technicalCondition?.message}>
-          <select id="technicalCondition" className={inputClass} {...register("technicalCondition")}>
-            <option value="">Nie określono</option>
-            {Object.entries(TECHNICAL_CONDITION_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </FormField>
-        <FormField label="Uwagi" htmlFor="notes" error={errors.notes?.message} full>
-          <textarea id="notes" rows={3} className={inputClass} {...register("notes")} />
-        </FormField>
-      </FormSection>
-
-      {error && (
-        <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">
-          {error}
-        </p>
-      )}
-
-      <div className="flex justify-end gap-3">
-        <Button type="button" variant="secondary" onClick={() => setEditing(false)}>
-          Anuluj
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          Zapisz zmiany
-        </Button>
-      </div>
-    </form>
+    <EquipmentEditForm
+      equipment={equipment}
+      categories={editableCategories}
+      locations={locations}
+      hasActiveAssignment={hasActiveAssignment}
+      onCancel={() => setEditing(false)}
+      onSaved={() => {
+        setEditing(false);
+        router.refresh();
+      }}
+    />
   );
 }
