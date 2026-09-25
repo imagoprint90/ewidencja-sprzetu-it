@@ -321,6 +321,7 @@ export function EquipmentTable({
                       software,
                       categories: editableCategories,
                       statuses: statusList,
+                      locations,
                       supportsWindows,
                       canEdit: canEditEquipment,
                       lastProtocol,
@@ -450,6 +451,7 @@ function renderCell(
     software: string[];
     categories: Category[];
     statuses: EquipmentStatusDef[];
+    locations: Location[];
     supportsWindows: boolean;
     canEdit: boolean;
     lastProtocol?: LastProtocolInfo;
@@ -522,10 +524,21 @@ function renderCell(
         />
       );
     case "location":
-      // Lokalizacja sprzętu jest zarządzana automatycznie (synchronizowana z pracownikiem
-      // przy przekazaniu, ustawiana na magazyn przy zwrocie) — nie edytujemy jej ręcznie.
-      return extra.locationName;
-    case "notes":
+      // Lokalizacja sprzętu jest niezależna od pracownika — edytowalna wprost z tabeli.
+      if (!extra.canEdit) return extra.locationName;
+      return (
+        <EditableCell
+          value={item.locationId ?? ""}
+          displayValue={extra.locationName}
+          options={[
+            { value: "", label: "— brak lokalizacji" },
+            ...extra.locations
+              .filter((l) => !l.isArchived || l.id === item.locationId)
+              .map((l) => ({ value: l.id, label: l.name })),
+          ]}
+          onSave={(v) => extra.onSave({ locationId: v || null })}
+        />
+      );    case "notes":
       if (!extra.canEdit) {
         return item.notes ? (
           <span className="block max-w-[320px] whitespace-pre-wrap break-words">{item.notes}</span>
