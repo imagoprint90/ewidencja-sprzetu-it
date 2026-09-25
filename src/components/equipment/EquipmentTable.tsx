@@ -22,6 +22,7 @@ import type {
   SoftwareProduct,
 } from "@/lib/types";
 import { EQUIPMENT_COLUMN_LABELS } from "@/lib/types";
+import { getEffectiveCondition } from "@/lib/equipment-helpers";
 import { useStatusLookup, useStatuses } from "@/lib/statuses-context";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
@@ -201,7 +202,7 @@ export function EquipmentTable({
         linked,
         software,
         lastProtocol,
-        protocolCondition: lastProtocol?.condition ?? null,
+        protocolCondition: getEffectiveCondition(item, lastProtocol),
         categoryName: categoryNameById.get(item.categoryId) ?? "—",
         locationName: locationNameById.get(item.locationId) ?? "—",
       };
@@ -472,7 +473,7 @@ function renderCell(
     case "notes":
       if (!extra.canEdit) {
         return item.notes ? (
-          <span className="line-clamp-2 max-w-[220px]">{item.notes}</span>
+          <span className="block max-w-[320px] whitespace-pre-wrap break-words">{item.notes}</span>
         ) : (
           <span>—</span>
         );
@@ -482,7 +483,7 @@ function renderCell(
           value={item.notes ?? ""}
           displayValue={
             item.notes ? (
-              <span className="line-clamp-2 max-w-[220px]">{item.notes}</span>
+              <span className="block max-w-[320px] whitespace-pre-wrap break-words">{item.notes}</span>
             ) : (
               <span>—</span>
             )

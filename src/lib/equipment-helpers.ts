@@ -1,4 +1,5 @@
-import type { Assignment, Category, Department, Employee, Equipment, EquipmentLink, Location, LastProtocolInfo, Protocol } from "./types";
+import type { Assignment, Category, Department, Employee, Equipment, EquipmentLink, Location, LastProtocolInfo, Protocol, TechnicalCondition } from "./types";
+import { TECHNICAL_CONDITION_LABELS } from "./types";
 import type { EquipmentInput } from "./supabase/actions/equipment-actions";
 
 export function equipmentToInput(item: Equipment): EquipmentInput {
@@ -111,6 +112,17 @@ export function getProtocolCondition(protocol: Protocol | undefined, inventoryNu
   if (!protocol) return null;
   const item = protocol.snapshot.items.find((i) => i.inventoryNumber === inventoryNumber);
   return item?.technicalConditionLabel ?? protocol.snapshot.technicalConditionLabel ?? null;
+}
+
+// Stan techniczny do pokazania na liście: z ostatniego protokołu, a gdy sprzęt nie ma protokołu
+// (albo protokół nie niesie tej informacji) — z pola "Stan techniczny" na karcie sprzętu.
+export function getEffectiveCondition(
+  item: { technicalCondition: TechnicalCondition | null },
+  lastProtocol: { condition: string | null } | undefined
+): string | null {
+  return (
+    lastProtocol?.condition ?? (item.technicalCondition ? TECHNICAL_CONDITION_LABELS[item.technicalCondition] : null)
+  );
 }
 
 export const NO_PROTOCOL_CONDITION = "__brak";

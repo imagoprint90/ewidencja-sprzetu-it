@@ -93,7 +93,7 @@ export function EquipmentFilters({
         label="Stan techniczny"
         options={[
           ...Object.values(TECHNICAL_CONDITION_LABELS).map((l) => ({ value: l, label: l })),
-          { value: NO_PROTOCOL_CONDITION, label: "Brak protokołu" },
+          { value: NO_PROTOCOL_CONDITION, label: "Nie określono" },
         ]}
         selected={value.conditions ?? []}
         onChange={(v) => set("conditions", v)}

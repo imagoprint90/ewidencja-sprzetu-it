@@ -19,6 +19,7 @@ import { useIsAdmin, useCanEditEquipment, useCanTransferEquipment } from "@/lib/
 import { EQUIPMENT_COLUMNS, type EquipmentColumnKey, type EquipmentStatus } from "@/lib/types";
 import {
   employeeFullName,
+  getEffectiveCondition,
   NO_PROTOCOL_CONDITION,
 } from "@/lib/equipment-helpers";
 import { deleteEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
@@ -124,7 +125,7 @@ function SprzetPageInner({
         return false;
       if ((filters.conditions ?? []).length > 0) {
         const cond =
-          lastProtocols[item.id]?.condition ?? NO_PROTOCOL_CONDITION;
+          getEffectiveCondition(item, lastProtocols[item.id]) ?? NO_PROTOCOL_CONDITION;
         if (!filters.conditions!.includes(cond)) return false;
       }
       if (filters.locationIds.length > 0 && !filters.locationIds.includes(item.locationId)) return false;
