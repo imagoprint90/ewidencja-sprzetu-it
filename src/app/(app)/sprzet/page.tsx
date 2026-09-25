@@ -14,6 +14,7 @@ import {
   getSoftwareLicenses,
   getSoftwareProducts,
 } from "@/lib/supabase/queries";
+import { buildLastProtocols } from "@/lib/equipment-helpers";
 import { SprzetClient } from "./SprzetClient";
 
 export default async function SprzetPage() {
@@ -59,8 +60,7 @@ export default async function SprzetPage() {
       licenses={licenses}
       licenseAssignments={licenseAssignments}
       locations={locations}
-      protocols={protocols}
-      protocolItemLinks={protocolItemLinks}
+      lastProtocols={buildLastProtocols(equipment, protocols, protocolItemLinks)}
     />
   );
 }

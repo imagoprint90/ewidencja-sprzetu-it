@@ -1,4 +1,4 @@
-import type { Assignment, Category, Department, Employee, Equipment, EquipmentLink, Location, Protocol } from "./types";
+import type { Assignment, Category, Department, Employee, Equipment, EquipmentLink, Location, LastProtocolInfo, Protocol } from "./types";
 import type { EquipmentInput } from "./supabase/actions/equipment-actions";
 
 export function equipmentToInput(item: Equipment): EquipmentInput {
@@ -74,20 +74,37 @@ export function getAssignedEquipmentNames(
   return equipment.filter((e) => equipmentIds.includes(e.id)).map((e) => e.name);
 }
 
-// Ostatni protokół (wg daty utworzenia), w którym występował dany sprzęt.
-export function getLastProtocolFor(
-  equipmentId: string,
+// Dla każdego sprzętu: ostatni protokół (wg daty utworzenia) wraz ze stanem technicznym
+// z tego protokołu. Liczone raz na serwerze — do przeglądarki idzie tylko ten skrót, a nie
+// wszystkie protokoły z pełnymi migawkami.
+export function buildLastProtocols(
+  equipment: { id: string; inventoryNumber: string }[],
   protocols: Protocol[],
   protocolItemLinks: { protocolId: string; equipmentId: string }[]
-): Protocol | undefined {
-  const ids = new Set(
-    protocolItemLinks.filter((l) => l.equipmentId === equipmentId).map((l) => l.protocolId)
-  );
-  return protocols
-    .filter((p) => ids.has(p.id))
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+): Record<string, LastProtocolInfo> {
+  const protocolById = new Map(protocols.map((p) => [p.id, p]));
+  const latest = new Map<string, Protocol>();
+  for (const link of protocolItemLinks) {
+    const p = protocolById.get(link.protocolId);
+    if (!p) continue;
+    const current = latest.get(link.equipmentId);
+    if (!current || current.createdAt < p.createdAt) latest.set(link.equipmentId, p);
+  }
+  const result: Record<string, LastProtocolInfo> = {};
+  for (const e of equipment) {
+    const p = latest.get(e.id);
+    if (!p) continue;
+    result[e.id] = {
+      id: p.id,
+      protocolNumber: p.protocolNumber,
+      pdfStatus: p.pdfStatus,
+      pdfPath: p.pdfPath,
+      createdAt: p.createdAt,
+      condition: getProtocolCondition(p, e.inventoryNumber),
+    };
+  }
+  return result;
 }
-
 // Stan techniczny zapisany w protokole dla danej pozycji (per-pozycja, a w starszych
 // protokołach — jedno pole globalne). null, gdy sprzęt nie ma jeszcze żadnego protokołu.
 export function getProtocolCondition(protocol: Protocol | undefined, inventoryNumber: string): string | null {

@@ -15,7 +15,7 @@ import type {
   EquipmentLink,
   InstalledSoftware,
   Location,
-  Protocol,
+  LastProtocolInfo,
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
@@ -32,12 +32,6 @@ import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
 import {
   employeeFullName,
   equipmentToInput,
-  getActiveAssignment,
-  getCategoryName,
-  getLastProtocolFor,
-  getLinkedEquipment,
-  getLocationName,
-  getProtocolCondition,
 } from "@/lib/equipment-helpers";
 import {
   useCanEditEquipment,
@@ -45,7 +39,6 @@ import {
   useCurrentUser,
   useIsAdmin,
 } from "@/lib/current-user-context";
-import type { ProtocolItemLink } from "@/lib/supabase/queries";
 import {
   deleteEquipmentAction,
   getEquipmentInvoiceDownloadUrlAction,
@@ -66,8 +59,7 @@ export function EquipmentTable({
   licenses,
   licenseAssignments,
   locations,
-  protocols,
-  protocolItemLinks,
+  lastProtocols,
   visibleColumns,
   columnColors,
   selectedIds,
@@ -85,8 +77,7 @@ export function EquipmentTable({
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
-  protocols: Protocol[];
-  protocolItemLinks: ProtocolItemLink[];
+  lastProtocols: Record<string, LastProtocolInfo>;
   visibleColumns: EquipmentColumnKey[];
   columnColors: Partial<Record<EquipmentColumnKey, string>>;
   selectedIds: Set<string>;
@@ -140,7 +131,7 @@ export function EquipmentTable({
     return result.ok ? { ok: true } : { ok: false, error: result.error };
   }
 
-  async function handleOpenProtocol(e: React.MouseEvent, protocol: Protocol) {
+  async function handleOpenProtocol(e: React.MouseEvent, protocol: LastProtocolInfo) {
     e.stopPropagation();
     if (!protocol.pdfPath) return;
     const result = await getProtocolDownloadUrlAction(protocol.pdfPath);
@@ -154,46 +145,64 @@ export function EquipmentTable({
   }
 
   const rows = useMemo(() => {
+    // Słowniki zamiast wyszukiwania w tablicach dla każdego wiersza — lista jest tak
+    // szybka, jak liczba pozycji, a nie jej kwadrat.
+    const employeeById = new Map(employees.map((e) => [e.id, e]));
+    const categoryNameById = new Map(categories.map((c) => [c.id, c.name]));
+    const locationNameById = new Map(locations.map((l) => [l.id, l.name]));
+    const productNameById = new Map(softwareProducts.map((p) => [p.id, p.name]));
+    const licenseProductId = new Map(licenses.map((l) => [l.id, l.productId]));
+    const equipmentById = new Map(equipment.map((e) => [e.id, e]));
+
+    const activeByEquipment = new Map<string, Assignment>();
+    for (const a of assignments) if (a.returnedAt === null) activeByEquipment.set(a.equipmentId, a);
+
+    const softwareByEquipment = new Map<string, Set<string>>();
+    const addSoftware = (equipmentId: string | null, productId: string | undefined) => {
+      if (!equipmentId || !productId) return;
+      const name = productNameById.get(productId);
+      if (!name) return;
+      let set = softwareByEquipment.get(equipmentId);
+      if (!set) softwareByEquipment.set(equipmentId, (set = new Set()));
+      set.add(name);
+    };
+    for (const s of installedSoftware) addSoftware(s.equipmentId, s.softwareProductId);
+    for (const a of licenseAssignments) addSoftware(a.equipmentId, licenseProductId.get(a.licenseId));
+
+    const linkedIds = new Map<string, string[]>();
+    const addLink = (from: string, to: string) => {
+      const list = linkedIds.get(from);
+      if (list) list.push(to);
+      else linkedIds.set(from, [to]);
+    };
+    for (const l of links) {
+      addLink(l.equipmentId, l.linkedEquipmentId);
+      addLink(l.linkedEquipmentId, l.equipmentId);
+    }
+
     return equipment.map((item) => {
-      const activeAssignment = getActiveAssignment(assignments, item.id);
-      const employee = activeAssignment
-        ? employees.find((e) => e.id === activeAssignment.employeeId)
-        : undefined;
-      const linked = getLinkedEquipment(links, equipment, item.id);
-      const installedNames = installedSoftware
-        .filter((s) => s.equipmentId === item.id)
-        .map((s) => softwareProducts.find((p) => p.id === s.softwareProductId)?.name)
-        .filter((name): name is string => Boolean(name));
-      const licensedNames = licenseAssignments
-        .filter((a) => a.equipmentId === item.id)
-        .map((a) => {
-          const license = licenses.find((l) => l.id === a.licenseId);
-          return license ? softwareProducts.find((p) => p.id === license.productId)?.name : undefined;
-        })
-        .filter((name): name is string => Boolean(name));
-      const software = Array.from(new Set([...installedNames, ...licensedNames]));
-      const lastProtocol = getLastProtocolFor(item.id, protocols, protocolItemLinks);
-      const protocolCondition = getProtocolCondition(lastProtocol, item.inventoryNumber);
-      const categoryName = getCategoryName(categories, item.categoryId);
-      const locationName = getLocationName(locations, item.locationId);
-      const employeeName = employee ? employeeFullName(employee) : undefined;
+      const activeAssignment = activeByEquipment.get(item.id);
+      const employee = activeAssignment ? employeeById.get(activeAssignment.employeeId) : undefined;
+      const linked = (linkedIds.get(item.id) ?? [])
+        .map((id) => equipmentById.get(id))
+        .filter((e): e is Equipment => Boolean(e));
+      const software = Array.from(softwareByEquipment.get(item.id) ?? []);
+      const lastProtocol = lastProtocols[item.id];
 
       return {
         item,
         activeAssignment,
         employee,
-        employeeName,
+        employeeName: employee ? employeeFullName(employee) : undefined,
         linked,
         software,
         lastProtocol,
-        protocolCondition,
-        categoryName,
-        locationName,
+        protocolCondition: lastProtocol?.condition ?? null,
+        categoryName: categoryNameById.get(item.categoryId) ?? "—",
+        locationName: locationNameById.get(item.locationId) ?? "—",
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipment, assignments, employees, links, installedSoftware, softwareProducts, licenseAssignments, licenses, protocolItemLinks, protocols, categories, locations]);
-
+  }, [equipment, assignments, employees, links, installedSoftware, softwareProducts, licenseAssignments, licenses, lastProtocols, categories, locations]);
   const sortedRows = useMemo(() => {
     type Row = (typeof rows)[number];
     const comparators: Record<string, (a: Row, b: Row) => number> = {
@@ -309,6 +318,7 @@ export function EquipmentTable({
                     <div className="flex items-center gap-1">
                       {(isAdmin || canEditEquipment) && (
                         <Link
+                          prefetch={false}
                           href={`/sprzet/${item.id}?edit=1`}
                           title="Edytuj sprzęt"
                           className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
@@ -318,6 +328,7 @@ export function EquipmentTable({
                       )}
                       {(isAdmin || canTransferEquipment) && (
                         <Link
+                          prefetch={false}
                           href={`/sprzet/${item.id}/przekaz`}
                           title="Przydziel sprzęt"
                           className="rounded-md p-1.5 text-current hover:bg-black/5 hover:text-primary"
@@ -374,11 +385,11 @@ function renderCell(
     software: string[];
     categories: Category[];
     canEdit: boolean;
-    lastProtocol?: Protocol;
+    lastProtocol?: LastProtocolInfo;
     protocolCondition?: string | null;
     onSave: (patch: Partial<EquipmentInput>) => Promise<{ ok: boolean; error?: string }>;
     onSaveStatus: (status: string) => Promise<{ ok: boolean; error?: string }>;
-    onOpenProtocol: (e: React.MouseEvent, protocol: Protocol) => void;
+    onOpenProtocol: (e: React.MouseEvent, protocol: LastProtocolInfo) => void;
     onOpenInvoice: (e: React.MouseEvent, path: string) => void;
   }
 ) {
@@ -386,6 +397,7 @@ function renderCell(
     case "inventoryNumber":
       return (
         <Link
+          prefetch={false}
           href={`/sprzet/${item.id}`}
           className="font-medium hover:underline"
           onClick={(e) => e.stopPropagation()}

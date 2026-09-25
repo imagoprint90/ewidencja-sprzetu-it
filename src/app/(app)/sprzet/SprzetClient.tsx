@@ -19,9 +19,6 @@ import { useIsAdmin, useCanEditEquipment, useCanTransferEquipment } from "@/lib/
 import { EQUIPMENT_COLUMNS, type EquipmentColumnKey, type EquipmentStatus } from "@/lib/types";
 import {
   employeeFullName,
-  getActiveAssignment,
-  getLastProtocolFor,
-  getProtocolCondition,
   NO_PROTOCOL_CONDITION,
 } from "@/lib/equipment-helpers";
 import { deleteEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
@@ -33,12 +30,11 @@ import type {
   EquipmentLink,
   InstalledSoftware,
   Location,
-  Protocol,
+  LastProtocolInfo,
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
 } from "@/lib/types";
-import type { ProtocolItemLink } from "@/lib/supabase/queries";
 
 const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "inventoryNumber",
@@ -66,8 +62,7 @@ function SprzetPageInner({
   licenses,
   licenseAssignments,
   locations,
-  protocols,
-  protocolItemLinks,
+  lastProtocols,
 }: {
   equipment: Equipment[];
   categories: Category[];
@@ -79,8 +74,7 @@ function SprzetPageInner({
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
-  protocols: Protocol[];
-  protocolItemLinks: ProtocolItemLink[];
+  lastProtocols: Record<string, LastProtocolInfo>;
 }) {
   const isAdmin = useIsAdmin();
   const canEditEquipment = useCanEditEquipment();
@@ -114,6 +108,13 @@ function SprzetPageInner({
     {}
   );
 
+  const activeAssignmentByEquipment = useMemo(() => {
+    const map = new Map<string, Assignment>();
+    for (const a of assignments) if (a.returnedAt === null) map.set(a.equipmentId, a);
+    return map;
+  }, [assignments]);
+  const employeeById = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
+
   const filtered = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
     return equipment.filter((item) => {
@@ -123,18 +124,17 @@ function SprzetPageInner({
         return false;
       if ((filters.conditions ?? []).length > 0) {
         const cond =
-          getProtocolCondition(getLastProtocolFor(item.id, protocols, protocolItemLinks), item.inventoryNumber) ??
-          NO_PROTOCOL_CONDITION;
+          lastProtocols[item.id]?.condition ?? NO_PROTOCOL_CONDITION;
         if (!filters.conditions!.includes(cond)) return false;
       }
       if (filters.locationIds.length > 0 && !filters.locationIds.includes(item.locationId)) return false;
       if (filters.employeeIds.length > 0) {
-        const active = getActiveAssignment(assignments, item.id);
+        const active = activeAssignmentByEquipment.get(item.id);
         if (!active || !filters.employeeIds.includes(active.employeeId)) return false;
       }
       if (q) {
-        const active = getActiveAssignment(assignments, item.id);
-        const activeEmployee = active ? employees.find((e) => e.id === active.employeeId) : undefined;
+        const active = activeAssignmentByEquipment.get(item.id);
+        const activeEmployee = active ? employeeById.get(active.employeeId) : undefined;
         const employeeName = activeEmployee ? employeeFullName(activeEmployee) : "";
         const haystack = [item.name, item.serialNumber ?? "", item.inventoryNumber, employeeName]
           .join(" ")
@@ -143,7 +143,7 @@ function SprzetPageInner({
       }
       return true;
     });
-  }, [equipment, filters, assignments, employees, protocols, protocolItemLinks]);
+  }, [equipment, filters, activeAssignmentByEquipment, employeeById, lastProtocols]);
 
   // Zaznaczenie jest pamiętane niezależnie od filtrów, ale do wyświetlania i akcji zbiorczych
   // liczą się tylko pozycje aktualnie widoczne na liście — unika to niejawnych operacji na
@@ -298,8 +298,7 @@ function SprzetPageInner({
           licenses={licenses}
           licenseAssignments={licenseAssignments}
           locations={locations}
-          protocols={protocols}
-          protocolItemLinks={protocolItemLinks}
+          lastProtocols={lastProtocols}
           visibleColumns={visibleColumns.length ? visibleColumns : EQUIPMENT_COLUMNS.slice(0, 3)}
           columnColors={columnColors}
           selectedIds={visibleSelectedIds}
@@ -333,8 +332,7 @@ export function SprzetClient(props: {
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
-  protocols: Protocol[];
-  protocolItemLinks: ProtocolItemLink[];
+  lastProtocols: Record<string, LastProtocolInfo>;
 }) {
   return (
     <Suspense>

@@ -214,6 +214,16 @@ export interface ProtocolSnapshot {
   items: ProtocolItemData[];
 }
 
+// Skrót ostatniego protokołu sprzętu używany na liście Sprzęt.
+export interface LastProtocolInfo {
+  id: string;
+  protocolNumber: string;
+  pdfStatus: ProtocolPdfStatus;
+  pdfPath: string | null;
+  createdAt: string;
+  condition: string | null;
+}
+
 export interface Protocol {
   id: string;
   protocolNumber: string;

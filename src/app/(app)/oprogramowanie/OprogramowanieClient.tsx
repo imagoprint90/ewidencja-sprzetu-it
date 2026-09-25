@@ -940,28 +940,23 @@ export function OprogramowanieClient({
 
                       {isAdmin && (
                         <div className="flex flex-col gap-2 sm:flex-row">
-                          <select
-                            className={inputClass}
-                            value={assignTarget}
-                            onChange={(e) => setAssignTarget(e.target.value)}
-                          >
-                            <option value="">
-                              {license.licenseType === "urzadzenie"
-                                ? "Wybierz urządzenie…"
-                                : "Wybierz pracownika…"}
-                            </option>
-                            {license.licenseType === "urzadzenie"
-                              ? equipment.map((e) => (
-                                  <option key={e.id} value={e.id}>
-                                    {e.name} ({e.inventoryNumber})
-                                  </option>
-                                ))
-                              : employees.map((e) => (
-                                  <option key={e.id} value={e.id}>
-                                    {employeeFullName(e)}
-                                  </option>
-                                ))}
-                          </select>
+                          <div className="flex-1">
+                            <SearchableSelect
+                              options={
+                                license.licenseType === "urzadzenie"
+                                  ? equipment.map((e) => ({ value: e.id, label: `${e.name} (${e.inventoryNumber})` }))
+                                  : employees.map((e) => ({ value: e.id, label: employeeFullName(e) }))
+                              }
+                              value={assignTarget}
+                              onChange={setAssignTarget}
+                              placeholder={
+                                license.licenseType === "urzadzenie" ? "Wybierz urządzenie…" : "Wybierz pracownika…"
+                              }
+                              searchPlaceholder={
+                                license.licenseType === "urzadzenie" ? "Szukaj urządzenia…" : "Szukaj pracownika…"
+                              }
+                            />
+                          </div>
                           <Button
                             variant="secondary"
                             disabled={isPending || free <= 0}

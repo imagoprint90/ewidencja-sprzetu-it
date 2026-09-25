@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { StatusBadge } from "@/components/ui/Badge";
@@ -350,23 +351,21 @@ export function PrzekazForm({
 
         {mode === "przekaz" && (
           <FormField label="Nowy użytkownik" htmlFor="newEmployeeId" required full>
-            <select
+            <SearchableSelect
               id="newEmployeeId"
-              className={inputClass}
-              value={newEmployeeId}
-              onChange={(e) => setNewEmployeeId(e.target.value)}
-            >
-              <option value="">Wybierz pracownika…</option>
-              {activeEmployees
+              options={activeEmployees
                 .filter((e) => e.id !== activeAssignment?.employeeId)
-                .map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.departmentId
-                      ? `${employeeFullName(e)} (${getDepartmentName(departments, e.departmentId)})`
-                      : employeeFullName(e)}
-                  </option>
-                ))}
-            </select>
+                .map((e) => ({
+                  value: e.id,
+                  label: e.departmentId
+                    ? `${employeeFullName(e)} (${getDepartmentName(departments, e.departmentId)})`
+                    : employeeFullName(e),
+                }))}
+              value={newEmployeeId}
+              onChange={setNewEmployeeId}
+              placeholder="Wybierz pracownika…"
+              searchPlaceholder="Szukaj pracownika…"
+            />
           </FormField>
         )}
       </FormSection>
@@ -427,19 +426,18 @@ export function PrzekazForm({
           </p>
           {handoverEnabled && (
             <div className="flex flex-col gap-2 sm:flex-row">
-              <select
-                className={inputClass}
-                value={handoverPersonId}
-                onChange={(e) => setHandoverPersonId(e.target.value)}
-              >
-                <option value="">Wybierz pracownika…</option>
-                {activeEmployees.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {employeeFullName(e)}
-                  </option>
-                ))}
-                <option value="__manual__">Inna osoba (wpisz ręcznie)</option>
-              </select>
+              <div className="flex-1">
+                <SearchableSelect
+                  options={[
+                    ...activeEmployees.map((e) => ({ value: e.id, label: employeeFullName(e) })),
+                    { value: "__manual__", label: "Inna osoba (wpisz ręcznie)" },
+                  ]}
+                  value={handoverPersonId}
+                  onChange={setHandoverPersonId}
+                  placeholder="Wybierz pracownika…"
+                  searchPlaceholder="Szukaj pracownika…"
+                />
+              </div>
               {handoverPersonId === "__manual__" && (
                 <input
                   className={inputClass}
