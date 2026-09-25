@@ -46,8 +46,8 @@ const SETTINGS_ITEM: NavItem = { href: "/ustawienia", label: "Ustawienia", icon:
 const SETTINGS_CHILDREN: NavItem[] = [
   { href: "/kategorie", label: "Kategorie", icon: Tags, tab: "kategorie" },
   { href: "/lokalizacje", label: "Lokalizacje", icon: MapPin, tab: "lokalizacje" },
-  { href: "/powiadomienia", label: "Powiadomienia", icon: Bell, adminOnly: true },
   { href: "/statusy-sprzetu", label: "Statusy sprzętu", icon: Palette, tab: "statusy" },
+  { href: "/powiadomienia", label: "Powiadomienia", icon: Bell, adminOnly: true },
   { href: "/uzytkownicy", label: "Użytkownicy", icon: ShieldCheck, adminOnly: true },
 ];
 
