@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { Footer } from "./Footer";
+import { BusyIndicator } from "./BusyIndicator";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 
 export function AppShell({
@@ -18,6 +19,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen">
+      <BusyIndicator />
       <Sidebar
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
