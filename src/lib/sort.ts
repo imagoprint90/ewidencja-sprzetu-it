@@ -17,7 +17,8 @@ export function applySort<T>(
 }
 
 export function compareStrings(a: string, b: string): number {
-  return a.localeCompare(b, "pl");
+  // numeric: true — sortowanie naturalne, żeby "Komputer-10" było po "Komputer-9", a nie po "Komputer-1".
+  return a.localeCompare(b, "pl", { numeric: true });
 }
 
 export function compareNumbers(a: number, b: number): number {
