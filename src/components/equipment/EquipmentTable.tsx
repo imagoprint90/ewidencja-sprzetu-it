@@ -430,7 +430,7 @@ function renderCell(
         />
       );
     case "employee":
-      return extra.employeeName ?? "Nieprzydzielony";
+      return extra.employeeName ?? <span>—</span>;
     case "assignmentDates":
       return extra.activeAssignment ? (
         <span className="whitespace-nowrap">
