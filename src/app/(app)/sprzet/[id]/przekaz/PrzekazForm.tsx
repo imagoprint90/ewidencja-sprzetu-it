@@ -243,7 +243,7 @@ export function PrzekazForm({
               (od {formatDate(activeAssignment.assignedAt)})
             </p>
           ) : (
-            <p className="text-sm text-muted">Sprzęt nie ma aktualnie aktywnego przydziału (nieprzydzielony).</p>
+            <p className="text-sm text-muted">Aktualnie przydzielony: —</p>
           )}
         </div>
       </FormSection>
@@ -303,7 +303,7 @@ export function PrzekazForm({
                     </div>
                     <p className="text-xs text-muted">
                       {l.inventoryNumber} ·{" "}
-                      {lEmployee ? `obecnie: ${employeeFullName(lEmployee)}` : "nieprzydzielony"}
+                      {lEmployee ? `obecnie: ${employeeFullName(lEmployee)}` : "obecnie: —"}
                     </p>
                     {unavailable && (
                       <p className="text-xs text-danger">Sprzęt wycofany — nie można przekazać.</p>
@@ -492,7 +492,7 @@ export function PrzekazForm({
         description={
           `Sprzęt: ${[item, ...selectedLinkedItems].map((e) => e.name).join(", ")}. ` +
           (mode === "przekaz"
-            ? `Od: ${currentEmployee ? employeeFullName(currentEmployee) : "nieprzydzielony"} → Do: ${
+            ? `Od: ${currentEmployee ? employeeFullName(currentEmployee) : "—"} → Do: ${
                 newEmployee ? employeeFullName(newEmployee) : "—"
               }. `
             : `Zwrot do magazynu od: ${currentEmployee ? employeeFullName(currentEmployee) : "—"}. `) +
