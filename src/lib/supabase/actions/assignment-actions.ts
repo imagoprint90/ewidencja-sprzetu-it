@@ -41,7 +41,14 @@ export async function transferEquipmentSetAction(
     if (error.message.includes("Brak uprawnień")) {
       return { ok: false, error: "Nie masz uprawnień do wykonania tej operacji." };
     }
-    return { ok: false, error: "Nie udało się zapisać przekazania. Spróbuj ponownie." };
+    if (error.code === "PGRST202" || error.message.includes("p_skip_history")) {
+      return {
+        ok: false,
+        error: "Baza nie ma jeszcze migracji 0036 (przekazanie bez protokołu) — uruchom ją w Supabase SQL Editor.",
+      };
+    }
+    console.error("transfer_equipment_set", error);
+    return { ok: false, error: `Nie udało się zapisać przekazania: ${error.message}` };
   }
 
   for (const id of input.equipmentIds) {
