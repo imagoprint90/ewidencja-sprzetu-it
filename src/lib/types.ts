@@ -1,43 +1,27 @@
 // Typy domenowe odzwierciedlające docelowy schemat bazy Supabase (patrz supabase/migrations).
 // W trybie demonstracyjnym te same typy są używane dla danych trzymanych w przeglądarce.
 
-export type EquipmentStatus =
-  | "w_magazynie"
-  | "przydzielony"
-  | "w_naprawie"
-  | "zepsuty"
-  | "wycofany";
+// Statusy sprzętu to słownik w bazie (tabela equipment_statuses), zarządzany w Ustawienia →
+// Statusy sprzętu. Klucz jest tekstem; pięć kluczy systemowych ma znaczenie w logice aplikacji.
+export type EquipmentStatus = string;
 
-export const EQUIPMENT_STATUS_LABELS: Record<EquipmentStatus, string> = {
-  w_magazynie: "W magazynie",
-  przydzielony: "Przydzielony",
-  w_naprawie: "W naprawie",
-  zepsuty: "Zepsuty",
-  wycofany: "Wycofany",
-};
-
-// Kolor czcionki całego wiersza sprzętu na liście, zależny od statusu. "W magazynie" i
-// "Przydzielony" są sterowane automatycznie (operacja "Przekaż sprzęt"), pozostałe trzy
-// ustawia się ręcznie na liście sprzętu.
-export const EQUIPMENT_STATUS_COLORS: Record<EquipmentStatus, string> = {
-  w_magazynie: "#16a34a",
-  przydzielony: "#1d1d1b",
-  w_naprawie: "#ef7d00",
-  zepsuty: "#dc2626",
-  wycofany: "#6b7280",
-};
-
-// Kolory wiersza sprzętu wg statusu (ustawiane w Ustawienia > Statusy sprzętu).
-export type StatusColors = Record<EquipmentStatus, { text: string; background: string | null }>;
-
-export function defaultStatusColors(): StatusColors {
-  const result = {} as StatusColors;
-  for (const s of Object.keys(EQUIPMENT_STATUS_COLORS) as EquipmentStatus[]) {
-    result[s] = { text: EQUIPMENT_STATUS_COLORS[s], background: null };
-  }
-  return result;
+export interface EquipmentStatusDef {
+  key: string;
+  label: string;
+  textColor: string;
+  backgroundColor: string | null;
+  isSystem: boolean;
+  sortOrder: number;
 }
 
+// Wartości domyślne — używane, gdy słownik nie jest jeszcze dostępny (przed migracją 0039).
+export const DEFAULT_EQUIPMENT_STATUSES: EquipmentStatusDef[] = [
+  { key: "w_magazynie", label: "W magazynie", textColor: "#16a34a", backgroundColor: null, isSystem: true, sortOrder: 1 },
+  { key: "przydzielony", label: "Przydzielony", textColor: "#1d1d1b", backgroundColor: null, isSystem: true, sortOrder: 2 },
+  { key: "w_naprawie", label: "W naprawie", textColor: "#ef7d00", backgroundColor: null, isSystem: true, sortOrder: 3 },
+  { key: "zepsuty", label: "Zepsuty", textColor: "#dc2626", backgroundColor: null, isSystem: true, sortOrder: 4 },
+  { key: "wycofany", label: "Wycofany", textColor: "#6b7280", backgroundColor: null, isSystem: true, sortOrder: 5 },
+];
 export type TechnicalCondition = "nowy" | "bardzo_dobry" | "dobry" | "dostateczny" | "uszkodzony";
 
 export const TECHNICAL_CONDITION_LABELS: Record<TechnicalCondition, string> = {

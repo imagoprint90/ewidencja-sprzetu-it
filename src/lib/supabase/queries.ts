@@ -34,10 +34,9 @@ import type {
   InstalledSoftware,
   Location,
   LicenseHistoryEntry,
-  EquipmentStatus,
-  StatusColors,
+  EquipmentStatusDef,
 } from "@/lib/types";
-import { defaultStatusColors } from "@/lib/types";
+import { DEFAULT_EQUIPMENT_STATUSES } from "@/lib/types";
 import type { AppRole } from "@/lib/access";
 
 export async function getCategories(supabase: SupabaseClient): Promise<Category[]> {
@@ -290,15 +289,20 @@ export async function getProfiles(supabase: SupabaseClient): Promise<UserProfile
   }));
 }
 
-export async function getStatusColors(supabase: SupabaseClient): Promise<StatusColors> {
-  const colors = defaultStatusColors();
-  const { data, error } = await supabase.from("status_colors").select("*");
-  // Brak tabeli (migracja 0038 jeszcze nie uruchomiona) — zostają kolory domyślne.
-  if (error) return colors;
-  for (const row of data ?? []) {
-    if (row.status in colors) {
-      colors[row.status as EquipmentStatus] = { text: row.text_color, background: row.background_color };
-    }
-  }
-  return colors;
+export async function getEquipmentStatuses(supabase: SupabaseClient): Promise<EquipmentStatusDef[]> {
+  const { data, error } = await supabase
+    .from("equipment_statuses")
+    .select("*")
+    .order("sort_order")
+    .order("label");
+  // Brak tabeli (migracja 0039 jeszcze nie uruchomiona) albo pusty słownik — statusy domyślne.
+  if (error || !data || data.length === 0) return DEFAULT_EQUIPMENT_STATUSES;
+  return data.map((row) => ({
+    key: row.key,
+    label: row.label,
+    textColor: row.text_color,
+    backgroundColor: row.background_color,
+    isSystem: row.is_system,
+    sortOrder: row.sort_order,
+  }));
 }

@@ -13,7 +13,6 @@ import {
   getProtocols,
   getSoftwareLicenses,
   getSoftwareProducts,
-  getStatusColors,
 } from "@/lib/supabase/queries";
 import { buildLastProtocols } from "@/lib/equipment-helpers";
 import { SprzetClient } from "./SprzetClient";
@@ -34,7 +33,6 @@ export default async function SprzetPage() {
     locations,
     protocols,
     protocolItemLinks,
-    statusColors,
   ] = await Promise.all([
     getEquipment(supabase),
     getCategories(supabase),
@@ -48,7 +46,6 @@ export default async function SprzetPage() {
     getLocations(supabase),
     getProtocols(supabase),
     getProtocolItemLinks(supabase),
-    getStatusColors(supabase),
   ]);
 
   return (
@@ -63,7 +60,6 @@ export default async function SprzetPage() {
       licenses={licenses}
       licenseAssignments={licenseAssignments}
       locations={locations}
-      statusColors={statusColors}
       lastProtocols={buildLastProtocols(equipment, protocols, protocolItemLinks)}
     />
   );

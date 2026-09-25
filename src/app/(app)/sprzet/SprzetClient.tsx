@@ -31,7 +31,6 @@ import type {
   InstalledSoftware,
   Location,
   LastProtocolInfo,
-  StatusColors,
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
@@ -64,7 +63,6 @@ function SprzetPageInner({
   licenseAssignments,
   locations,
   lastProtocols,
-  statusColors,
 }: {
   equipment: Equipment[];
   categories: Category[];
@@ -77,7 +75,6 @@ function SprzetPageInner({
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
   lastProtocols: Record<string, LastProtocolInfo>;
-  statusColors: StatusColors;
 }) {
   const isAdmin = useIsAdmin();
   const canEditEquipment = useCanEditEquipment();
@@ -302,7 +299,6 @@ function SprzetPageInner({
           licenseAssignments={licenseAssignments}
           locations={locations}
           lastProtocols={lastProtocols}
-          statusColors={statusColors}
           visibleColumns={visibleColumns.length ? visibleColumns : EQUIPMENT_COLUMNS.slice(0, 3)}
           columnColors={columnColors}
           selectedIds={visibleSelectedIds}
@@ -337,7 +333,6 @@ export function SprzetClient(props: {
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
   lastProtocols: Record<string, LastProtocolInfo>;
-  statusColors: StatusColors;
 }) {
   return (
     <Suspense>

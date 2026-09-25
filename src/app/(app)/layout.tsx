@@ -8,7 +8,8 @@ import { Footer } from "@/components/layout/Footer";
 import { ConfigMissing } from "@/components/ui/ConfigMissing";
 import { CurrentUserProvider } from "@/lib/current-user-context";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { getCurrentProfile, getEquipmentStatuses } from "@/lib/supabase/queries";
+import { StatusesProvider } from "@/lib/statuses-context";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -25,7 +26,10 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect("/logowanie");
   }
 
-  const profile = await getCurrentProfile(supabase, user.id);
+  const [profile, statuses] = await Promise.all([
+    getCurrentProfile(supabase, user.id),
+    getEquipmentStatuses(supabase),
+  ]);
 
   if (!profile) {
     return (
@@ -59,7 +63,9 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         canTransferEquipment: profile.canTransferEquipment,
       }}
     >
-      <AppShell userEmail={user.email ?? ""}>{children}</AppShell>
+      <StatusesProvider value={statuses}>
+        <AppShell userEmail={user.email ?? ""}>{children}</AppShell>
+      </StatusesProvider>
     </CurrentUserProvider>
   );
 }

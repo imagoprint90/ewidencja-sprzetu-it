@@ -2,101 +2,215 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Badge } from "@/components/ui/Badge";
+import { inputClass } from "@/components/ui/Form";
+import { useIsAdmin } from "@/lib/current-user-context";
+import { DEFAULT_EQUIPMENT_STATUSES, type EquipmentStatusDef } from "@/lib/types";
 import {
-  defaultStatusColors,
-  EQUIPMENT_STATUS_LABELS,
-  type EquipmentStatus,
-  type StatusColors,
-} from "@/lib/types";
-import { saveStatusColorAction } from "@/lib/supabase/actions/status-color-actions";
+  addEquipmentStatusAction,
+  deleteEquipmentStatusAction,
+  updateEquipmentStatusDefAction,
+} from "@/lib/supabase/actions/equipment-status-actions";
 
-const STATUSES = Object.keys(EQUIPMENT_STATUS_LABELS) as EquipmentStatus[];
+type Result = { ok: true } | { ok: false; error: string };
 
-// Tło wiersza jest półprzezroczyste, żeby działało tak samo w jasnym i ciemnym motywie.
-export function rowBackground(hex: string | null): string | undefined {
-  return hex ? `${hex}2e` : undefined;
-}
+// Tło wiersza jest półprzezroczyste, żeby wyglądało tak samo w jasnym i ciemnym motywie.
+const rowBackground = (hex: string | null) => (hex ? `${hex}2e` : undefined);
 
-export function StatusySprzetuClient({ initialColors }: { initialColors: StatusColors }) {
+const colorInputClass =
+  "h-8 w-12 cursor-pointer rounded border border-border bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-50";
+
+export function StatusySprzetuClient({
+  statuses,
+  counts,
+}: {
+  statuses: EquipmentStatusDef[];
+  counts: Record<string, number>;
+}) {
   const router = useRouter();
-  const [colors, setColors] = useState<StatusColors>(initialColors);
-  const [savingStatus, setSavingStatus] = useState<EquipmentStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const isAdmin = useIsAdmin();
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
-  function save(status: EquipmentStatus, next: { text: string; background: string | null }) {
-    setColors((prev) => ({ ...prev, [status]: next }));
-    setSavingStatus(status);
-    setError(null);
+  const [newLabel, setNewLabel] = useState("");
+  const [newText, setNewText] = useState("#2563eb");
+  const [newBackground, setNewBackground] = useState<string | null>(null);
+
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<EquipmentStatusDef | null>(null);
+
+  function run(action: () => Promise<Result>, onDone?: () => void) {
     startTransition(async () => {
-      const result = await saveStatusColorAction(status, next.text, next.background);
-      if (!result.ok) setError(result.error);
-      setSavingStatus(null);
+      const result = await action();
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
+      onDone?.();
       router.refresh();
     });
   }
 
-  const defaults = defaultStatusColors();
+  function handleAdd() {
+    run(
+      () => addEquipmentStatusAction(newLabel, newText, newBackground),
+      () => {
+        setNewLabel("");
+        setNewBackground(null);
+      }
+    );
+  }
+
+  function update(key: string, patch: Parameters<typeof updateEquipmentStatusDefAction>[1]) {
+    run(() => updateEquipmentStatusDefAction(key, patch));
+  }
+
+  function saveLabel(key: string) {
+    run(
+      () => updateEquipmentStatusDefAction(key, { label: editLabel }),
+      () => setEditingKey(null)
+    );
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    const key = deleteTarget.key;
+    setDeleteTarget(null);
+    run(() => deleteEquipmentStatusAction(key));
+  }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
+    <div className="flex max-w-4xl flex-col gap-6">
       <div>
         <h1 className="text-xl font-semibold">Statusy sprzętu</h1>
         <p className="text-sm text-muted">
-          Ustaw kolor, którym na liście Sprzęt oznaczany jest cały wiersz zależnie od statusu.
-          Kolor tekstu zmienia czcionkę wiersza, a opcjonalne tło podświetla go delikatnie.
-          Zmiany zapisują się od razu i obowiązują wszystkich użytkowników.
+          Statusy dostępne dla sprzętu oraz kolor, którym na liście Sprzęt oznaczany jest cały wiersz:
+          kolor tekstu i opcjonalne, delikatne tło. Statusy systemowe sterują przekazaniami i zwrotami,
+          więc można zmienić ich nazwę i kolory, ale nie usunąć. Własne statusy można usuwać, dopóki
+          żaden sprzęt ich nie używa.
         </p>
       </div>
+
+      {isAdmin && (
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <p className="mb-2 text-sm font-medium">Dodaj nowy status</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              placeholder="np. Do utylizacji"
+              className={inputClass}
+            />
+            <label className="flex items-center gap-2 text-sm text-muted">
+              Tekst
+              <input
+                type="color"
+                value={newText}
+                onChange={(e) => setNewText(e.target.value)}
+                className={colorInputClass}
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm text-muted">
+              Tło
+              <input
+                type="color"
+                value={newBackground ?? "#ffffff"}
+                onChange={(e) => setNewBackground(e.target.value)}
+                className={colorInputClass}
+              />
+              {newBackground && (
+                <button type="button" className="text-xs hover:text-foreground" onClick={() => setNewBackground(null)}>
+                  bez tła
+                </button>
+              )}
+            </label>
+            <Button onClick={handleAdd} disabled={isPending}>
+              <Plus size={16} />
+              Dodaj
+            </Button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">{error}</p>
       )}
 
-      <div className="rounded-xl border border-border bg-surface">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Sprzętu</th>
               <th className="px-4 py-3 font-medium">Kolor tekstu</th>
               <th className="px-4 py-3 font-medium">Tło wiersza</th>
               <th className="px-4 py-3 font-medium">Podgląd</th>
-              <th className="px-4 py-3" />
+              {isAdmin && <th className="px-4 py-3 text-right font-medium">Działania</th>}
             </tr>
           </thead>
           <tbody>
-            {STATUSES.map((s) => {
-              const c = colors[s];
+            {statuses.map((s) => {
+              const defaults = DEFAULT_EQUIPMENT_STATUSES.find((d) => d.key === s.key);
+              const used = counts[s.key] ?? 0;
+              const editing = editingKey === s.key;
               return (
-                <tr key={s} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 font-medium">{EQUIPMENT_STATUS_LABELS[s]}</td>
+                <tr key={s.key} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3">
+                    {editing ? (
+                      <input
+                        autoFocus
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveLabel(s.key);
+                          if (e.key === "Escape") setEditingKey(null);
+                        }}
+                        className={inputClass}
+                      />
+                    ) : (
+                      <span className="flex items-center gap-2 font-medium">
+                        {s.label}
+                        {s.isSystem && <Badge>systemowy</Badge>}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">{used}</td>
                   <td className="px-4 py-3">
                     <input
                       type="color"
-                      value={c.text}
-                      onChange={(e) => save(s, { ...c, text: e.target.value })}
-                      className="h-8 w-12 cursor-pointer rounded border border-border bg-transparent p-0"
-                      aria-label={`Kolor tekstu: ${EQUIPMENT_STATUS_LABELS[s]}`}
+                      value={s.textColor}
+                      disabled={!isAdmin || isPending}
+                      onChange={(e) => update(s.key, { textColor: e.target.value })}
+                      className={colorInputClass}
+                      aria-label={`Kolor tekstu: ${s.label}`}
                     />
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
-                        value={c.background ?? "#ffffff"}
-                        onChange={(e) => save(s, { ...c, background: e.target.value })}
-                        className="h-8 w-12 cursor-pointer rounded border border-border bg-transparent p-0"
-                        aria-label={`Tło wiersza: ${EQUIPMENT_STATUS_LABELS[s]}`}
+                        value={s.backgroundColor ?? "#ffffff"}
+                        disabled={!isAdmin || isPending}
+                        onChange={(e) => update(s.key, { backgroundColor: e.target.value })}
+                        className={colorInputClass}
+                        aria-label={`Tło wiersza: ${s.label}`}
                       />
-                      {c.background ? (
-                        <button
-                          type="button"
-                          onClick={() => save(s, { ...c, background: null })}
-                          className="text-xs text-muted hover:text-foreground"
-                        >
-                          bez tła
-                        </button>
+                      {s.backgroundColor ? (
+                        isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => update(s.key, { backgroundColor: null })}
+                            className="text-xs text-muted hover:text-foreground"
+                          >
+                            bez tła
+                          </button>
+                        )
                       ) : (
                         <span className="text-xs text-muted">brak</span>
                       )}
@@ -105,27 +219,81 @@ export function StatusySprzetuClient({ initialColors }: { initialColors: StatusC
                   <td className="px-4 py-3">
                     <div
                       className="rounded px-3 py-1.5 text-sm font-medium"
-                      style={{ color: c.text, backgroundColor: rowBackground(c.background) }}
+                      style={{ color: s.textColor, backgroundColor: rowBackground(s.backgroundColor) }}
                     >
                       Komputer-1 · INW/001
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={isPending && savingStatus === s}
-                      onClick={() => save(s, defaults[s])}
-                    >
-                      Domyślne
-                    </Button>
-                  </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        {editing ? (
+                          <>
+                            <Button size="sm" variant="secondary" disabled={isPending} onClick={() => saveLabel(s.key)}>
+                              <Check size={14} />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingKey(null)}>
+                              <X size={14} />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                setEditingKey(s.key);
+                                setEditLabel(s.label);
+                              }}
+                            >
+                              <Pencil size={14} />
+                              Zmień nazwę
+                            </Button>
+                            {defaults && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={isPending}
+                                onClick={() => update(s.key, { textColor: defaults.textColor, backgroundColor: null })}
+                              >
+                                Domyślne
+                              </Button>
+                            )}
+                            {!s.isSystem && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={isPending || used > 0}
+                                title={used > 0 ? "Status jest używany przez sprzęt" : "Usuń status"}
+                                onClick={() => setDeleteTarget(s)}
+                              >
+                                <Trash2 size={14} />
+                                Usuń
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Usunąć ten status?"
+        description={
+          deleteTarget ? `Status „${deleteTarget.label}” zostanie usunięty. Żaden sprzęt go nie używa.` : undefined
+        }
+        confirmLabel="Usuń"
+        danger
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

@@ -282,7 +282,8 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
     przeciąganie w zakładce Kategorie; ta sama kolejność w filtrach i formularzach)
 14. `0036_transfer_without_protocol.sql` (przekazanie bez protokołu — kolumna `no_history`, bez wpisu w historii)
 15. `0037_fix_audit_trigger.sql` (poprawka triggera dziennika zmian)
-16. `0038_status_colors.sql` (kolory statusów sprzętu ustawiane w Ustawienia → Statusy sprzętu)
+16. `0038_status_colors.sql` (kolory statusów sprzętu; zastąpione przez 0039)
+17. `0039_equipment_statuses.sql` (statusy sprzętu jako słownik — własne statusy z kolorami, dodawanie i usuwanie w Ustawienia → Statusy sprzętu; kolumna `equipment.status` z enuma na tekst)
 
 ## Konfiguracja Supabase
 

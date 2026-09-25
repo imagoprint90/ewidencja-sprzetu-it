@@ -39,13 +39,15 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/protokoly", label: "Protokoły", icon: FileText, tab: "protokoly" },
 ];
 
-// Rozwijane menu "Ustawienia" — kliknięcie otwiera stronę ustawień firmy i rozwija podmenu.
+// Rozwijane menu "Ustawienia" jest widoczne zawsze. Kliknięcie otwiera stronę ustawień firmy (jeśli
+// konto ma do niej dostęp) i rozwija podmenu; podpozycje pokazują się wg uprawnień konta, więc
+// bez żadnych uprawnień podmenu jest po prostu puste.
 const SETTINGS_ITEM: NavItem = { href: "/ustawienia", label: "Ustawienia", icon: Settings, tab: "ustawienia" };
 const SETTINGS_CHILDREN: NavItem[] = [
   { href: "/kategorie", label: "Kategorie", icon: Tags, tab: "kategorie" },
   { href: "/lokalizacje", label: "Lokalizacje", icon: MapPin, tab: "lokalizacje" },
   { href: "/powiadomienia", label: "Powiadomienia", icon: Bell, adminOnly: true },
-  { href: "/statusy-sprzetu", label: "Statusy sprzętu", icon: Palette, adminOnly: true },
+  { href: "/statusy-sprzetu", label: "Statusy sprzętu", icon: Palette, tab: "statusy" },
   { href: "/uzytkownicy", label: "Użytkownicy", icon: ShieldCheck, adminOnly: true },
 ];
 
@@ -66,7 +68,6 @@ function NavLinks({
   const items = NAV_ITEMS.filter(visible);
   const children = SETTINGS_CHILDREN.filter(visible);
   const showSettingsParent = visible(SETTINGS_ITEM);
-  const showSettings = showSettingsParent || children.length > 0;
 
   const inSettings =
     pathname.startsWith(SETTINGS_ITEM.href) || SETTINGS_CHILDREN.some((c) => pathname.startsWith(c.href));
@@ -103,7 +104,7 @@ function NavLinks({
         );
       })}
 
-      {showSettings && (
+      {(
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1">
             {showSettingsParent ? (
@@ -142,9 +143,12 @@ function NavLinks({
               </button>
             )}
           </div>
-          {!collapsed && open && (
+          {!collapsed && open && children.length === 0 && (
+            <p className="ml-4 border-l border-border pl-3 text-xs text-muted">Brak dostępnych pozycji.</p>
+          )}
+          {!collapsed && open && children.length > 0 && (
             <div className="ml-4 flex flex-col gap-0.5 border-l border-border pl-2">
-              {children.map((item, i) => {
+              {children.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
@@ -154,7 +158,7 @@ function NavLinks({
                     className={linkClass(pathname.startsWith(item.href)).replace("py-2.5", "py-2")}
                   >
                     <Icon size={16} strokeWidth={2} />
-                    {String.fromCharCode(97 + i)}) {item.label}
+                    {item.label}
                   </Link>
                 );
               })}

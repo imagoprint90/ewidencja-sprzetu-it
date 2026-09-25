@@ -1,28 +1,25 @@
+"use client";
+
 import clsx from "clsx";
 import type { EquipmentStatus } from "@/lib/types";
-import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
+import { useStatusLookup } from "@/lib/statuses-context";
+import { adaptColorForTheme, useIsDark } from "@/lib/useTheme";
 
-const STATUS_CLASSES: Record<EquipmentStatus, string> = {
-  w_magazynie: "bg-green-100 text-green-700",
-  przydzielony: "bg-slate-100 text-slate-900",
-  w_naprawie: "bg-orange-100 text-orange-700",
-  zepsuty: "bg-red-100 text-red-700",
-  wycofany: "bg-gray-200 text-gray-600",
-};
-
+// Wygląd plakietki statusu pochodzi ze słownika statusów (kolor tekstu + jego lekkie tło).
 export function StatusBadge({ status }: { status: EquipmentStatus }) {
+  const lookup = useStatusLookup();
+  const isDark = useIsDark();
+  const def = lookup(status);
+  const color = adaptColorForTheme(def.textColor, isDark);
   return (
     <span
-      className={clsx(
-        "inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium",
-        STATUS_CLASSES[status]
-      )}
+      className="inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium"
+      style={{ color, backgroundColor: `${def.textColor}22` }}
     >
-      {EQUIPMENT_STATUS_LABELS[status]}
+      {def.label}
     </span>
   );
 }
-
 export function Badge({
   children,
   tone = "default",

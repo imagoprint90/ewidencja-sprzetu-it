@@ -6,13 +6,13 @@ import {
   getCurrentProfile,
   getEmployees,
   getEquipment,
+  getEquipmentStatuses,
   getSoftwareLicenses,
   getSoftwareProducts,
 } from "@/lib/supabase/queries";
 import { daysUntil, formatDate } from "@/lib/format";
 import { canViewTab } from "@/lib/access";
 import { employeeFullName } from "@/lib/equipment-helpers";
-import { EQUIPMENT_STATUS_LABELS } from "@/lib/types";
 import type { ReactNode } from "react";
 
 function StatCard({
@@ -42,23 +42,18 @@ export default async function PulpitPage(): Promise<ReactNode> {
   const canSeeEquipment = profile ? canViewTab(profile.role, profile.visibleTabs, "sprzet") : false;
   const canSeeSoftware = profile ? canViewTab(profile.role, profile.visibleTabs, "oprogramowanie") : false;
 
-  const [equipment, employees, assignments, categories, licenses, softwareProducts] = await Promise.all([
+  const [equipment, employees, assignments, categories, licenses, softwareProducts, statuses] = await Promise.all([
     getEquipment(supabase),
     getEmployees(supabase),
     getAssignments(supabase),
     getCategories(supabase),
     getSoftwareLicenses(supabase),
     getSoftwareProducts(supabase),
+    getEquipmentStatuses(supabase),
   ]);
 
-  const counts = {
-    w_magazynie: 0,
-    przydzielony: 0,
-    w_naprawie: 0,
-    zepsuty: 0,
-    wycofany: 0,
-  };
-  for (const e of equipment) counts[e.status]++;
+  const counts: Record<string, number> = {};
+  for (const e of equipment) counts[e.status] = (counts[e.status] ?? 0) + 1;
 
   const expiringWarranties = equipment
     .filter((e) => {
@@ -90,34 +85,16 @@ export default async function PulpitPage(): Promise<ReactNode> {
       </div>
 
       {canSeeEquipment && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
           <StatCard label="Wszystkie urządzenia" value={equipment.length} href="/sprzet" />
-          <StatCard
-            label={EQUIPMENT_STATUS_LABELS.w_magazynie}
-            value={counts.w_magazynie}
-            href="/sprzet?status=w_magazynie"
-          />
-          <StatCard
-            label={EQUIPMENT_STATUS_LABELS.przydzielony}
-            value={counts.przydzielony}
-            href="/sprzet?status=przydzielony"
-          />
-          <StatCard
-            label={EQUIPMENT_STATUS_LABELS.w_naprawie}
-            value={counts.w_naprawie}
-            href="/sprzet?status=w_naprawie"
-          />
-          <StatCard
-            label={EQUIPMENT_STATUS_LABELS.zepsuty}
-            value={counts.zepsuty}
-            href="/sprzet?status=zepsuty"
-          />
-          <StatCard
-            label={EQUIPMENT_STATUS_LABELS.wycofany}
-            value={counts.wycofany}
-            href="/sprzet?status=wycofany"
-          />
-        </div>
+          {statuses.map((s) => (
+            <StatCard
+              key={s.key}
+              label={s.label}
+              value={counts[s.key] ?? 0}
+              href={`/sprzet?status=${encodeURIComponent(s.key)}`}
+            />
+          ))}        </div>
       )}
 
       {(canSeeEquipment || canSeeSoftware) && (

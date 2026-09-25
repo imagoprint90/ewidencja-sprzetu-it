@@ -2,7 +2,8 @@
 
 import { Search } from "lucide-react";
 import type { Category, Employee, EquipmentStatus, Location } from "@/lib/types";
-import { EQUIPMENT_STATUS_LABELS, TECHNICAL_CONDITION_LABELS } from "@/lib/types";
+import { TECHNICAL_CONDITION_LABELS } from "@/lib/types";
+import { useStatuses } from "@/lib/statuses-context";
 import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
 import { employeeFullName, NO_PROTOCOL_CONDITION } from "@/lib/equipment-helpers";
 
@@ -39,6 +40,8 @@ export function EquipmentFilters({
   employees: Employee[];
   locations: Location[];
 }) {
+  const statusList = useStatuses();
+
   function set<K extends keyof EquipmentFiltersState>(key: K, val: EquipmentFiltersState[K]) {
     onChange({ ...value, [key]: val });
   }
@@ -64,7 +67,7 @@ export function EquipmentFilters({
 
       <MultiSelectFilter
         label="Status"
-        options={Object.entries(EQUIPMENT_STATUS_LABELS).map(([key, label]) => ({ value: key, label }))}
+        options={statusList.map((s) => ({ value: s.key, label: s.label }))}
         selected={value.statuses}
         onChange={(v) => set("statuses", v as EquipmentStatus[])}
       />

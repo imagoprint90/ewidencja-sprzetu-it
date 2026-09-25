@@ -8,7 +8,8 @@ export const ASSIGNABLE_TABS = [
   { key: "protokoly", label: "Protokoły" },
   { key: "kategorie", label: "Kategorie" },
   { key: "lokalizacje", label: "Lokalizacje" },
-  { key: "ustawienia", label: "Ustawienia" },
+  { key: "statusy", label: "Statusy sprzętu" },
+  { key: "ustawienia", label: "Ustawienia (dane firmy)" },
 ] as const;
 
 export type TabKey = (typeof ASSIGNABLE_TABS)[number]["key"];

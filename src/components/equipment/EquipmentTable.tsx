@@ -16,12 +16,13 @@ import type {
   InstalledSoftware,
   Location,
   LastProtocolInfo,
-  StatusColors,
+  EquipmentStatusDef,
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
 } from "@/lib/types";
-import { EQUIPMENT_COLUMN_LABELS, EQUIPMENT_STATUS_LABELS } from "@/lib/types";
+import { EQUIPMENT_COLUMN_LABELS } from "@/lib/types";
+import { useStatusLookup, useStatuses } from "@/lib/statuses-context";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
 import { EditableCell } from "@/components/ui/EditableCell";
@@ -61,7 +62,6 @@ export function EquipmentTable({
   licenseAssignments,
   locations,
   lastProtocols,
-  statusColors,
   visibleColumns,
   columnColors,
   selectedIds,
@@ -80,7 +80,6 @@ export function EquipmentTable({
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
   lastProtocols: Record<string, LastProtocolInfo>;
-  statusColors: StatusColors;
   visibleColumns: EquipmentColumnKey[];
   columnColors: Partial<Record<EquipmentColumnKey, string>>;
   selectedIds: Set<string>;
@@ -90,6 +89,8 @@ export function EquipmentTable({
 }) {
   const router = useRouter();
   const isDark = useIsDark();
+  const statusLookup = useStatusLookup();
+  const statusList = useStatuses();
   const isAdmin = useIsAdmin();
   const canEditEquipment = useCanEditEquipment();
   const canTransferEquipment = useCanTransferEquipment();
@@ -218,7 +219,7 @@ export function EquipmentTable({
       serialNumber: (a, b) => compareStrings(a.item.serialNumber ?? "", b.item.serialNumber ?? ""),
       software: (a, b) => compareNumbers(a.software.length, b.software.length),
       linkedEquipment: (a, b) => compareNumbers(a.linked.length, b.linked.length),
-      status: (a, b) => compareStrings(EQUIPMENT_STATUS_LABELS[a.item.status], EQUIPMENT_STATUS_LABELS[b.item.status]),
+      status: (a, b) => compareStrings(statusLookup(a.item.status).label, statusLookup(b.item.status).label),
       location: (a, b) => compareStrings(a.locationName, b.locationName),
       notes: (a, b) => compareStrings(a.item.notes ?? "", b.item.notes ?? ""),
       lastProtocol: (a, b) => compareStrings(a.lastProtocol?.createdAt ?? "", b.lastProtocol?.createdAt ?? ""),
@@ -227,7 +228,7 @@ export function EquipmentTable({
       invoice: (a, b) => compareNumbers(a.item.purchaseInvoicePath ? 1 : 0, b.item.purchaseInvoicePath ? 1 : 0),
     };
     return applySort(rows, sortKey, sortDir, comparators);
-  }, [rows, sortKey, sortDir]);
+  }, [rows, sortKey, sortDir, statusLookup]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -278,9 +279,9 @@ export function EquipmentTable({
                   index % 2 === 1 && "bg-black/[0.015]"
                 )}
                 style={{
-                  color: adaptColorForTheme(statusColors[item.status].text, isDark),
-                  backgroundColor: statusColors[item.status].background
-                    ? `${statusColors[item.status].background}2e`
+                  color: adaptColorForTheme(statusLookup(item.status).textColor, isDark),
+                  backgroundColor: statusLookup(item.status).backgroundColor
+                    ? `${statusLookup(item.status).backgroundColor}2e`
                     : undefined,
                 }}
                 onClick={() => router.push(`/sprzet/${item.id}`)}
@@ -311,6 +312,7 @@ export function EquipmentTable({
                       linked,
                       software,
                       categories: editableCategories,
+                      statuses: statusList,
                       canEdit: canEditEquipment,
                       lastProtocol,
                       protocolCondition,
@@ -392,6 +394,7 @@ function renderCell(
     linked: Equipment[];
     software: string[];
     categories: Category[];
+    statuses: EquipmentStatusDef[];
     canEdit: boolean;
     lastProtocol?: LastProtocolInfo;
     protocolCondition?: string | null;
@@ -458,7 +461,7 @@ function renderCell(
         <EditableCell
           value={item.status}
           displayValue={<StatusBadge status={item.status} />}
-          options={Object.entries(EQUIPMENT_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+          options={extra.statuses.map((s) => ({ value: s.key, label: s.label }))}
           onSave={extra.onSaveStatus}
         />
       );
