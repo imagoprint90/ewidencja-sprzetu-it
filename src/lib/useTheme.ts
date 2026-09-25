@@ -43,6 +43,9 @@ export function adaptColorForTheme(hex: string | undefined, dark: boolean): stri
     if (h < 0) h += 360;
   }
   if (l >= 0.6) return hex;
+  // Ciemne kolory neutralne (grafit, czerń — np. domyślny kolor statusu "Przydzielony") w ciemnym
+  // motywie stają się białe, a nie szare.
+  if (s < 0.2) return "#ffffff";
   const newL = 0.72;
   const sat = Math.min(s, 0.85);
   return `hsl(${Math.round(h)} ${Math.round(sat * 100)}% ${Math.round(newL * 100)}%)`;
