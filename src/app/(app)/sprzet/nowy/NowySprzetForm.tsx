@@ -207,7 +207,7 @@ export function NowySprzetForm({
         )}
 
         <FormSection
-          title="Stan"
+          title="Stan i lokalizacja"
           description="Domyślnie sprzęt trafia do lokalizacji „Magazyn”. Po przydzieleniu pracownikowi lokalizacja jest brana z tego pracownika (ma pierwszeństwo przed wybraną tutaj)."
         >
           <FormField label="Lokalizacja" htmlFor="locationId">
