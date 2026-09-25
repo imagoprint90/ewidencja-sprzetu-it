@@ -107,7 +107,7 @@ export function mapEquipment(row: {
   in_domain: boolean;
   windows_edition?: Equipment["windowsEdition"];
   status: Equipment["status"];
-  location_id: string;
+  location_id: string | null;
   notes: string | null;
   purchase_invoice_path: string | null;
   created_at: string;

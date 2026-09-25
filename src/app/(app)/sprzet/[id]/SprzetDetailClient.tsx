@@ -124,7 +124,6 @@ function SprzetDetailClientInner({
                 categories={categories}
                 locations={locations}
                 startInEdit={startInEdit}
-                hasActiveAssignment={assignments.some((a) => a.equipmentId === item.id && a.returnedAt === null)}
               />
             ),
           },

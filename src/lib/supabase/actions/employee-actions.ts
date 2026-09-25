@@ -52,12 +52,6 @@ export async function updateEmployeeAction(
 ): Promise<ActionResult<undefined>> {
   const supabase = await createSupabaseServerClient();
 
-  const { data: before } = await supabase
-    .from("employees")
-    .select("location_id")
-    .eq("id", id)
-    .single();
-
   const { error } = await supabase
     .from("employees")
     .update({
@@ -72,24 +66,6 @@ export async function updateEmployeeAction(
 
   if (error) {
     return { ok: false, error: "Nie udało się zapisać zmian." };
-  }
-
-  // Lokalizacja sprzętu podąża za lokalizacją pracownika — jeśli lokalizacja się zmieniła na
-  // inną konkretną lokalizację, aktualizujemy też sprzęt aktualnie mu przydzielony. Gdy nową
-  // wartością jest "brak lokalizacji", celowo nie ruszamy lokalizacji sprzętu (nie ma na co
-  // ją zmienić — sprzęt zawsze musi mieć jakąś lokalizację).
-  if (input.locationId && before && before.location_id !== input.locationId) {
-    const { data: activeAssignments } = await supabase
-      .from("assignments")
-      .select("equipment_id")
-      .eq("employee_id", id)
-      .is("returned_at", null);
-
-    const equipmentIds = (activeAssignments ?? []).map((a) => a.equipment_id);
-    if (equipmentIds.length > 0) {
-      await supabase.from("equipment").update({ location_id: input.locationId }).in("id", equipmentIds);
-      for (const eqId of equipmentIds) revalidatePath(`/sprzet/${eqId}`);
-    }
   }
 
   revalidatePath("/pracownicy");

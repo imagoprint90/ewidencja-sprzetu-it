@@ -11,6 +11,7 @@ import {
   getEquipmentLinks,
   getInstalledSoftware,
   getLicenseAssignments,
+  getLocations,
   getSoftwareLicenses,
   getSoftwareProducts,
 } from "@/lib/supabase/queries";
@@ -37,6 +38,7 @@ export default async function PrzekazSprzetPage({
     products,
     licenses,
     licenseAssignments,
+    locations,
   ] = await Promise.all([
     getEquipment(supabase),
     getCategories(supabase),
@@ -48,6 +50,7 @@ export default async function PrzekazSprzetPage({
     getSoftwareProducts(supabase),
     getSoftwareLicenses(supabase),
     getLicenseAssignments(supabase),
+    getLocations(supabase),
   ]);
 
   const item = equipment.find((e) => e.id === id);
@@ -79,6 +82,7 @@ export default async function PrzekazSprzetPage({
         products={products}
         licenses={licenses}
         licenseAssignments={licenseAssignments}
+        locations={locations}
       />
     </Suspense>
   );

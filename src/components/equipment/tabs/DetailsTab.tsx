@@ -25,13 +25,11 @@ export function DetailsTab({
   categories,
   locations,
   startInEdit = false,
-  hasActiveAssignment = false,
 }: {
   equipment: Equipment;
   categories: Category[];
   locations: Location[];
   startInEdit?: boolean;
-  hasActiveAssignment?: boolean;
 }) {
   const router = useRouter();
   const canEdit = useCanEditEquipment();
@@ -95,7 +93,6 @@ export function DetailsTab({
       equipment={equipment}
       categories={editableCategories}
       locations={locations}
-      hasActiveAssignment={hasActiveAssignment}
       onCancel={() => setEditing(false)}
       onSaved={() => {
         setEditing(false);

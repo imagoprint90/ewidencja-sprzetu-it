@@ -19,6 +19,7 @@ import {
   type Equipment,
   type EquipmentLink,
   type InstalledSoftware,
+  type Location,
   type SoftwareLicense,
   type SoftwareLicenseAssignment,
   type SoftwareProduct,
@@ -42,6 +43,7 @@ export function PrzekazForm({
   products,
   licenses,
   licenseAssignments,
+  locations,
 }: {
   item: Equipment;
   allEquipment: Equipment[];
@@ -54,6 +56,7 @@ export function PrzekazForm({
   products: SoftwareProduct[];
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
+  locations: Location[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -110,6 +113,23 @@ export function PrzekazForm({
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [skipProtocol, setSkipProtocol] = useState(false);
+  // Lokalizacja sprzętu jest niezależna od lokalizacji pracownika: podpowiadamy lokalizację
+  // wybranego pracownika (albo Magazyn przy zwrocie), ale można ją zmienić na dowolną.
+  const warehouseId = locations.find((l) => l.isWarehouse)?.id ?? "";
+  const [locationId, setLocationId] = useState(item.locationId ?? "");
+  const [locationTouched, setLocationTouched] = useState(false);
+
+  function handleEmployeeChange(id: string) {
+    setNewEmployeeId(id);
+    if (!locationTouched) setLocationId(employees.find((e) => e.id === id)?.locationId ?? "");
+  }
+
+  function handleModeChange(next: Mode) {
+    setMode(next);
+    if (locationTouched) return;
+    if (next === "zwrot") setLocationId(warehouseId);
+    else setLocationId(employees.find((e) => e.id === newEmployeeId)?.locationId ?? item.locationId ?? "");
+  }
 
   const handoverPersonName: string | null = !handoverEnabled
     ? null
@@ -167,6 +187,7 @@ export function PrzekazForm({
         condition: condition as TechnicalCondition,
         notes: notes.trim() || null,
         skipHistory: skipProtocol,
+        locationId: locationId || null,
       });
       if (!result.ok) {
         setError(result.error);
@@ -322,7 +343,7 @@ export function PrzekazForm({
             <input
               type="radio"
               checked={mode === "przekaz"}
-              onChange={() => setMode("przekaz")}
+              onChange={() => handleModeChange("przekaz")}
               className="h-4 w-4 text-primary"
             />
             Przekaż innemu pracownikowi
@@ -341,7 +362,7 @@ export function PrzekazForm({
               <input
                 type="radio"
                 checked={mode === "zwrot"}
-                onChange={() => setMode("zwrot")}
+                onChange={() => handleModeChange("zwrot")}
                 className="h-4 w-4 text-primary"
               />
               Zwróć do magazynu
@@ -362,12 +383,39 @@ export function PrzekazForm({
                     : employeeFullName(e),
                 }))}
               value={newEmployeeId}
-              onChange={setNewEmployeeId}
+              onChange={handleEmployeeChange}
               placeholder="Wybierz pracownika…"
               searchPlaceholder="Szukaj pracownika…"
             />
           </FormField>
         )}
+      </FormSection>
+
+      <FormSection title="Lokalizacja sprzętu">
+        <FormField label="Lokalizacja" htmlFor="equipmentLocation" full>
+          <select
+            id="equipmentLocation"
+            className={inputClass}
+            value={locationId}
+            onChange={(e) => {
+              setLocationId(e.target.value);
+              setLocationTouched(true);
+            }}
+          >
+            <option value="">— brak lokalizacji</option>
+            {locations
+              .filter((l) => !l.isArchived || l.id === item.locationId)
+              .map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+          </select>
+          <p className="mt-1 text-xs text-muted">
+            Lokalizacja sprzętu jest niezależna od lokalizacji pracownika. Podpowiadamy lokalizację
+            wybranego pracownika (przy zwrocie — Magazyn), ale możesz wybrać dowolną.
+          </p>
+        </FormField>
       </FormSection>
 
       <FormSection title="Szczegóły przekazania">

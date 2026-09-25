@@ -18,21 +18,18 @@ export function EquipmentEditForm({
   equipment,
   categories,
   locations,
-  hasActiveAssignment,
   onCancel,
   onSaved,
 }: {
   equipment: Equipment;
   categories: Category[];
   locations: Location[];
-  // Przy aktywnym przydziale lokalizacja wynika z pracownika i nie da się jej zmienić ręcznie.
-  hasActiveAssignment: boolean;
   onCancel: () => void;
   onSaved: () => void;
 }) {
   const canEdit = useCanEditEquipment();
   const [error, setError] = useState<string | null>(null);
-  const [locationId, setLocationId] = useState(equipment.locationId);
+  const [locationId, setLocationId] = useState(equipment.locationId ?? "");
 
   const {
     register,
@@ -77,7 +74,7 @@ export function EquipmentEditForm({
       inDomain: values.inDomain === "tak",
       windowsEdition: supportsWindows ? values.windowsEdition || null : undefined,
       notes: values.notes || null,
-      locationId: hasActiveAssignment ? undefined : locationId,
+      locationId: locationId || null,
     });
     if (!result.ok) {
       setError(result.error);
@@ -160,7 +157,7 @@ export function EquipmentEditForm({
 
       <FormSection
         title="Stan i lokalizacja"
-        description="Przy przydzielonym sprzęcie lokalizacja jest brana od pracownika (zmienia się przy przekazaniu lub zwrocie)."
+        description="Lokalizacja sprzętu jest niezależna od lokalizacji pracownika i można ją ustawić dowolnie."
       >
         <FormField label="Stan techniczny" htmlFor="technicalCondition" error={errors.technicalCondition?.message}>
           <select id="technicalCondition" className={inputClass} {...register("technicalCondition")}>
@@ -175,20 +172,17 @@ export function EquipmentEditForm({
         <FormField label="Lokalizacja" htmlFor="locationId">
           <select
             id="locationId"
-            className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
+            className={inputClass}
             value={locationId}
-            disabled={hasActiveAssignment}
             onChange={(e) => setLocationId(e.target.value)}
           >
+            <option value="">— brak lokalizacji</option>
             {selectableLocations.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name}
               </option>
             ))}
           </select>
-          {hasActiveAssignment && (
-            <p className="mt-1 text-xs text-muted">Sprzęt jest przydzielony — lokalizacja zależy od pracownika.</p>
-          )}
         </FormField>
         <FormField label="Uwagi" htmlFor="notes" error={errors.notes?.message} full>
           <textarea id="notes" rows={3} className={inputClass} {...register("notes")} />

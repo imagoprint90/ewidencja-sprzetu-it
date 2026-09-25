@@ -109,7 +109,8 @@ export interface Equipment {
   windowsEdition: WindowsEdition | null;
   inDomain: boolean;
   status: EquipmentStatus;
-  locationId: string;
+  // null = brak lokalizacji (lokalizacja sprzętu jest niezależna od lokalizacji pracownika)
+  locationId: string | null;
   notes: string | null;
   purchaseInvoicePath: string | null;
   createdAt: string;

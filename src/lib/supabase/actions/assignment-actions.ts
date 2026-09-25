@@ -14,6 +14,8 @@ export interface TransferEquipmentSetInput {
   notes: string | null;
   // Przekazanie bez protokołu — nie zapisuje się w historii przydziałów.
   skipHistory?: boolean;
+  // Lokalizacja sprzętu po przekazaniu (null = brak). undefined = dawne zachowanie bazy.
+  locationId?: string | null;
 }
 
 export async function transferEquipmentSetAction(
@@ -32,6 +34,9 @@ export async function transferEquipmentSetAction(
     p_notes: input.notes,
     // Parametr wysyłany tylko gdy potrzebny — zwykłe przekazania działają też przed migracją 0036.
     ...(input.skipHistory ? { p_skip_history: true } : {}),
+    ...(input.locationId !== undefined
+      ? { p_location_id: input.locationId, p_apply_location: true }
+      : {}),
   });
 
   if (error) {
@@ -41,10 +46,10 @@ export async function transferEquipmentSetAction(
     if (error.message.includes("Brak uprawnień")) {
       return { ok: false, error: "Nie masz uprawnień do wykonania tej operacji." };
     }
-    if (error.code === "PGRST202" || error.message.includes("p_skip_history")) {
+    if (error.code === "PGRST202" || error.message.includes("p_skip_history") || error.message.includes("p_apply_location")) {
       return {
         ok: false,
-        error: "Baza nie ma jeszcze migracji 0036 (przekazanie bez protokołu) — uruchom ją w Supabase SQL Editor.",
+        error: "Baza nie ma jeszcze najnowszych migracji (0036 / 0043) — uruchom je w Supabase SQL Editor.",
       };
     }
     console.error("transfer_equipment_set", error);

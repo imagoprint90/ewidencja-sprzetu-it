@@ -26,8 +26,8 @@ export interface EquipmentInput {
   notes: string | null;
   // Pro/Home — tylko dla kategorii z Windows (baza czyści wartość dla pozostałych). undefined = bez zmian.
   windowsEdition?: WindowsEdition | null;
-  // Tylko przy edycji: ręczna zmiana lokalizacji (ignorowana, gdy sprzęt jest przydzielony).
-  locationId?: string;
+  // Tylko przy edycji: ręczna zmiana lokalizacji (null = brak). Niezależna od pracownika.
+  locationId?: string | null;
 }
 
 function toRow(input: EquipmentInput) {
@@ -68,7 +68,12 @@ export async function addEquipmentAction(
 
   const { data, error } = await supabase
     .from("equipment")
-    .insert({ ...toRow(input), status: "w_magazynie", location_id: locationId || warehouse.id })
+    // undefined = domyślnie Magazyn, null = brak lokalizacji, inaczej wskazana lokalizacja
+    .insert({
+      ...toRow(input),
+      status: "w_magazynie",
+      location_id: locationId === undefined ? warehouse.id : locationId,
+    })
     .select()
     .single();
 
@@ -89,16 +94,8 @@ export async function updateEquipmentAction(
   input: EquipmentInput
 ): Promise<ActionResult<undefined>> {
   const supabase = await createSupabaseServerClient();
-  const row: ReturnType<typeof toRow> & { location_id?: string } = toRow(input);
-  if (input.locationId) {
-    // Lokalizacja przydzielonego sprzętu wynika z pracownika — nie zmieniamy jej ręcznie.
-    const { count: activeCount } = await supabase
-      .from("assignments")
-      .select("id", { count: "exact", head: true })
-      .eq("equipment_id", id)
-      .is("returned_at", null);
-    if ((activeCount ?? 0) === 0) row.location_id = input.locationId;
-  }
+  const row: ReturnType<typeof toRow> & { location_id?: string | null } = toRow(input);
+  if (input.locationId !== undefined) row.location_id = input.locationId;
   const { error } = await supabase.from("equipment").update(row).eq("id", id);
 
   if (error) {

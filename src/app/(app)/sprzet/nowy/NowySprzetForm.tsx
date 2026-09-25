@@ -37,12 +37,18 @@ export function NowySprzetForm({
   const canTransfer = useCanTransferEquipment();
   const canAssign = isAdmin || canTransfer;
   const [employeeId, setEmployeeId] = useState("");
-  const [locationId, setLocationId] = useState(locations.find((l) => l.isWarehouse)?.id ?? locations[0]?.id ?? "");
-  // Lokalizacja przydzielonego pracownika ma pierwszeństwo przed ręcznie wybraną (tak samo
-  // działa późniejsze przekazanie sprzętu) — a gdy pracownik nie ma lokalizacji, zostaje wybrana.
-  const employeeLocation = canAssign && employeeId
-    ? locations.find((l) => l.id === employees.find((e) => e.id === employeeId)?.locationId)
-    : undefined;
+  const warehouseId = locations.find((l) => l.isWarehouse)?.id ?? "";
+  const [locationId, setLocationId] = useState(warehouseId);
+  // Lokalizacja sprzętu jest niezależna od lokalizacji pracownika. Wybór pracownika tylko
+  // podpowiada jego lokalizację — dopóki użytkownik sam nie zmieni pola Lokalizacja.
+  const [locationTouched, setLocationTouched] = useState(false);
+
+  function handleEmployeeChange(id: string) {
+    setEmployeeId(id);
+    if (locationTouched) return;
+    if (!id) setLocationId(warehouseId);
+    else setLocationId(employees.find((e) => e.id === id)?.locationId ?? "");
+  }
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
 
@@ -82,7 +88,7 @@ export function NowySprzetForm({
       inDomain: values.inDomain === "tak",
       windowsEdition: supportsWindows ? values.windowsEdition || null : undefined,
       notes: values.notes || null,
-    }, employeeLocation ? employeeLocation.id : locationId || null);
+    }, locationId || null);
     if (!result.ok) {
       setSubmitError(result.error);
       return;
@@ -109,6 +115,7 @@ export function NowySprzetForm({
         condition: values.technicalCondition,
         notes: null,
         skipHistory: true,
+        locationId: locationId || null,
       });
       if (!assign.ok) {
         window.alert(`Sprzęt dodano, ale nie udało się go przydzielić: ${assign.error} Przydzielisz go na karcie sprzętu.`);
@@ -199,7 +206,7 @@ export function NowySprzetForm({
         {canAssign && (
           <FormSection
             title="Przydział (opcjonalnie)"
-            description="Sprzęt zostanie od razu przydzielony wybranemu pracownikowi (dzisiejszą datą), bez generowania protokołu. Wymaga wybrania stanu technicznego poniżej. Zostaw puste, aby sprzęt trafił do magazynu."
+            description="Sprzęt zostanie od razu przydzielony wybranemu pracownikowi (dzisiejszą datą), bez generowania protokołu. Wymaga wybrania stanu technicznego poniżej. Zostaw puste, aby sprzęt trafił do magazynu. Lokalizację sprzętu ustawiasz osobno poniżej (podpowiadamy lokalizację pracownika)."
           >
             <FormField label="Przydziel pracownikowi" htmlFor="assignEmployee" full>
               <div className="flex gap-2">
@@ -208,13 +215,13 @@ export function NowySprzetForm({
                     id="assignEmployee"
                     options={employees.map((e) => ({ value: e.id, label: employeeFullName(e) }))}
                     value={employeeId}
-                    onChange={setEmployeeId}
+                    onChange={handleEmployeeChange}
                     placeholder="Nie przydzielaj (magazyn)"
                     searchPlaceholder="Szukaj pracownika…"
                   />
                 </div>
                 {employeeId && (
-                  <Button type="button" variant="secondary" onClick={() => setEmployeeId("")}>
+                  <Button type="button" variant="secondary" onClick={() => handleEmployeeChange("")}>
                     Wyczyść
                   </Button>
                 )}
@@ -225,26 +232,25 @@ export function NowySprzetForm({
 
         <FormSection
           title="Stan i lokalizacja"
-          description="Domyślnie sprzęt trafia do lokalizacji „Magazyn”. Po przydzieleniu pracownikowi lokalizacja jest brana z tego pracownika (ma pierwszeństwo przed wybraną tutaj)."
+          description="Lokalizacja sprzętu jest niezależna od pracownika — domyślnie „Magazyn”, a po wybraniu pracownika podpowiadana jest jego lokalizacja (możesz ją zmienić na dowolną)."
         >
           <FormField label="Lokalizacja" htmlFor="locationId">
             <select
               id="locationId"
               className={inputClass}
-              value={employeeLocation ? employeeLocation.id : locationId}
-              disabled={Boolean(employeeLocation)}
-              onChange={(e) => setLocationId(e.target.value)}
+              value={locationId}
+              onChange={(e) => {
+                setLocationId(e.target.value);
+                setLocationTouched(true);
+              }}
             >
+              <option value="">— brak lokalizacji</option>
               {locations.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
                 </option>
               ))}
-            </select>
-            {employeeLocation && (
-              <p className="mt-1 text-xs text-muted">Lokalizacja pobrana od przydzielonego pracownika.</p>
-            )}
-          </FormField>
+            </select>          </FormField>
           <FormField label="Stan techniczny" htmlFor="technicalCondition" error={errors.technicalCondition?.message}>
             <select id="technicalCondition" className={inputClass} {...register("technicalCondition")}>
               <option value="">Nie określono</option>
