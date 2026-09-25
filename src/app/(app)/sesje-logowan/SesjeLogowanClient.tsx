@@ -13,7 +13,7 @@ import { parseUserAgent } from "@/lib/user-agent";
 export interface LoginEventRow {
   id: string;
   createdAt: string;
-  event: "logowanie" | "blad_logowania" | "wylogowanie";
+  event: "logowanie" | "blad_logowania" | "wylogowanie" | "konto_zablokowane" | "konto_odblokowane";
   userId: string | null;
   email: string | null;
   fullName: string | null;
@@ -30,6 +30,8 @@ const EVENT_LABELS: Record<LoginEventRow["event"], string> = {
   logowanie: "Zalogowano",
   blad_logowania: "Nieudane logowanie",
   wylogowanie: "Wylogowano",
+  konto_zablokowane: "Konto zablokowane",
+  konto_odblokowane: "Konto odblokowane",
 };
 
 const PAGE_SIZE = 50;
@@ -266,7 +268,15 @@ export function SesjeLogowanClient({
                     </td>
                     <td className="px-3 py-2">{userLabel(e)}</td>
                     <td className="px-3 py-2">
-                      <Badge tone={e.event === "logowanie" ? "success" : e.event === "blad_logowania" ? "danger" : "default"}>
+                      <Badge
+                        tone={
+                          e.event === "logowanie" || e.event === "konto_odblokowane"
+                            ? "success"
+                            : e.event === "blad_logowania" || e.event === "konto_zablokowane"
+                              ? "danger"
+                              : "default"
+                        }
+                      >
                         {EVENT_LABELS[e.event]}
                       </Badge>
                     </td>

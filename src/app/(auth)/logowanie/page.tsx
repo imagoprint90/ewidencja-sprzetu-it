@@ -3,13 +3,11 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { translateAuthError } from "@/lib/supabase/auth-errors";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { ConfigMissing } from "@/components/ui/ConfigMissing";
 import { FormField, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
-import { logLoginEventAction } from "@/lib/supabase/actions/login-event-actions";
+import { signInAction } from "@/lib/supabase/actions/auth-actions";
 
 function LoginForm() {
   const router = useRouter();
@@ -28,22 +26,13 @@ function LoginForm() {
     setError(null);
     setLoading(true);
 
-    const supabase = createSupabaseBrowserClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError) {
-      const message = translateAuthError(signInError.message);
-      await logLoginEventAction({ event: "blad_logowania", email, reason: message });
-      setError(message);
+    // Logowanie odbywa się na serwerze — tam liczone są nieudane próby i blokowane konta.
+    const result = await signInAction(email, password);
+    if (!result.ok) {
+      setError(result.error);
       setLoading(false);
       return;
     }
-
-    await logLoginEventAction({ event: "logowanie" });
-
     const dalej = searchParams.get("dalej") || "/pulpit";
     router.push(dalej);
     router.refresh();

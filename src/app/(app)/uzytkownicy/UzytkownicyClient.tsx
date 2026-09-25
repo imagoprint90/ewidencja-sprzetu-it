@@ -21,6 +21,7 @@ import {
   resetUserPasswordAction,
   updateUserPermissionsAction,
 } from "@/lib/supabase/actions/user-actions";
+import { unlockUserAction } from "@/lib/supabase/actions/auth-actions";
 
 type SortKey = "fullName" | "email" | "role" | "tabs" | "categories" | "createdAt";
 
@@ -35,9 +36,11 @@ function roleSummary(p: UserProfile): string {
 export function UzytkownicyClient({
   profiles,
   categories,
+  lockedUntil,
 }: {
   profiles: UserProfile[];
   categories: Category[];
+  lockedUntil: Record<string, string>;
 }) {
   const router = useRouter();
   const currentUser = useCurrentUser();
@@ -120,6 +123,15 @@ export function UzytkownicyClient({
     });
   }
 
+  function unlock(id: string) {
+    startTransition(async () => {
+      const result = await unlockUserAction(id);
+      if (!result.ok) setDeleteError(result.error);
+      else setDeleteError(null);
+      router.refresh();
+    });
+  }
+
   function confirmDelete() {
     if (!deleteTarget) return;
     startTransition(async () => {
@@ -196,6 +208,17 @@ export function UzytkownicyClient({
                     <td className="px-4 py-3">
                       {p.fullName}
                       {isSelf && <span className="ml-2 text-xs text-muted">(Ty)</span>}
+                      {lockedUntil[p.id] && (
+                        <span className="ml-2 inline-flex items-center gap-1" suppressHydrationWarning>
+                          <Badge tone="danger">
+                            Zablokowane do{" "}
+                            {new Date(lockedUntil[p.id]).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}
+                          </Badge>
+                          <Button size="sm" variant="secondary" disabled={isPending} onClick={() => unlock(p.id)}>
+                            Odblokuj
+                          </Button>
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">{p.email ?? "—"}</td>
                     <td className="px-4 py-3">
