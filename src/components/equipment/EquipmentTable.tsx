@@ -25,7 +25,7 @@ import type {
 } from "@/lib/types";
 import { EQUIPMENT_COLUMN_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { getEffectiveCondition } from "@/lib/equipment-helpers";
-import { useStatusLookup, useStatuses } from "@/lib/statuses-context";
+import { resolveStatusColors, useStatusLookup, useStatuses } from "@/lib/statuses-context";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
 import { EditableCell } from "@/components/ui/EditableCell";
@@ -293,9 +293,9 @@ export function EquipmentTable({
                   index % 2 === 1 && "bg-black/[0.015]"
                 )}
                 style={{
-                  color: adaptColorForTheme(statusLookup(item.status).textColor, isDark),
-                  backgroundColor: statusLookup(item.status).backgroundColor
-                    ? `${statusLookup(item.status).backgroundColor}2e`
+                  color: resolveStatusColors(statusLookup(item.status), isDark).text,
+                  backgroundColor: resolveStatusColors(statusLookup(item.status), isDark).background
+                    ? `${resolveStatusColors(statusLookup(item.status), isDark).background}2e`
                     : undefined,
                 }}
                 onClick={() => router.push(`/sprzet/${item.id}`)}

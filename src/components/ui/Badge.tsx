@@ -2,15 +2,15 @@
 
 import clsx from "clsx";
 import type { EquipmentStatus } from "@/lib/types";
-import { useStatusLookup } from "@/lib/statuses-context";
-import { adaptColorForTheme, useIsDark } from "@/lib/useTheme";
+import { resolveStatusColors, useStatusLookup } from "@/lib/statuses-context";
+import { useIsDark } from "@/lib/useTheme";
 
 // Wygląd plakietki statusu pochodzi ze słownika statusów (kolor tekstu + jego lekkie tło).
 export function StatusBadge({ status }: { status: EquipmentStatus }) {
   const lookup = useStatusLookup();
   const isDark = useIsDark();
   const def = lookup(status);
-  const color = adaptColorForTheme(def.textColor, isDark);
+  const color = resolveStatusColors(def, isDark).text;
   return (
     <span
       className="inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium"

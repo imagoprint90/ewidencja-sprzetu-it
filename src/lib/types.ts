@@ -10,6 +10,9 @@ export interface EquipmentStatusDef {
   label: string;
   textColor: string;
   backgroundColor: string | null;
+  // Kolory dla ciemnego motywu; null = automatycznie z kolorów jasnego motywu
+  textColorDark?: string | null;
+  backgroundColorDark?: string | null;
   isSystem: boolean;
   sortOrder: number;
 }

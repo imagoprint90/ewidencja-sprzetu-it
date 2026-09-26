@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useMemo } from "react";
 import { DEFAULT_EQUIPMENT_STATUSES, type EquipmentStatusDef } from "@/lib/types";
+import { adaptColorForTheme } from "@/lib/useTheme";
 
 const StatusesContext = createContext<EquipmentStatusDef[]>(DEFAULT_EQUIPMENT_STATUSES);
 
@@ -35,4 +36,16 @@ export function useStatusLookup() {
         sortOrder: 999,
       };
   }, [statuses]);
+}
+// Kolory statusu do wyświetlenia w danym motywie: w ciemnym — ustawione przez administratora
+// kolory ciemne, a gdy ich brak, automatycznie rozjaśniony kolor jasnego motywu.
+export function resolveStatusColors(
+  def: EquipmentStatusDef,
+  isDark: boolean
+): { text: string; background: string | null } {
+  if (!isDark) return { text: def.textColor, background: def.backgroundColor };
+  return {
+    text: def.textColorDark ?? adaptColorForTheme(def.textColor, true) ?? def.textColor,
+    background: def.backgroundColorDark ?? def.backgroundColor,
+  };
 }

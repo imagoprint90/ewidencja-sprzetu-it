@@ -283,6 +283,7 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 14. `0036_transfer_without_protocol.sql` (przekazanie bez protokołu — kolumna `no_history`, bez wpisu w historii)
 15. `0037_fix_audit_trigger.sql` (poprawka triggera dziennika zmian)
 16. `0038_status_colors.sql` (kolory statusów sprzętu; zastąpione przez 0039)
+22. `0044_status_dark_colors.sql` (osobne kolory statusów sprzętu dla ciemnego motywu)
 21. `0043_equipment_location_independent.sql` (lokalizacja sprzętu niezależna od pracownika, może być pusta; przekazanie przyjmuje lokalizację sprzętu)
 20. `0042_account_lockout.sql` (blokada konta na 1 godz. po 5 nieudanych logowaniach pod rząd, mail na biuro@imagoprint.pl; wymaga SMTP_* oraz SUPABASE_SERVICE_ROLE_KEY)
 19. `0041_login_events.sql` (dziennik logowań — Ustawienia → Sesje logowań, tylko administrator)

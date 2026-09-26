@@ -309,6 +309,8 @@ export async function getEquipmentStatuses(supabase: SupabaseClient): Promise<Eq
     label: row.label,
     textColor: row.text_color,
     backgroundColor: row.background_color,
+    textColorDark: row.text_color_dark ?? null,
+    backgroundColorDark: row.background_color_dark ?? null,
     isSystem: row.is_system,
     sortOrder: row.sort_order,
   }));

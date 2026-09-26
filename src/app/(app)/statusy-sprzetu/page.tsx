@@ -1,10 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { requireTabAccess } from "@/lib/supabase/require-tab";
+import { requireAdminPage } from "@/lib/supabase/require-tab";
 import { getEquipment, getEquipmentStatuses } from "@/lib/supabase/queries";
 import { StatusySprzetuClient } from "./StatusySprzetuClient";
 
 export default async function StatusySprzetuPage() {
-  await requireTabAccess("statusy");
+  await requireAdminPage();
   const supabase = await createSupabaseServerClient();
   const [statuses, equipment] = await Promise.all([getEquipmentStatuses(supabase), getEquipment(supabase)]);
 

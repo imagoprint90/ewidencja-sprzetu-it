@@ -74,7 +74,13 @@ export async function addEquipmentStatusAction(
 
 export async function updateEquipmentStatusDefAction(
   key: string,
-  patch: { label?: string; textColor?: string; backgroundColor?: string | null }
+  patch: {
+    label?: string;
+    textColor?: string;
+    backgroundColor?: string | null;
+    textColorDark?: string | null;
+    backgroundColorDark?: string | null;
+  }
 ): Promise<ActionResult> {
   const row: Record<string, unknown> = {};
   if (patch.label !== undefined) {
@@ -91,6 +97,15 @@ export async function updateEquipmentStatusDefAction(
       return { ok: false, error: "Nieprawidłowy kolor." };
     }
     row.background_color = patch.backgroundColor;
+  }
+  for (const [key, column] of [
+    ["textColorDark", "text_color_dark"],
+    ["backgroundColorDark", "background_color_dark"],
+  ] as const) {
+    const value = patch[key];
+    if (value === undefined) continue;
+    if (value !== null && !HEX.test(value)) return { ok: false, error: "Nieprawidłowy kolor." };
+    row[column] = value;
   }
   if (Object.keys(row).length === 0) return { ok: true };
 
