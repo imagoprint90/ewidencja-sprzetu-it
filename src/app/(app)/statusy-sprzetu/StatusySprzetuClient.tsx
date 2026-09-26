@@ -26,16 +26,22 @@ const colorInputClass =
 
 function Preview({ def, dark }: { def: EquipmentStatusDef; dark: boolean }) {
   const c = resolveStatusColors(def, dark);
+  const tint = c.background ? rowBackground(c.background) : undefined;
+  // Tło podglądu ustawiamy wprost (nie klasą Tailwinda), bo w ciemnym motywie klasa bg-white
+  // jest nadpisywana i podgląd "jasnego" motywu wyglądałby na ciemnym tle.
   return (
     <div
-      className={`rounded px-3 py-1.5 text-sm font-medium ${dark ? "bg-[#161c29]" : "bg-white"}`}
-      style={{ color: c.text, backgroundImage: c.background ? `linear-gradient(${rowBackground(c.background)}, ${rowBackground(c.background)})` : undefined }}
+      className="rounded px-3 py-1.5 text-sm font-medium"
+      style={{
+        color: c.text,
+        backgroundColor: dark ? "#161c29" : "#ffffff",
+        backgroundImage: tint ? `linear-gradient(${tint}, ${tint})` : undefined,
+      }}
     >
-      Komputer-1 · INW/001
+      {dark ? "Ciemny: " : "Jasny: "}Komputer-1 · INW/001
     </div>
   );
 }
-
 export function StatusySprzetuClient({
   statuses,
   counts,
