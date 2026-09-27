@@ -27,10 +27,14 @@ function readFileAsBase64(file: File): Promise<string> {
 export function NowySprzetForm({
   categories,
   employees,
+  allEmployees,
   locations,
 }: {
   categories: Category[];
+  // Tylko aktywni — do przydzielania sprzętu (nie da się przydzielić nieaktywnemu pracownikowi).
   employees: Employee[];
+  // Wszyscy, także nieaktywni — do pola "Ostatni posiadacz" (informacyjne, bez wpływu na przydział).
+  allEmployees: Employee[];
   locations: Location[];
 }) {
   const router = useRouter();
@@ -258,7 +262,7 @@ export function NowySprzetForm({
             </select>          </FormField>
           <FormField label="Ostatni posiadacz" htmlFor="lastHolderId" full>
             <EmployeeOrManualSelect
-              employees={employees}
+              employees={allEmployees}
               selectValue={lastHolderSelect}
               onSelectChange={setLastHolderSelect}
               manualValue={lastHolderManual}

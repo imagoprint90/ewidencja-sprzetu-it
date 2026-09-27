@@ -12,9 +12,12 @@ export default async function NowySprzetPage() {
     getLocations(supabase),
   ]);
 
-  return <NowySprzetForm
+  return (
+    <NowySprzetForm
       categories={categories}
       employees={employees.filter((e) => e.isActive)}
+      allEmployees={employees}
       locations={locations.filter((l) => !l.isArchived)}
-    />;
+    />
+  );
 }
