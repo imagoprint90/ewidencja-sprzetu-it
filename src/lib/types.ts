@@ -116,7 +116,10 @@ export interface Equipment {
   locationId: string | null;
   // Pracownik wskazany ręcznie jako poprzedni posiadacz sprzętu — niezależny od historii
   // przydziałów (assignments), przydatny np. dla sprzętu wprowadzonego do systemu z historią.
+  // Dokładnie jedno z lastHolderId / lastHolderName jest ustawione naraz (albo żadne).
   lastHolderId: string | null;
+  // Nazwisko wpisane ręcznie, gdy osoby nie ma na liście pracowników.
+  lastHolderName: string | null;
   notes: string | null;
   purchaseInvoicePath: string | null;
   createdAt: string;

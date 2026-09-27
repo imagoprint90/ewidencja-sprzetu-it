@@ -8,6 +8,7 @@ import { equipmentAddFormSchema, type EquipmentAddFormValues } from "@/lib/schem
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
+import { EmployeeOrManualSelect, MANUAL_OPTION } from "@/components/ui/EmployeeOrManualSelect";
 import { useIsAdmin, useCanTransferEquipment } from "@/lib/current-user-context";
 import { employeeFullName } from "@/lib/equipment-helpers";
 import { transferEquipmentSetAction } from "@/lib/supabase/actions/assignment-actions";
@@ -42,7 +43,8 @@ export function NowySprzetForm({
   // Lokalizacja sprzętu jest niezależna od lokalizacji pracownika. Wybór pracownika tylko
   // podpowiada jego lokalizację — dopóki użytkownik sam nie zmieni pola Lokalizacja.
   const [locationTouched, setLocationTouched] = useState(false);
-  const [lastHolderId, setLastHolderId] = useState("");
+  const [lastHolderSelect, setLastHolderSelect] = useState("");
+  const [lastHolderManual, setLastHolderManual] = useState("");
 
   function handleEmployeeChange(id: string) {
     setEmployeeId(id);
@@ -88,7 +90,8 @@ export function NowySprzetForm({
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
       inDomain: values.inDomain === "tak",
       windowsEdition: supportsWindows ? values.windowsEdition || null : undefined,
-      lastHolderId: lastHolderId || null,
+      lastHolderId: lastHolderSelect === MANUAL_OPTION ? null : lastHolderSelect || null,
+      lastHolderName: lastHolderSelect === MANUAL_OPTION ? lastHolderManual.trim() || null : null,
       notes: values.notes || null,
     }, locationId || null);
     if (!result.ok) {
@@ -253,14 +256,13 @@ export function NowySprzetForm({
                 </option>
               ))}
             </select>          </FormField>
-          <FormField label="Ostatni posiadacz" htmlFor="lastHolderId">
-            <SearchableSelect
-              id="lastHolderId"
-              options={employees.map((e) => ({ value: e.id, label: employeeFullName(e) }))}
-              value={lastHolderId}
-              onChange={setLastHolderId}
-              placeholder="— brak"
-              searchPlaceholder="Szukaj pracownika…"
+          <FormField label="Ostatni posiadacz" htmlFor="lastHolderId" full>
+            <EmployeeOrManualSelect
+              employees={employees}
+              selectValue={lastHolderSelect}
+              onSelectChange={setLastHolderSelect}
+              manualValue={lastHolderManual}
+              onManualChange={setLastHolderManual}
             />
           </FormField>
           <FormField label="Stan techniczny" htmlFor="technicalCondition" error={errors.technicalCondition?.message}>

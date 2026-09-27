@@ -8,8 +8,7 @@ import { TECHNICAL_CONDITION_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types"
 import { equipmentFormSchema, type EquipmentFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
-import { SearchableSelect } from "@/components/ui/SearchableSelect";
-import { employeeFullName } from "@/lib/equipment-helpers";
+import { EmployeeOrManualSelect, MANUAL_OPTION } from "@/components/ui/EmployeeOrManualSelect";
 import { useCanEditEquipment } from "@/lib/current-user-context";
 import { updateEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
 import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
@@ -34,7 +33,10 @@ export function EquipmentEditForm({
   const canEdit = useCanEditEquipment();
   const [error, setError] = useState<string | null>(null);
   const [locationId, setLocationId] = useState(equipment.locationId ?? "");
-  const [lastHolderId, setLastHolderId] = useState(equipment.lastHolderId ?? "");
+  const [lastHolderSelect, setLastHolderSelect] = useState(
+    equipment.lastHolderId ?? (equipment.lastHolderName ? MANUAL_OPTION : "")
+  );
+  const [lastHolderManual, setLastHolderManual] = useState(equipment.lastHolderName ?? "");
 
   const {
     register,
@@ -80,7 +82,8 @@ export function EquipmentEditForm({
       windowsEdition: supportsWindows ? values.windowsEdition || null : undefined,
       notes: values.notes || null,
       locationId: locationId || null,
-      lastHolderId: lastHolderId || null,
+      lastHolderId: lastHolderSelect === MANUAL_OPTION ? null : lastHolderSelect || null,
+      lastHolderName: lastHolderSelect === MANUAL_OPTION ? lastHolderManual.trim() || null : null,
     });
     if (!result.ok) {
       setError(result.error);
@@ -191,13 +194,12 @@ export function EquipmentEditForm({
           </select>
         </FormField>
         <FormField label="Ostatni posiadacz" htmlFor="lastHolderId" full>
-          <SearchableSelect
-            id="lastHolderId"
-            options={employees.map((e) => ({ value: e.id, label: employeeFullName(e) }))}
-            value={lastHolderId}
-            onChange={setLastHolderId}
-            placeholder="— brak"
-            searchPlaceholder="Szukaj pracownika…"
+          <EmployeeOrManualSelect
+            employees={employees}
+            selectValue={lastHolderSelect}
+            onSelectChange={setLastHolderSelect}
+            manualValue={lastHolderManual}
+            onManualChange={setLastHolderManual}
           />
           <p className="mt-1 text-xs text-muted">
             Pole informacyjne, niezależne od historii przydziałów — np. poprzedni użytkownik

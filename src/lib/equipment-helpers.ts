@@ -17,6 +17,7 @@ export function equipmentToInput(item: Equipment): EquipmentInput {
     inDomain: item.inDomain,
     windowsEdition: item.windowsEdition ?? undefined,
     lastHolderId: item.lastHolderId ?? undefined,
+    lastHolderName: item.lastHolderName ?? undefined,
     notes: item.notes,
   };
 }
@@ -125,6 +126,19 @@ export function getEffectiveCondition(
   return (
     lastProtocol?.condition ?? (item.technicalCondition ? TECHNICAL_CONDITION_LABELS[item.technicalCondition] : null)
   );
+}
+
+// Nazwa do pokazania w kolumnie/podglądzie "Ostatni posiadacz": pracownik z listy, ręcznie
+// wpisane nazwisko, albo "—", gdy nic nie ustawiono.
+export function getLastHolderDisplay(
+  employees: Employee[],
+  item: { lastHolderId: string | null; lastHolderName: string | null }
+): string {
+  if (item.lastHolderId) {
+    const e = employees.find((emp) => emp.id === item.lastHolderId);
+    return e ? employeeFullName(e) : "—";
+  }
+  return item.lastHolderName?.trim() || "—";
 }
 
 // Wartość filtra lokalizacji dla sprzętu przydzielonego pracownikowi bez lokalizacji.

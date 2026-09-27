@@ -283,6 +283,7 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 14. `0036_transfer_without_protocol.sql` (przekazanie bez protokołu — kolumna `no_history`, bez wpisu w historii)
 15. `0037_fix_audit_trigger.sql` (poprawka triggera dziennika zmian)
 16. `0038_status_colors.sql` (kolory statusów sprzętu; zastąpione przez 0039)
+24. `0046_equipment_last_holder_manual.sql` (pole „Ostatni posiadacz” — możliwość wpisania nazwiska ręcznie, gdy osoby nie ma na liście pracowników)
 23. `0045_equipment_last_holder.sql` (pole „Ostatni posiadacz” — ręcznie wybierany pracownik, niezależny od historii przydziałów)
 22. `0044_status_dark_colors.sql` (osobne kolory statusów sprzętu dla ciemnego motywu)
 21. `0043_equipment_location_independent.sql` (lokalizacja sprzętu niezależna od pracownika, może być pusta; przekazanie przyjmuje lokalizację sprzętu)

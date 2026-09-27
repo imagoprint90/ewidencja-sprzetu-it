@@ -25,7 +25,8 @@ import type {
   SoftwareProduct,
 } from "@/lib/types";
 import { EQUIPMENT_COLUMN_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
-import { getEffectiveCondition } from "@/lib/equipment-helpers";
+import { getEffectiveCondition, getLastHolderDisplay } from "@/lib/equipment-helpers";
+import { LastHolderCell } from "@/components/equipment/LastHolderCell";
 import { resolveStatusColors, useStatusLookup, useStatuses } from "@/lib/statuses-context";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
@@ -220,7 +221,7 @@ export function EquipmentTable({
         supportsWindows: windowsCategoryIds.has(item.categoryId),
         categoryName: categoryNameById.get(item.categoryId) ?? "—",
         locationName: (item.locationId && locationNameById.get(item.locationId)) || "—",
-        lastHolderName: item.lastHolderId ? (employeeById.get(item.lastHolderId) ? employeeFullName(employeeById.get(item.lastHolderId)!) : "—") : "—",
+        lastHolderName: getLastHolderDisplay(employees, item),
       };
     });
   }, [equipment, assignments, employees, links, installedSoftware, softwareProducts, licenseAssignments, licenses, lastProtocols, categories, locations]);
@@ -639,19 +640,16 @@ function renderCell(
     case "protocolCondition":
       return extra.protocolCondition ?? <span>—</span>;
     case "lastHolder":
-      // Pole ręczne, niezależne od historii przydziałów — poprzedni posiadacz wpisany ręcznie.
+      // Pole ręczne, niezależne od historii przydziałów — poprzedni posiadacz wpisany ręcznie,
+      // z listy pracowników albo (gdy go na niej nie ma) jako wpisane z palca nazwisko.
       if (!extra.canEdit) return extra.lastHolderName === "—" ? <span>—</span> : extra.lastHolderName;
       return (
-        <EditableCell
-          value={item.lastHolderId ?? ""}
-          displayValue={extra.lastHolderName === "—" ? <span>—</span> : extra.lastHolderName}
-          options={[
-            { value: "", label: "— brak" },
-            ...extra.employees.map((e) => ({ value: e.id, label: employeeFullName(e) })),
-          ]}
-          searchable
-          searchPlaceholder="Szukaj pracownika…"
-          onSave={(v) => extra.onSave({ lastHolderId: v || null })}
+        <LastHolderCell
+          employees={extra.employees}
+          lastHolderId={item.lastHolderId}
+          lastHolderName={item.lastHolderName}
+          displayText={extra.lastHolderName}
+          onSave={(patch) => extra.onSave(patch)}
         />
       );
     case "domain":

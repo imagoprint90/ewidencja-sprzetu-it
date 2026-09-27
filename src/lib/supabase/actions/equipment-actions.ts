@@ -30,6 +30,8 @@ export interface EquipmentInput {
   locationId?: string | null;
   // Pracownik ręcznie wskazany jako poprzedni posiadacz sprzętu (null = brak).
   lastHolderId?: string | null;
+  // Nazwisko wpisane ręcznie, gdy osoby nie ma na liście pracowników (null = brak).
+  lastHolderName?: string | null;
 }
 
 function toRow(input: EquipmentInput) {
@@ -49,6 +51,7 @@ function toRow(input: EquipmentInput) {
     in_domain: input.inDomain,
     ...(input.windowsEdition !== undefined ? { windows_edition: input.windowsEdition } : {}),
     ...(input.lastHolderId !== undefined ? { last_holder_id: input.lastHolderId } : {}),
+    ...(input.lastHolderName !== undefined ? { last_holder_name: input.lastHolderName } : {}),
     notes: input.notes,
   };
 }

@@ -109,6 +109,7 @@ export function mapEquipment(row: {
   status: Equipment["status"];
   location_id: string | null;
   last_holder_id?: string | null;
+  last_holder_name?: string | null;
   notes: string | null;
   purchase_invoice_path: string | null;
   created_at: string;
@@ -131,6 +132,7 @@ export function mapEquipment(row: {
     status: row.status,
     locationId: row.location_id,
     lastHolderId: row.last_holder_id ?? null,
+    lastHolderName: row.last_holder_name ?? null,
     notes: row.notes,
     purchaseInvoicePath: row.purchase_invoice_path,
     createdAt: row.created_at,
