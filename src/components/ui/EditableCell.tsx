@@ -78,7 +78,13 @@ export function EditableCell({
   }
 
   return (
-    <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+    // Reset koloru/pogrubienia/kursywy/przekreślenia kolumny (ColumnPicker) — w trybie edycji
+    // te ustawienia dotyczą tylko wyświetlania, nie mają wpływu na to, jak wygląda edytor.
+    <div
+      className="flex flex-col gap-1"
+      style={{ color: "var(--foreground)", fontWeight: "normal", fontStyle: "normal", textDecoration: "none" }}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="flex items-center gap-1">
         {options && searchable ? (
           <div className="min-w-[200px] flex-1">

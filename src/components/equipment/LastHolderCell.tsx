@@ -68,7 +68,13 @@ export function LastHolderCell({
   }
 
   return (
-    <div className="flex min-w-[220px] flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+    // Reset koloru/pogrubienia/kursywy/przekreślenia kolumny (ColumnPicker) — w trybie edycji
+    // te ustawienia dotyczą tylko wyświetlania, nie mają wpływu na to, jak wygląda edytor.
+    <div
+      className="flex min-w-[320px] flex-col gap-1"
+      style={{ color: "var(--foreground)", fontWeight: "normal", fontStyle: "normal", textDecoration: "none" }}
+      onClick={(e) => e.stopPropagation()}
+    >
       <EmployeeOrManualSelect
         employees={employees}
         selectValue={selectValue}

@@ -49,14 +49,16 @@ export function EmployeeOrManualSelect({
         />
       </div>
       {selectValue === MANUAL_OPTION && (
-        <input
-          autoFocus
-          className={inputClass}
-          placeholder={manualPlaceholder}
-          value={manualValue}
-          onChange={(e) => onManualChange(e.target.value)}
-          onKeyDown={onManualKeyDown}
-        />
+        <div className="min-w-[160px] flex-1">
+          <input
+            autoFocus
+            className={inputClass}
+            placeholder={manualPlaceholder}
+            value={manualValue}
+            onChange={(e) => onManualChange(e.target.value)}
+            onKeyDown={onManualKeyDown}
+          />
+        </div>
       )}
     </div>
   );
