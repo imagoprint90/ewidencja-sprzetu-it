@@ -19,6 +19,7 @@ export function EmployeeOrManualSelect({
   placeholder = "— brak",
   searchPlaceholder = "Szukaj pracownika…",
   manualPlaceholder = "Imię i nazwisko",
+  onManualKeyDown,
 }: {
   employees: Employee[];
   // Id pracownika, MANUAL_OPTION (wpisz ręcznie), albo "" (brak wyboru).
@@ -29,12 +30,15 @@ export function EmployeeOrManualSelect({
   placeholder?: string;
   searchPlaceholder?: string;
   manualPlaceholder?: string;
+  // Np. Enter = zapisz, Escape = anuluj — używane przy edycji wprost w tabeli (patrz LastHolderCell).
+  onManualKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row">
       <div className="flex-1">
         <SearchableSelect
           options={[
+            { value: "", label: "— brak" },
             ...employees.map((e) => ({ value: e.id, label: employeeFullName(e) })),
             { value: MANUAL_OPTION, label: "Inna osoba (wpisz ręcznie)" },
           ]}
@@ -46,10 +50,12 @@ export function EmployeeOrManualSelect({
       </div>
       {selectValue === MANUAL_OPTION && (
         <input
+          autoFocus
           className={inputClass}
           placeholder={manualPlaceholder}
           value={manualValue}
           onChange={(e) => onManualChange(e.target.value)}
+          onKeyDown={onManualKeyDown}
         />
       )}
     </div>

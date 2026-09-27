@@ -75,6 +75,13 @@ export function LastHolderCell({
         onSelectChange={setSelectValue}
         manualValue={manualValue}
         onManualChange={setManualValue}
+        onManualKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            save();
+          }
+          if (e.key === "Escape") cancel();
+        }}
       />
       <div className="flex gap-2">
         <button type="button" disabled={saving} onClick={save} className="text-xs font-medium text-primary hover:underline">
