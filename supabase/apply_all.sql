@@ -2111,3 +2111,10 @@ $$;
 -- (rozjaśniony kolor z jasnego motywu).
 alter table public.equipment_statuses add column if not exists text_color_dark text;
 alter table public.equipment_statuses add column if not exists background_color_dark text;
+-- Pole "Ostatni posiadacz" — ręcznie wybierany pracownik, niezwiązany z bieżącym przydziałem
+-- (np. poprzedni użytkownik sprzętu wprowadzonego do systemu z historią). on delete set null,
+-- żeby usunięcie pracownika nie blokowało się na tym polu.
+alter table public.equipment
+  add column if not exists last_holder_id uuid references public.employees(id) on delete set null;
+
+create index if not exists idx_equipment_last_holder on public.equipment(last_holder_id);

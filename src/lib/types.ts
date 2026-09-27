@@ -114,6 +114,9 @@ export interface Equipment {
   status: EquipmentStatus;
   // null = brak lokalizacji (lokalizacja sprzętu jest niezależna od lokalizacji pracownika)
   locationId: string | null;
+  // Pracownik wskazany ręcznie jako poprzedni posiadacz sprzętu — niezależny od historii
+  // przydziałów (assignments), przydatny np. dla sprzętu wprowadzonego do systemu z historią.
+  lastHolderId: string | null;
   notes: string | null;
   purchaseInvoicePath: string | null;
   createdAt: string;
@@ -352,9 +355,18 @@ export const EQUIPMENT_COLUMNS = [
   "domain",
   "protocolCondition",
   "windows",
+  "lastHolder",
 ] as const;
 
 export type EquipmentColumnKey = (typeof EQUIPMENT_COLUMNS)[number];
+
+// Formatowanie tekstu kolumny na liście Sprzęt (pogrubienie/kursywa/przekreślenie) —
+// zapamiętywane per przeglądarkę, tak samo jak kolor kolumny (ColumnPicker).
+export interface ColumnFormat {
+  bold?: boolean;
+  italic?: boolean;
+  strike?: boolean;
+}
 
 export const EQUIPMENT_COLUMN_LABELS: Record<EquipmentColumnKey, string> = {
   inventoryNumber: "Nr inwentarzowy",
@@ -373,4 +385,5 @@ export const EQUIPMENT_COLUMN_LABELS: Record<EquipmentColumnKey, string> = {
   domain: "Domena",
   protocolCondition: "Stan techniczny",
   windows: "Windows",
+  lastHolder: "Ostatni posiadacz",
 };

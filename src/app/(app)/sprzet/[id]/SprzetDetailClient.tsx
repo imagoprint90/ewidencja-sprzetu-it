@@ -123,6 +123,7 @@ function SprzetDetailClientInner({
                 equipment={item}
                 categories={categories}
                 locations={locations}
+                employees={employees}
                 startInEdit={startInEdit}
               />
             ),

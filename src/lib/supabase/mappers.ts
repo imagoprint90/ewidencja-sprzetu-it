@@ -108,6 +108,7 @@ export function mapEquipment(row: {
   windows_edition?: Equipment["windowsEdition"];
   status: Equipment["status"];
   location_id: string | null;
+  last_holder_id?: string | null;
   notes: string | null;
   purchase_invoice_path: string | null;
   created_at: string;
@@ -129,6 +130,7 @@ export function mapEquipment(row: {
     windowsEdition: row.windows_edition ?? null,
     status: row.status,
     locationId: row.location_id,
+    lastHolderId: row.last_holder_id ?? null,
     notes: row.notes,
     purchaseInvoicePath: row.purchase_invoice_path,
     createdAt: row.created_at,

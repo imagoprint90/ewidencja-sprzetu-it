@@ -19,6 +19,7 @@ import type {
   Location,
   LastProtocolInfo,
   EquipmentStatusDef,
+  ColumnFormat,
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
@@ -69,6 +70,7 @@ export function EquipmentTable({
   lastProtocols,
   visibleColumns,
   columnColors,
+  columnFormats,
   showRowNumbers,
   selectedIds,
   allSelected,
@@ -88,6 +90,7 @@ export function EquipmentTable({
   lastProtocols: Record<string, LastProtocolInfo>;
   visibleColumns: EquipmentColumnKey[];
   columnColors: Partial<Record<EquipmentColumnKey, string>>;
+  columnFormats: Partial<Record<EquipmentColumnKey, ColumnFormat>>;
   showRowNumbers: boolean;
   selectedIds: Set<string>;
   allSelected: boolean;
@@ -217,6 +220,7 @@ export function EquipmentTable({
         supportsWindows: windowsCategoryIds.has(item.categoryId),
         categoryName: categoryNameById.get(item.categoryId) ?? "—",
         locationName: (item.locationId && locationNameById.get(item.locationId)) || "—",
+        lastHolderName: item.lastHolderId ? (employeeById.get(item.lastHolderId) ? employeeFullName(employeeById.get(item.lastHolderId)!) : "—") : "—",
       };
     });
   }, [equipment, assignments, employees, links, installedSoftware, softwareProducts, licenseAssignments, licenses, lastProtocols, categories, locations]);
@@ -240,6 +244,7 @@ export function EquipmentTable({
       protocolCondition: (a, b) => compareStrings(a.protocolCondition ?? "", b.protocolCondition ?? ""),
       domain: (a, b) => compareNumbers(a.item.inDomain ? 1 : 0, b.item.inDomain ? 1 : 0),
       invoice: (a, b) => compareNumbers(a.item.purchaseInvoicePath ? 1 : 0, b.item.purchaseInvoicePath ? 1 : 0),
+      lastHolder: (a, b) => compareStrings(a.lastHolderName, b.lastHolderName),
     };
     return applySort(rows, sortKey, sortDir, comparators);
   }, [rows, sortKey, sortDir, statusLookup]);
@@ -284,7 +289,7 @@ export function EquipmentTable({
           </tr>
         </thead>
         <tbody>
-          {sortedRows.slice(0, rowLimit).map(({ item, activeAssignment, employeeName, linked, software, lastProtocol, protocolCondition, supportsWindows, categoryName, locationName }, index) => {
+          {sortedRows.slice(0, rowLimit).map(({ item, activeAssignment, employeeName, linked, software, lastProtocol, protocolCondition, supportsWindows, categoryName, locationName, lastHolderName }, index) => {
             return (
               <tr
                 key={item.id}
@@ -312,33 +317,43 @@ export function EquipmentTable({
                   </td>
                 )}
                 {showRowNumbers && <td className="px-3 py-2 align-middle text-xs">{index + 1}</td>}
-                {visibleColumns.map((col) => (
-                  <td
-                    key={col}
-                    className="px-3 py-2 align-middle"
-                    style={columnColors[col] ? { color: adaptColorForTheme(columnColors[col], isDark) } : undefined}
-                  >
-                    {renderCell(col, item, {
-                      categoryName,
-                      locationName,
-                      employeeName,
-                      activeAssignment,
-                      linked,
-                      software,
-                      categories: editableCategories,
-                      statuses: statusList,
-                      locations,
-                      supportsWindows,
-                      canEdit: canEditEquipment,
-                      lastProtocol,
-                      protocolCondition,
-                      onSave: (patch) => saveField(item, patch),
-                      onSaveStatus: (status) => saveStatus(item, status),
-                      onOpenProtocol: handleOpenProtocol,
-                      onOpenInvoice: handleOpenInvoice,
-                    })}
-                  </td>
-                ))}
+                {visibleColumns.map((col) => {
+                  const fmt = columnFormats[col];
+                  return (
+                    <td
+                      key={col}
+                      className="px-3 py-2 align-middle"
+                      style={{
+                        color: columnColors[col] ? adaptColorForTheme(columnColors[col], isDark) : undefined,
+                        fontWeight: fmt?.bold ? 700 : undefined,
+                        fontStyle: fmt?.italic ? "italic" : undefined,
+                        textDecoration: fmt?.strike ? "line-through" : undefined,
+                      }}
+                    >
+                      {renderCell(col, item, {
+                        categoryName,
+                        locationName,
+                        lastHolderName,
+                        employeeName,
+                        activeAssignment,
+                        linked,
+                        software,
+                        categories: editableCategories,
+                        statuses: statusList,
+                        locations,
+                        employees,
+                        supportsWindows,
+                        canEdit: canEditEquipment,
+                        lastProtocol,
+                        protocolCondition,
+                        onSave: (patch) => saveField(item, patch),
+                        onSaveStatus: (status) => saveStatus(item, status),
+                        onOpenProtocol: handleOpenProtocol,
+                        onOpenInvoice: handleOpenInvoice,
+                      })}
+                    </td>
+                  );
+                })}
                 {(isAdmin || canEditEquipment || canTransferEquipment) && (
                   <td className="px-3 py-2 align-middle" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-1">
@@ -434,6 +449,7 @@ export function EquipmentTable({
               equipment={editTarget}
               categories={editableCategories}
               locations={locations}
+              employees={employees}
               onCancel={() => setEditTarget(null)}
               onSaved={() => {
                 setEditTarget(null);
@@ -467,6 +483,7 @@ function renderCell(
   extra: {
     categoryName: string;
     locationName: string;
+    lastHolderName: string;
     employeeName?: string;
     activeAssignment?: Assignment;
     linked: Equipment[];
@@ -474,6 +491,7 @@ function renderCell(
     categories: Category[];
     statuses: EquipmentStatusDef[];
     locations: Location[];
+    employees: Employee[];
     supportsWindows: boolean;
     canEdit: boolean;
     lastProtocol?: LastProtocolInfo;
@@ -620,6 +638,22 @@ function renderCell(
     }
     case "protocolCondition":
       return extra.protocolCondition ?? <span>—</span>;
+    case "lastHolder":
+      // Pole ręczne, niezależne od historii przydziałów — poprzedni posiadacz wpisany ręcznie.
+      if (!extra.canEdit) return extra.lastHolderName === "—" ? <span>—</span> : extra.lastHolderName;
+      return (
+        <EditableCell
+          value={item.lastHolderId ?? ""}
+          displayValue={extra.lastHolderName === "—" ? <span>—</span> : extra.lastHolderName}
+          options={[
+            { value: "", label: "— brak" },
+            ...extra.employees.map((e) => ({ value: e.id, label: employeeFullName(e) })),
+          ]}
+          searchable
+          searchPlaceholder="Szukaj pracownika…"
+          onSave={(v) => extra.onSave({ lastHolderId: v || null })}
+        />
+      );
     case "domain":
       if (!extra.canEdit) return item.inDomain ? "TAK" : "NIE";
       return (

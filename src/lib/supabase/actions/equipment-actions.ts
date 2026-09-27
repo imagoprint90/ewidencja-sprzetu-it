@@ -28,6 +28,8 @@ export interface EquipmentInput {
   windowsEdition?: WindowsEdition | null;
   // Tylko przy edycji: ręczna zmiana lokalizacji (null = brak). Niezależna od pracownika.
   locationId?: string | null;
+  // Pracownik ręcznie wskazany jako poprzedni posiadacz sprzętu (null = brak).
+  lastHolderId?: string | null;
 }
 
 function toRow(input: EquipmentInput) {
@@ -46,6 +48,7 @@ function toRow(input: EquipmentInput) {
     purchase_price: input.purchasePrice,
     in_domain: input.inDomain,
     ...(input.windowsEdition !== undefined ? { windows_edition: input.windowsEdition } : {}),
+    ...(input.lastHolderId !== undefined ? { last_holder_id: input.lastHolderId } : {}),
     notes: input.notes,
   };
 }

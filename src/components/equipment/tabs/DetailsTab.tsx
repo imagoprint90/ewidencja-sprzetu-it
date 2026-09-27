@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Category, Equipment, Location } from "@/lib/types";
+import type { Category, Employee, Equipment, Location } from "@/lib/types";
 import { TECHNICAL_CONDITION_LABELS } from "@/lib/types";
 import { EquipmentEditForm } from "@/components/equipment/EquipmentEditForm";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { getLocationName } from "@/lib/equipment-helpers";
+import { getEmployeeName, getLocationName } from "@/lib/equipment-helpers";
 import { useCanEditEquipment, useCurrentUser } from "@/lib/current-user-context";
 import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
 
@@ -24,11 +24,13 @@ export function DetailsTab({
   equipment,
   categories,
   locations,
+  employees,
   startInEdit = false,
 }: {
   equipment: Equipment;
   categories: Category[];
   locations: Location[];
+  employees: Employee[];
   startInEdit?: boolean;
 }) {
   const router = useRouter();
@@ -81,6 +83,7 @@ export function DetailsTab({
               }
             />
             <DetailRow label="Lokalizacja" value={getLocationName(locations, equipment.locationId)} />
+            <DetailRow label="Ostatni posiadacz" value={getEmployeeName(employees, equipment.lastHolderId ?? undefined)} />
             <DetailRow label="Uwagi" value={equipment.notes ?? "—"} />
           </dl>
         </div>
@@ -93,6 +96,7 @@ export function DetailsTab({
       equipment={equipment}
       categories={editableCategories}
       locations={locations}
+      employees={employees}
       onCancel={() => setEditing(false)}
       onSaved={() => {
         setEditing(false);

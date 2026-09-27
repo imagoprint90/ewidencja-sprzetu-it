@@ -16,7 +16,7 @@ import {
 import { EquipmentTable } from "@/components/equipment/EquipmentTable";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useIsAdmin, useCanEditEquipment, useCanTransferEquipment } from "@/lib/current-user-context";
-import { EQUIPMENT_COLUMNS, type EquipmentColumnKey, type EquipmentStatus } from "@/lib/types";
+import { EQUIPMENT_COLUMNS, type ColumnFormat, type EquipmentColumnKey, type EquipmentStatus } from "@/lib/types";
 import {
   employeeFullName,
   getEffectiveCondition,
@@ -49,6 +49,7 @@ const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "protocolCondition",
   "windows",
   "location",
+  "lastHolder",
   "lastProtocol",
   "invoice",
   "domain",
@@ -111,6 +112,10 @@ function SprzetPageInner({
     "sprzet-kolory-kolumn",
     {}
   );
+  const [columnFormats, setColumnFormats] = useLocalStorage<Partial<Record<EquipmentColumnKey, ColumnFormat>>>(
+    "sprzet-formatowanie-kolumn",
+    {}
+  );
 
   const activeAssignmentByEquipment = useMemo(() => {
     const map = new Map<string, Assignment>();
@@ -149,6 +154,9 @@ function SprzetPageInner({
       if (filters.employeeIds.length > 0) {
         const active = activeAssignmentByEquipment.get(item.id);
         if (!active || !filters.employeeIds.includes(active.employeeId)) return false;
+      }
+      if ((filters.lastHolderIds ?? []).length > 0) {
+        if (!item.lastHolderId || !filters.lastHolderIds!.includes(item.lastHolderId)) return false;
       }
       if (q) {
         const active = activeAssignmentByEquipment.get(item.id);
@@ -262,6 +270,8 @@ function SprzetPageInner({
           onChange={setVisibleColumns}
           colors={columnColors}
           onColorsChange={setColumnColors}
+          formats={columnFormats}
+          onFormatsChange={setColumnFormats}
           showRowNumbers={showRowNumbers}
           onShowRowNumbersChange={setShowRowNumbers}
         />
@@ -321,6 +331,7 @@ function SprzetPageInner({
           lastProtocols={lastProtocols}
           visibleColumns={visibleColumns.length ? visibleColumns : EQUIPMENT_COLUMNS.slice(0, 3)}
           columnColors={columnColors}
+          columnFormats={columnFormats}
           showRowNumbers={showRowNumbers}
           selectedIds={visibleSelectedIds}
           allSelected={allFilteredSelected}

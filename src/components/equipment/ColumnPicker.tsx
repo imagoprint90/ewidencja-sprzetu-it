@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Columns3, ChevronUp, ChevronDown, X } from "lucide-react";
-import { EQUIPMENT_COLUMNS, EQUIPMENT_COLUMN_LABELS, type EquipmentColumnKey } from "@/lib/types";
+import { Columns3, ChevronUp, ChevronDown, X, Bold, Italic, Strikethrough } from "lucide-react";
+import { EQUIPMENT_COLUMNS, EQUIPMENT_COLUMN_LABELS, type ColumnFormat, type EquipmentColumnKey } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 
 export function ColumnPicker({
@@ -10,6 +10,8 @@ export function ColumnPicker({
   onChange,
   colors,
   onColorsChange,
+  formats,
+  onFormatsChange,
   showRowNumbers,
   onShowRowNumbersChange,
 }: {
@@ -17,6 +19,8 @@ export function ColumnPicker({
   onChange: (cols: EquipmentColumnKey[]) => void;
   colors: Partial<Record<EquipmentColumnKey, string>>;
   onColorsChange: (colors: Partial<Record<EquipmentColumnKey, string>>) => void;
+  formats: Partial<Record<EquipmentColumnKey, ColumnFormat>>;
+  onFormatsChange: (formats: Partial<Record<EquipmentColumnKey, ColumnFormat>>) => void;
   showRowNumbers: boolean;
   onShowRowNumbersChange: (show: boolean) => void;
 }) {
@@ -59,6 +63,12 @@ export function ColumnPicker({
     onColorsChange(next);
   }
 
+  function toggleFormat(col: EquipmentColumnKey, key: keyof ColumnFormat) {
+    const current = formats[col] ?? {};
+    const next = { ...current, [key]: !current[key] };
+    onFormatsChange({ ...formats, [col]: next });
+  }
+
   return (
     <div className="relative" ref={ref}>
       <Button variant="secondary" size="sm" onClick={() => setOpen((v) => !v)}>
@@ -66,7 +76,7 @@ export function ColumnPicker({
         Kolumny
       </Button>
       {open && (
-        <div className="absolute right-0 z-20 mt-2 w-72 rounded-lg border border-border bg-surface p-3 shadow-lg">
+        <div className="absolute right-0 z-20 mt-2 w-80 rounded-lg border border-border bg-surface p-3 shadow-lg">
           <p className="mb-2 text-xs font-medium text-muted">
             Widoczne kolumny — kolejność jak na liście (strzałki zmieniają kolejność)
           </p>
@@ -80,60 +90,91 @@ export function ColumnPicker({
             L.p. (numeracja wierszy, zawsze pierwsza kolumna)
           </label>
           <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
-            {visible.map((col, i) => (
-              <div
-                key={col}
-                className="flex items-center gap-1 rounded px-2 py-1.5 text-sm hover:bg-black/5"
-              >
-                <div className="flex flex-col">
-                  <button
-                    type="button"
-                    disabled={i === 0}
-                    onClick={() => move(i, -1)}
-                    className="text-muted hover:text-foreground disabled:opacity-20"
-                    aria-label="Przesuń w górę"
-                  >
-                    <ChevronUp size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={i === visible.length - 1}
-                    onClick={() => move(i, 1)}
-                    className="text-muted hover:text-foreground disabled:opacity-20"
-                    aria-label="Przesuń w dół"
-                  >
-                    <ChevronDown size={14} />
-                  </button>
+            {visible.map((col, i) => {
+              const fmt = formats[col] ?? {};
+              return (
+                <div key={col} className="flex flex-col gap-1 rounded px-2 py-1.5 hover:bg-black/5">
+                  <div className="flex items-center gap-1 text-sm">
+                    <div className="flex flex-col">
+                      <button
+                        type="button"
+                        disabled={i === 0}
+                        onClick={() => move(i, -1)}
+                        className="text-muted hover:text-foreground disabled:opacity-20"
+                        aria-label="Przesuń w górę"
+                      >
+                        <ChevronUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={i === visible.length - 1}
+                        onClick={() => move(i, 1)}
+                        className="text-muted hover:text-foreground disabled:opacity-20"
+                        aria-label="Przesuń w dół"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+                    </div>
+                    <span className="flex-1">{EQUIPMENT_COLUMN_LABELS[col]}</span>
+                    <input
+                      type="color"
+                      value={colors[col] ?? "#1a2332"}
+                      onChange={(e) => setColor(col, e.target.value)}
+                      className="h-5 w-5 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0"
+                      title="Kolor tekstu tej kolumny"
+                      aria-label={`Kolor tekstu: ${EQUIPMENT_COLUMN_LABELS[col]}`}
+                    />
+                    {colors[col] && (
+                      <button
+                        type="button"
+                        onClick={() => resetColor(col)}
+                        className="text-[10px] text-muted hover:text-foreground"
+                        title="Przywróć domyślny kolor"
+                      >
+                        reset
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => remove(col)}
+                      className="text-muted hover:text-danger"
+                      aria-label="Ukryj kolumnę"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <div className="ml-5 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleFormat(col, "bold")}
+                      title="Pogrubienie"
+                      aria-pressed={Boolean(fmt.bold)}
+                      className={`rounded p-1 ${fmt.bold ? "bg-primary/15 text-primary" : "text-muted hover:text-foreground"}`}
+                    >
+                      <Bold size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleFormat(col, "italic")}
+                      title="Kursywa"
+                      aria-pressed={Boolean(fmt.italic)}
+                      className={`rounded p-1 ${fmt.italic ? "bg-primary/15 text-primary" : "text-muted hover:text-foreground"}`}
+                    >
+                      <Italic size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleFormat(col, "strike")}
+                      title="Przekreślenie"
+                      aria-pressed={Boolean(fmt.strike)}
+                      className={`rounded p-1 ${fmt.strike ? "bg-primary/15 text-primary" : "text-muted hover:text-foreground"}`}
+                    >
+                      <Strikethrough size={13} />
+                    </button>
+                  </div>
                 </div>
-                <span className="flex-1">{EQUIPMENT_COLUMN_LABELS[col]}</span>
-                <input
-                  type="color"
-                  value={colors[col] ?? "#1a2332"}
-                  onChange={(e) => setColor(col, e.target.value)}
-                  className="h-5 w-5 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0"
-                  title="Kolor tekstu tej kolumny"
-                  aria-label={`Kolor tekstu: ${EQUIPMENT_COLUMN_LABELS[col]}`}
-                />
-                {colors[col] && (
-                  <button
-                    type="button"
-                    onClick={() => resetColor(col)}
-                    className="text-[10px] text-muted hover:text-foreground"
-                    title="Przywróć domyślny kolor"
-                  >
-                    reset
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => remove(col)}
-                  className="text-muted hover:text-danger"
-                  aria-label="Ukryj kolumnę"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {hidden.length > 0 && (

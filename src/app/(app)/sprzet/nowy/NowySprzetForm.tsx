@@ -42,6 +42,7 @@ export function NowySprzetForm({
   // Lokalizacja sprzętu jest niezależna od lokalizacji pracownika. Wybór pracownika tylko
   // podpowiada jego lokalizację — dopóki użytkownik sam nie zmieni pola Lokalizacja.
   const [locationTouched, setLocationTouched] = useState(false);
+  const [lastHolderId, setLastHolderId] = useState("");
 
   function handleEmployeeChange(id: string) {
     setEmployeeId(id);
@@ -87,6 +88,7 @@ export function NowySprzetForm({
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
       inDomain: values.inDomain === "tak",
       windowsEdition: supportsWindows ? values.windowsEdition || null : undefined,
+      lastHolderId: lastHolderId || null,
       notes: values.notes || null,
     }, locationId || null);
     if (!result.ok) {
@@ -251,6 +253,16 @@ export function NowySprzetForm({
                 </option>
               ))}
             </select>          </FormField>
+          <FormField label="Ostatni posiadacz" htmlFor="lastHolderId">
+            <SearchableSelect
+              id="lastHolderId"
+              options={employees.map((e) => ({ value: e.id, label: employeeFullName(e) }))}
+              value={lastHolderId}
+              onChange={setLastHolderId}
+              placeholder="— brak"
+              searchPlaceholder="Szukaj pracownika…"
+            />
+          </FormField>
           <FormField label="Stan techniczny" htmlFor="technicalCondition" error={errors.technicalCondition?.message}>
             <select id="technicalCondition" className={inputClass} {...register("technicalCondition")}>
               <option value="">Nie określono</option>

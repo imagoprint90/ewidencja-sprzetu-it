@@ -3,16 +3,29 @@
 import { useState, useRef, useEffect } from "react";
 import { Pencil } from "lucide-react";
 import { inputClass } from "@/components/ui/Form";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 interface EditableCellProps {
   value: string;
   displayValue?: React.ReactNode;
   options?: { value: string; label: string }[];
   multiline?: boolean;
+  // Lista wyboru z wyszukiwarką zamiast zwykłego <select> — dla pól z wieloma opcjami
+  // (np. wybór pracownika).
+  searchable?: boolean;
+  searchPlaceholder?: string;
   onSave: (newValue: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
-export function EditableCell({ value, displayValue, options, multiline, onSave }: EditableCellProps) {
+export function EditableCell({
+  value,
+  displayValue,
+  options,
+  multiline,
+  searchable,
+  searchPlaceholder,
+  onSave,
+}: EditableCellProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
@@ -67,7 +80,16 @@ export function EditableCell({ value, displayValue, options, multiline, onSave }
   return (
     <div className="flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center gap-1">
-        {options ? (
+        {options && searchable ? (
+          <div className="min-w-[200px] flex-1">
+            <SearchableSelect
+              options={options}
+              value={draft}
+              onChange={setDraft}
+              searchPlaceholder={searchPlaceholder}
+            />
+          </div>
+        ) : options ? (
           <select
             ref={inputRef as React.RefObject<HTMLSelectElement>}
             className={inputClass}

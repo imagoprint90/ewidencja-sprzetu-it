@@ -16,6 +16,7 @@ export interface EquipmentFiltersState {
   domains?: ("tak" | "nie")[];
   conditions?: string[];
   windows?: string[];
+  lastHolderIds?: string[];
 }
 
 export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
@@ -27,6 +28,7 @@ export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
   domains: [],
   conditions: [],
   windows: [],
+  lastHolderIds: [],
 };
 
 export function EquipmentFilters({
@@ -119,6 +121,13 @@ export function EquipmentFilters({
         options={employees.map((e) => ({ value: e.id, label: employeeFullName(e) }))}
         selected={value.employeeIds}
         onChange={(v) => set("employeeIds", v)}
+      />
+
+      <MultiSelectFilter
+        label="Ostatni posiadacz"
+        options={employees.map((e) => ({ value: e.id, label: employeeFullName(e) }))}
+        selected={value.lastHolderIds ?? []}
+        onChange={(v) => set("lastHolderIds", v)}
       />
     </div>
   );
