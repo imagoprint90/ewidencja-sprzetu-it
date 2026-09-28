@@ -10,7 +10,9 @@ export interface TransferEquipmentSetInput {
   equipmentIds: string[];
   newEmployeeId: string | null; // null = zwrot do magazynu
   transferDate: string;
-  condition: TechnicalCondition;
+  // null = nie określono (dopuszczalne tylko przy przydziale bez protokołu — np. przy
+  // dodawaniu sprzętu; zwykłe "Przekaż sprzęt" nadal wymaga wyboru w formularzu).
+  condition: TechnicalCondition | null;
   notes: string | null;
   // Przekazanie bez protokołu — nie zapisuje się w historii przydziałów.
   skipHistory?: boolean;

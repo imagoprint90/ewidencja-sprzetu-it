@@ -35,6 +35,7 @@ import type {
   Location,
   LicenseHistoryEntry,
   EquipmentStatusDef,
+  LastProtocolInfo,
 } from "@/lib/types";
 import { DEFAULT_EQUIPMENT_STATUSES } from "@/lib/types";
 import type { AppRole } from "@/lib/access";
@@ -139,6 +140,38 @@ export async function getProtocolsForEquipment(
     .filter((p) => p !== null)
     .map((p) => mapProtocol(p as unknown as Parameters<typeof mapProtocol>[0]))
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+// Ostatni protokół każdej pozycji sprzętu, liczony po stronie bazy (migracja 0047) —
+// zamiast ściągać do przeglądarki pełną historię wszystkich protokołów (rosnącą bez końca),
+// pobiera tylko jeden, najnowszy wiersz na sprzęt. Używane na liście Sprzęt.
+export async function getLastProtocolsForEquipment(
+  supabase: SupabaseClient
+): Promise<Record<string, LastProtocolInfo>> {
+  const { data, error } = await supabase.rpc("equipment_last_protocols");
+  // Funkcja z migracji 0047 może jeszcze nie istnieć — wtedy kolumny "Ostatni protokół" i
+  // "Stan techniczny" po prostu zostają puste, zamiast wywalać całą listę sprzętu.
+  if (error || !data) return {};
+  const result: Record<string, LastProtocolInfo> = {};
+  for (const row of data as {
+    equipment_id: string;
+    protocol_id: string;
+    protocol_number: string;
+    pdf_status: string;
+    pdf_path: string | null;
+    created_at: string;
+    condition: string | null;
+  }[]) {
+    result[row.equipment_id] = {
+      id: row.protocol_id,
+      protocolNumber: row.protocol_number,
+      pdfStatus: row.pdf_status as LastProtocolInfo["pdfStatus"],
+      pdfPath: row.pdf_path,
+      createdAt: row.created_at,
+      condition: row.condition,
+    };
+  }
+  return result;
 }
 
 export interface ProtocolItemLink {

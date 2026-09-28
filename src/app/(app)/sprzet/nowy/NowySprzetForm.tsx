@@ -78,10 +78,6 @@ export function NowySprzetForm({
       setSubmitError("Faktura musi być plikiem PDF.");
       return;
     }
-    if (canAssign && employeeId && !values.technicalCondition) {
-      setSubmitError("Przy przydzielaniu pracownika wybierz stan techniczny sprzętu.");
-      return;
-    }
     const result = await addEquipmentAction({
       categoryId: values.categoryId,
       name: values.name,
@@ -114,14 +110,14 @@ export function NowySprzetForm({
         window.alert(`Sprzęt dodano, ale nie udało się wgrać faktury: ${upload.error} Dodasz ją na karcie sprzętu.`);
       }
     }
-    if (canAssign && employeeId && values.technicalCondition) {
+    if (canAssign && employeeId) {
       const now = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const assign = await transferEquipmentSetAction({
         equipmentIds: [result.data.id],
         newEmployeeId: employeeId,
         transferDate: today,
-        condition: values.technicalCondition,
+        condition: values.technicalCondition || null,
         notes: null,
         skipHistory: true,
         locationId: locationId || null,
@@ -215,7 +211,7 @@ export function NowySprzetForm({
         {canAssign && (
           <FormSection
             title="Przydział (opcjonalnie)"
-            description="Sprzęt zostanie od razu przydzielony wybranemu pracownikowi (dzisiejszą datą), bez generowania protokołu. Wymaga wybrania stanu technicznego poniżej. Zostaw puste, aby sprzęt trafił do magazynu. Lokalizację sprzętu ustawiasz osobno poniżej (podpowiadamy lokalizację pracownika)."
+            description="Sprzęt zostanie od razu przydzielony wybranemu pracownikowi (dzisiejszą datą), bez generowania protokołu. Zostaw puste, aby sprzęt trafił do magazynu. Lokalizację sprzętu ustawiasz osobno poniżej (podpowiadamy lokalizację pracownika)."
           >
             <FormField label="Przydziel pracownikowi" htmlFor="assignEmployee" full>
               <div className="flex gap-2">
