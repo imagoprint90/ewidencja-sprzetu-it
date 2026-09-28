@@ -234,6 +234,8 @@ export function EquipmentTable({
       assignmentDates: (a, b) =>
         compareStrings(a.activeAssignment?.assignedAt ?? "", b.activeAssignment?.assignedAt ?? ""),
       name: (a, b) => compareStrings(a.item.name, b.item.name),
+      manufacturer: (a, b) => compareStrings(a.item.manufacturer ?? "", b.item.manufacturer ?? ""),
+      model: (a, b) => compareStrings(a.item.model ?? "", b.item.model ?? ""),
       serialNumber: (a, b) => compareStrings(a.item.serialNumber ?? "", b.item.serialNumber ?? ""),
       software: (a, b) => compareNumbers(a.software.length, b.software.length),
       linkedEquipment: (a, b) => compareNumbers(a.linked.length, b.linked.length),
@@ -541,6 +543,24 @@ function renderCell(
     case "name":
       if (!extra.canEdit) return item.name;
       return <EditableCell value={item.name} onSave={(v) => extra.onSave({ name: v })} />;
+    case "manufacturer":
+      if (!extra.canEdit) return item.manufacturer ?? <span>—</span>;
+      return (
+        <EditableCell
+          value={item.manufacturer ?? ""}
+          displayValue={item.manufacturer ?? <span>—</span>}
+          onSave={(v) => extra.onSave({ manufacturer: v || null })}
+        />
+      );
+    case "model":
+      if (!extra.canEdit) return item.model ?? <span>—</span>;
+      return (
+        <EditableCell
+          value={item.model ?? ""}
+          displayValue={item.model ?? <span>—</span>}
+          onSave={(v) => extra.onSave({ model: v || null })}
+        />
+      );
     case "serialNumber":
       if (!extra.canEdit) return item.serialNumber ?? <span>—</span>;
       return (

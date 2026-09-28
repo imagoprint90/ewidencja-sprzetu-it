@@ -44,6 +44,8 @@ const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "employee",
   "assignmentDates",
   "name",
+  "manufacturer",
+  "model",
   "serialNumber",
   "status",
   "protocolCondition",

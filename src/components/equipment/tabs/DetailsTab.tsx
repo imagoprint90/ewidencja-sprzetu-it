@@ -56,8 +56,8 @@ export function DetailsTab({
             <DetailRow label="Numer inwentarzowy" value={equipment.inventoryNumber} />
             <DetailRow label="Kategoria" value={category?.name ?? "—"} />
             <DetailRow label="Nazwa sprzętu" value={equipment.name} />
-            <DetailRow label="Producent" value={equipment.manufacturer ?? "—"} />
-            <DetailRow label="Model" value={equipment.model ?? "—"} />
+            <DetailRow label="Producent/model" value={equipment.manufacturer ?? "—"} />
+            <DetailRow label="Parametry" value={equipment.model ?? "—"} />
             <DetailRow label="Numer seryjny" value={equipment.serialNumber ?? "—"} />
             <DetailRow label="Domena" value={equipment.inDomain ? "TAK" : "NIE"} />
             <DetailRow label="Data zakupu" value={formatDate(equipment.purchaseDate)} />

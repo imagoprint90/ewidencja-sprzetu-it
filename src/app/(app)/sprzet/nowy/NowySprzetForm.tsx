@@ -174,10 +174,10 @@ export function NowySprzetForm({
           <FormField label="Nazwa sprzętu" htmlFor="name" required error={errors.name?.message} full>
             <input id="name" className={inputClass} {...register("name")} />
           </FormField>
-          <FormField label="Producent" htmlFor="manufacturer" error={errors.manufacturer?.message}>
+          <FormField label="Producent/model" htmlFor="manufacturer" error={errors.manufacturer?.message}>
             <input id="manufacturer" className={inputClass} {...register("manufacturer")} />
           </FormField>
-          <FormField label="Model" htmlFor="model" error={errors.model?.message}>
+          <FormField label="Parametry" htmlFor="model" error={errors.model?.message}>
             <input id="model" className={inputClass} {...register("model")} />
           </FormField>
           <FormField label="Numer seryjny" htmlFor="serialNumber" error={errors.serialNumber?.message}>
