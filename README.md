@@ -283,6 +283,7 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 14. `0036_transfer_without_protocol.sql` (przekazanie bez protokołu — kolumna `no_history`, bez wpisu w historii)
 15. `0037_fix_audit_trigger.sql` (poprawka triggera dziennika zmian)
 16. `0038_status_colors.sql` (kolory statusów sprzętu; zastąpione przez 0039)
+26. `0048_equipment_last_protocols_fn_fast.sql` (poprawka wydajności 0047 — indeks na `protocol_items.equipment_id`, JSON migawki parsowany tylko dla wygranych wierszy)
 25. `0047_equipment_last_protocols_fn.sql` (funkcja SQL liczącą ostatni protokół każdej pozycji sprzętu w bazie — przyspiesza listę Sprzęt, zamiast ściągać do przeglądarki całą historię protokołów)
 24. `0046_equipment_last_holder_manual.sql` (pole „Ostatni posiadacz” — możliwość wpisania nazwiska ręcznie, gdy osoby nie ma na liście pracowników)
 23. `0045_equipment_last_holder.sql` (pole „Ostatni posiadacz” — ręcznie wybierany pracownik, niezależny od historii przydziałów)
