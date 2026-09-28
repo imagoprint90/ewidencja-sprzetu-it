@@ -129,6 +129,22 @@ function SprzetPageInner({
     [categories]
   );
   const employeeById = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
+  // Zbiór id produktów oprogramowania na sprzęcie — zarówno oznaczonych jako zainstalowane,
+  // jak i przypisanych poprzez licencję "na urządzenie" (to samo, co pokazuje kolumna
+  // "Oprogramowanie" w tabeli).
+  const softwareProductIdsByEquipment = useMemo(() => {
+    const licenseProductId = new Map(licenses.map((l) => [l.id, l.productId]));
+    const map = new Map<string, Set<string>>();
+    const add = (equipmentId: string | null, productId: string | undefined) => {
+      if (!equipmentId || !productId) return;
+      let set = map.get(equipmentId);
+      if (!set) map.set(equipmentId, (set = new Set()));
+      set.add(productId);
+    };
+    for (const s of installedSoftware) add(s.equipmentId, s.softwareProductId);
+    for (const a of licenseAssignments) add(a.equipmentId, licenseProductId.get(a.licenseId));
+    return map;
+  }, [installedSoftware, licenseAssignments, licenses]);
 
   // Wpisywanie w wyszukiwarkę nie blokuje pola — filtrowanie listy nadąża w tle.
   const deferredQuery = useDeferredValue(filters.query);
@@ -160,6 +176,10 @@ function SprzetPageInner({
       if ((filters.lastHolderIds ?? []).length > 0) {
         if (!item.lastHolderId || !filters.lastHolderIds!.includes(item.lastHolderId)) return false;
       }
+      if ((filters.softwareProductIds ?? []).length > 0) {
+        const productIds = softwareProductIdsByEquipment.get(item.id);
+        if (!productIds || !filters.softwareProductIds!.some((id) => productIds.has(id))) return false;
+      }
       if (q) {
         const active = activeAssignmentByEquipment.get(item.id);
         const activeEmployee = active ? employeeById.get(active.employeeId) : undefined;
@@ -171,7 +191,16 @@ function SprzetPageInner({
       }
       return true;
     });
-  }, [equipment, filters, deferredQuery, activeAssignmentByEquipment, employeeById, lastProtocols, windowsCategoryIds]);
+  }, [
+    equipment,
+    filters,
+    deferredQuery,
+    activeAssignmentByEquipment,
+    employeeById,
+    lastProtocols,
+    windowsCategoryIds,
+    softwareProductIdsByEquipment,
+  ]);
 
   // Zaznaczenie jest pamiętane niezależnie od filtrów, ale do wyświetlania i akcji zbiorczych
   // liczą się tylko pozycje aktualnie widoczne na liście — unika to niejawnych operacji na
@@ -266,6 +295,7 @@ function SprzetPageInner({
           categories={categories}
           employees={employees}
           locations={locations}
+          softwareProducts={softwareProducts}
         />
         <ColumnPicker
           visible={visibleColumns}

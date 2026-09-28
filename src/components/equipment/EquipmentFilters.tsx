@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import type { Category, Employee, EquipmentStatus, Location } from "@/lib/types";
+import type { Category, Employee, EquipmentStatus, Location, SoftwareProduct } from "@/lib/types";
 import { TECHNICAL_CONDITION_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { useStatuses } from "@/lib/statuses-context";
 import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
@@ -17,6 +17,7 @@ export interface EquipmentFiltersState {
   conditions?: string[];
   windows?: string[];
   lastHolderIds?: string[];
+  softwareProductIds?: string[];
 }
 
 export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
@@ -29,6 +30,7 @@ export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
   conditions: [],
   windows: [],
   lastHolderIds: [],
+  softwareProductIds: [],
 };
 
 export function EquipmentFilters({
@@ -37,12 +39,14 @@ export function EquipmentFilters({
   categories,
   employees,
   locations,
+  softwareProducts,
 }: {
   value: EquipmentFiltersState;
   onChange: (next: EquipmentFiltersState) => void;
   categories: Category[];
   employees: Employee[];
   locations: Location[];
+  softwareProducts: SoftwareProduct[];
 }) {
   const statusList = useStatuses();
 
@@ -128,6 +132,16 @@ export function EquipmentFilters({
         options={employees.map((e) => ({ value: e.id, label: employeeFullName(e) }))}
         selected={value.lastHolderIds ?? []}
         onChange={(v) => set("lastHolderIds", v)}
+      />
+
+      <MultiSelectFilter
+        label="Oprogramowanie"
+        options={softwareProducts.map((p) => ({
+          value: p.id,
+          label: p.version ? `${p.name} ${p.version}` : p.name,
+        }))}
+        selected={value.softwareProductIds ?? []}
+        onChange={(v) => set("softwareProductIds", v)}
       />
     </div>
   );
