@@ -17,8 +17,10 @@ export interface EquipmentFiltersState {
   conditions?: string[];
   windows?: string[];
   lastHolderIds?: string[];
-  // Filtruje po konkretnych licencjach "na urządzenie" (tylko taki typ da się przypisać do
-  // sprzętu — patrz kolumna Oprogramowanie), nie po produktach.
+  // "Oprogramowanie" — po produkcie (zainstalowanym albo z przypisaną licencją).
+  softwareProductIds?: string[];
+  // "Licencja" — po konkretnej licencji "na urządzenie" (tylko taki typ da się przypisać do
+  // sprzętu — patrz kolumna Oprogramowanie).
   licenseIds?: string[];
 }
 
@@ -32,6 +34,7 @@ export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
   conditions: [],
   windows: [],
   lastHolderIds: [],
+  softwareProductIds: [],
   licenseIds: [],
 };
 
@@ -149,6 +152,16 @@ export function EquipmentFilters({
 
       <MultiSelectFilter
         label="Oprogramowanie"
+        options={softwareProducts.map((p) => ({
+          value: p.id,
+          label: p.version ? `${p.name} ${p.version}` : p.name,
+        }))}
+        selected={value.softwareProductIds ?? []}
+        onChange={(v) => set("softwareProductIds", v)}
+      />
+
+      <MultiSelectFilter
+        label="Licencja"
         options={deviceLicenseOptions}
         selected={value.licenseIds ?? []}
         onChange={(v) => set("licenseIds", v)}

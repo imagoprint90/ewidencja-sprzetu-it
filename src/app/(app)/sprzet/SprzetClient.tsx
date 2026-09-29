@@ -129,8 +129,23 @@ function SprzetPageInner({
     [categories]
   );
   const employeeById = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
-  // Zbiór id konkretnych licencji "na urządzenie" przypisanych do sprzętu — do filtra
-  // "Oprogramowanie" (ten sam zestaw danych, co interaktywna kolumna Oprogramowanie).
+  // Zbiór id produktów oprogramowania na sprzęcie — zarówno oznaczonych jako zainstalowane,
+  // jak i przypisanych poprzez licencję "na urządzenie" — do filtra "Oprogramowanie".
+  const softwareProductIdsByEquipment = useMemo(() => {
+    const licenseProductId = new Map(licenses.map((l) => [l.id, l.productId]));
+    const map = new Map<string, Set<string>>();
+    const add = (equipmentId: string | null, productId: string | undefined) => {
+      if (!equipmentId || !productId) return;
+      let set = map.get(equipmentId);
+      if (!set) map.set(equipmentId, (set = new Set()));
+      set.add(productId);
+    };
+    for (const s of installedSoftware) add(s.equipmentId, s.softwareProductId);
+    for (const a of licenseAssignments) add(a.equipmentId, licenseProductId.get(a.licenseId));
+    return map;
+  }, [installedSoftware, licenseAssignments, licenses]);
+  // Zbiór id konkretnych licencji "na urządzenie" przypisanych do sprzętu — do osobnego
+  // filtra "Licencja" (ten sam zestaw danych, co interaktywna kolumna Oprogramowanie).
   const licenseIdsByEquipment = useMemo(() => {
     const map = new Map<string, Set<string>>();
     for (const a of licenseAssignments) {
@@ -172,6 +187,10 @@ function SprzetPageInner({
       if ((filters.lastHolderIds ?? []).length > 0) {
         if (!item.lastHolderId || !filters.lastHolderIds!.includes(item.lastHolderId)) return false;
       }
+      if ((filters.softwareProductIds ?? []).length > 0) {
+        const productIds = softwareProductIdsByEquipment.get(item.id);
+        if (!productIds || !filters.softwareProductIds!.some((id) => productIds.has(id))) return false;
+      }
       if ((filters.licenseIds ?? []).length > 0) {
         const ids = licenseIdsByEquipment.get(item.id);
         if (!ids || !filters.licenseIds!.some((id) => ids.has(id))) return false;
@@ -195,6 +214,7 @@ function SprzetPageInner({
     employeeById,
     lastProtocols,
     windowsCategoryIds,
+    softwareProductIdsByEquipment,
     licenseIdsByEquipment,
   ]);
 
