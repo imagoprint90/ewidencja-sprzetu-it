@@ -156,18 +156,32 @@ export function NowySprzetForm({
                 ))}
             </select>
           </FormField>
-          {supportsWindows && (
-            <FormField label="Windows" htmlFor="windowsEdition" error={errors.windowsEdition?.message}>
-              <select id="windowsEdition" className={inputClass} {...register("windowsEdition")}>
-                <option value="">Nie określono</option>
-                {Object.entries(WINDOWS_EDITION_LABELS).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
+          <div className="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-3">
+            {supportsWindows && (
+              <FormField label="Windows" htmlFor="windowsEdition" error={errors.windowsEdition?.message}>
+                <select id="windowsEdition" className={inputClass} {...register("windowsEdition")}>
+                  <option value="">Nie określono</option>
+                  {Object.entries(WINDOWS_EDITION_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            )}
+            <FormField label="Domena" htmlFor="inDomain" error={errors.inDomain?.message}>
+              <select id="inDomain" className={inputClass} {...register("inDomain")}>
+                <option value="nie">NIE</option>
+                <option value="tak">TAK</option>
               </select>
             </FormField>
-          )}
+            <FormField label="OpenVPN" htmlFor="hasOpenvpn" error={errors.hasOpenvpn?.message}>
+              <select id="hasOpenvpn" className={inputClass} {...register("hasOpenvpn")}>
+                <option value="nie">NIE</option>
+                <option value="tak">TAK</option>
+              </select>
+            </FormField>
+          </div>
           <FormField label="Nazwa sprzętu" htmlFor="name" required error={errors.name?.message} full>
             <input id="name" className={inputClass} {...register("name")} />
           </FormField>
@@ -179,18 +193,6 @@ export function NowySprzetForm({
           </FormField>
           <FormField label="Numer seryjny" htmlFor="serialNumber" error={errors.serialNumber?.message}>
             <input id="serialNumber" className={inputClass} {...register("serialNumber")} />
-          </FormField>
-          <FormField label="Domena" htmlFor="inDomain" error={errors.inDomain?.message}>
-            <select id="inDomain" className={inputClass} {...register("inDomain")}>
-              <option value="nie">NIE</option>
-              <option value="tak">TAK</option>
-            </select>
-          </FormField>
-          <FormField label="OpenVPN" htmlFor="hasOpenvpn" error={errors.hasOpenvpn?.message}>
-            <select id="hasOpenvpn" className={inputClass} {...register("hasOpenvpn")}>
-              <option value="nie">NIE</option>
-              <option value="tak">TAK</option>
-            </select>
           </FormField>
         </FormSection>
 
