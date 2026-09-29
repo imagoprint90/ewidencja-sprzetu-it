@@ -101,6 +101,29 @@ function SprzetPageInner({
   );
   const setFilters = setStoredFilters;
 
+  // Lokalna kopia listy sprzętu: edycje pojedynczych pól, zmiana statusu i usuwanie aktualizują
+  // ją bezpośrednio w przeglądarce (bez router.refresh()), więc nie trzeba za każdym razem od
+  // nowa odpytywać serwera o wszystkie powiązane dane (kategorie, pracowników, licencje…) tylko
+  // po to, żeby odświeżyć jedno pole jednego wiersza. Synchronizuje się z propsem przy
+  // prawdziwym odświeżeniu strony (np. po dodaniu sprzętu gdzie indziej) — porównanie i
+  // ewentualny setState dzieją się w trakcie renderu (nie w efekcie), więc React "wygasza"
+  // zbędny dodatkowy przebieg zamiast go wykonywać po zamontowaniu.
+  const [prevEquipment, setPrevEquipment] = useState(equipment);
+  const [equipmentState, setEquipmentState] = useState(equipment);
+  if (equipment !== prevEquipment) {
+    setPrevEquipment(equipment);
+    setEquipmentState(equipment);
+  }
+
+  function patchEquipmentLocally(id: string, patch: Partial<Equipment>) {
+    setEquipmentState((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  }
+
+  function removeEquipmentLocally(ids: string[]) {
+    const idSet = new Set(ids);
+    setEquipmentState((prev) => prev.filter((e) => !idSet.has(e.id)));
+  }
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
@@ -166,7 +189,7 @@ function SprzetPageInner({
 
   const filtered = useMemo(() => {
     const q = deferredQuery.trim().toLowerCase();
-    return equipment.filter((item) => {
+    return equipmentState.filter((item) => {
       if (filters.categoryIds.length > 0 && !filters.categoryIds.includes(item.categoryId)) return false;
       if (filters.statuses.length > 0 && !filters.statuses.includes(item.status)) return false;
       if ((filters.domains ?? []).length > 0 && !filters.domains!.includes(item.inDomain ? "tak" : "nie"))
@@ -211,7 +234,7 @@ function SprzetPageInner({
       return true;
     });
   }, [
-    equipment,
+    equipmentState,
     filters,
     deferredQuery,
     activeAssignmentByEquipment,
@@ -270,10 +293,15 @@ function SprzetPageInner({
     startBulkTransition(async () => {
       let okCount = 0;
       const failedNames: string[] = [];
+      const removedIds: string[] = [];
       for (const id of ids) {
         const result = await deleteEquipmentAction(id);
-        if (result.ok) okCount += 1;
-        else failedNames.push(equipment.find((e) => e.id === id)?.name ?? id);
+        if (result.ok) {
+          okCount += 1;
+          removedIds.push(id);
+        } else {
+          failedNames.push(equipmentState.find((e) => e.id === id)?.name ?? id);
+        }
       }
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -285,7 +313,7 @@ function SprzetPageInner({
           ? `Usunięto ${okCount} pozycji.`
           : `Usunięto ${okCount} z ${ids.length}. Zablokowane przez powiązane protokoły: ${failedNames.join(", ")}.`
       );
-      router.refresh();
+      removeEquipmentLocally(removedIds);
     });
   }
 
@@ -295,7 +323,7 @@ function SprzetPageInner({
         <div>
           <h1 className="text-xl font-semibold">Sprzęt</h1>
           <p className="text-sm text-muted">
-            {filtered.length} z {equipment.length} pozycji
+            {filtered.length} z {equipmentState.length} pozycji
           </p>
         </div>
         {(isAdmin || canEditEquipment) && (
@@ -392,6 +420,8 @@ function SprzetPageInner({
           allSelected={allFilteredSelected}
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAll}
+          onLocalPatch={patchEquipmentLocally}
+          onLocalRemove={removeEquipmentLocally}
         />
       )}
 

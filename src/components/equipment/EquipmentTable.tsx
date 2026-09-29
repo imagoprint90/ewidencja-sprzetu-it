@@ -114,6 +114,8 @@ export function EquipmentTable({
   allSelected,
   onToggleSelect,
   onToggleSelectAll,
+  onLocalPatch,
+  onLocalRemove,
 }: {
   equipment: Equipment[];
   categories: Category[];
@@ -136,6 +138,10 @@ export function EquipmentTable({
   allSelected: boolean;
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: () => void;
+  // Optymistyczna aktualizacja listy w przeglądarce — bez pełnego odpytania serwera o
+  // wszystkie powiązane dane po każdej drobnej zmianie (patrz saveField/saveStatus niżej).
+  onLocalPatch: (id: string, patch: Partial<Equipment>) => void;
+  onLocalRemove: (ids: string[]) => void;
 }) {
   const router = useRouter();
   const isDark = useIsDark();
@@ -199,20 +205,22 @@ export function EquipmentTable({
         return;
       }
       setDeleteError(null);
-      router.refresh();
+      onLocalRemove([target.id]);
     });
   }
 
   async function saveField(item: Equipment, patch: Partial<EquipmentInput>) {
     const payload: EquipmentInput = { ...equipmentToInput(item), ...patch };
     const result = await updateEquipmentAction(item.id, payload);
-    if (result.ok) router.refresh();
+    // Pola patch odpowiadają 1:1 tym samym nazwom na Equipment — bez pełnego odświeżenia
+    // strony (patrz onLocalPatch w SprzetClient).
+    if (result.ok) onLocalPatch(item.id, patch as Partial<Equipment>);
     return result.ok ? { ok: true } : { ok: false, error: result.error };
   }
 
   async function saveStatus(item: Equipment, status: string) {
     const result = await updateEquipmentStatusAction(item.id, status as Equipment["status"]);
-    if (result.ok) router.refresh();
+    if (result.ok) onLocalPatch(item.id, { status: status as Equipment["status"] });
     return result.ok ? { ok: true } : { ok: false, error: result.error };
   }
 
@@ -615,9 +623,9 @@ export function EquipmentTable({
               locations={locations}
               employees={employees}
               onCancel={() => setEditTarget(null)}
-              onSaved={() => {
+              onSaved={(patch) => {
+                onLocalPatch(editTarget.id, patch);
                 setEditTarget(null);
-                router.refresh();
               }}
             />
           </div>

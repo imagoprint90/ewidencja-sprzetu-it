@@ -28,7 +28,9 @@ export function EquipmentEditForm({
   locations: Location[];
   employees: Employee[];
   onCancel: () => void;
-  onSaved: () => void;
+  // Dostaje dokładnie to, co zostało zapisane — pozwala wywołującemu zaktualizować lokalną
+  // kopię danych bez ponownego odpytywania serwera (patrz użycie w EquipmentTable).
+  onSaved: (patch: Partial<Equipment>) => void;
 }) {
   const canEdit = useCanEditEquipment();
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +69,15 @@ export function EquipmentEditForm({
 
   async function onSubmit(values: EquipmentFormValues) {
     setError(null);
+    const windowsEdition = supportsWindows
+      ? ((values.windowsEdition || null) as Equipment["windowsEdition"])
+      : undefined;
+    const technicalCondition = (values.technicalCondition || null) as Equipment["technicalCondition"];
+    const purchasePrice = values.purchasePrice ? Number(values.purchasePrice) : null;
+    const inDomain = values.inDomain === "tak";
+    const lastHolderId = lastHolderSelect === MANUAL_OPTION ? null : lastHolderSelect || null;
+    const lastHolderName = lastHolderSelect === MANUAL_OPTION ? lastHolderManual.trim() || null : null;
+
     const result = await updateEquipmentAction(equipment.id, {
       inventoryNumber: values.inventoryNumber,
       categoryId: values.categoryId,
@@ -76,20 +87,39 @@ export function EquipmentEditForm({
       serialNumber: values.serialNumber || null,
       purchaseDate: values.purchaseDate || null,
       warrantyEnd: values.warrantyEnd || null,
-      technicalCondition: values.technicalCondition || null,
-      purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
-      inDomain: values.inDomain === "tak",
-      windowsEdition: supportsWindows ? values.windowsEdition || null : undefined,
+      technicalCondition,
+      purchasePrice,
+      inDomain,
+      windowsEdition,
       notes: values.notes || null,
       locationId: locationId || null,
-      lastHolderId: lastHolderSelect === MANUAL_OPTION ? null : lastHolderSelect || null,
-      lastHolderName: lastHolderSelect === MANUAL_OPTION ? lastHolderManual.trim() || null : null,
+      lastHolderId,
+      lastHolderName,
     });
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    onSaved();
+    // To, co faktycznie zapisano, wraca do wywołującego (patrz komentarz przy onSaved) — bez
+    // windowsEdition, gdy pole było ukryte (undefined = "bez zmian", nie nadpisujemy lokalnie).
+    onSaved({
+      inventoryNumber: values.inventoryNumber,
+      categoryId: values.categoryId,
+      name: values.name,
+      manufacturer: values.manufacturer || null,
+      model: values.model || null,
+      serialNumber: values.serialNumber || null,
+      purchaseDate: values.purchaseDate || null,
+      warrantyEnd: values.warrantyEnd || null,
+      technicalCondition,
+      purchasePrice,
+      inDomain,
+      ...(windowsEdition !== undefined ? { windowsEdition } : {}),
+      notes: values.notes || null,
+      locationId: locationId || null,
+      lastHolderId,
+      lastHolderName,
+    });
   }
 
   const selectableLocations = locations.filter((l) => !l.isArchived || l.id === equipment.locationId);
