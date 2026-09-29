@@ -13,6 +13,7 @@ export function SortableTh({
   onSort,
   className = "px-4 py-3 font-medium",
   align,
+  resizeHandle,
 }: {
   label: string;
   sortKey: string;
@@ -21,26 +22,30 @@ export function SortableTh({
   onSort: (key: string) => void;
   className?: string;
   align?: "right";
+  // Uchwyt do ręcznego rozciągania kolumny (patrz EquipmentTable) — opcjonalny, żeby nie
+  // dotykać innych tabel korzystających z tego komponentu.
+  resizeHandle?: React.ReactNode;
 }) {
   const active = currentKey === sortKey;
   return (
-    <th className={className}>
+    <th className={`relative ${className}`}>
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className={`flex items-center gap-1 hover:text-foreground ${align === "right" ? "ml-auto" : ""}`}
+        className={`flex items-center gap-1 truncate hover:text-foreground ${align === "right" ? "ml-auto" : ""}`}
       >
-        {label}
+        <span className="truncate">{label}</span>
         {active ? (
           direction === "asc" ? (
-            <ChevronUp size={14} />
+            <ChevronUp size={14} className="shrink-0" />
           ) : (
-            <ChevronDown size={14} />
+            <ChevronDown size={14} className="shrink-0" />
           )
         ) : (
-          <ChevronsUpDown size={12} className="opacity-40" />
+          <ChevronsUpDown size={12} className="shrink-0 opacity-40" />
         )}
       </button>
+      {resizeHandle}
     </th>
   );
 }

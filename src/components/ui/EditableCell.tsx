@@ -69,10 +69,12 @@ export function EditableCell({
       <button
         type="button"
         onClick={startEdit}
-        className="group flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-black/5"
+        className="group flex w-full items-start gap-1.5 rounded px-1 py-0.5 text-left hover:bg-black/5"
       >
-        <span className="min-w-0 flex-1 truncate">{displayValue ?? value}</span>
-        <Pencil size={12} className="shrink-0 text-muted opacity-0 group-hover:opacity-100" />
+        {/* Zawija się zamiast obcinać — szerokość komórki decyduje, ile mieści się w linii
+            (patrz kolumny rozciągane ręcznie w EquipmentTable). */}
+        <span className="min-w-0 flex-1 break-words">{displayValue ?? value}</span>
+        <Pencil size={12} className="mt-0.5 shrink-0 text-muted opacity-0 group-hover:opacity-100" />
       </button>
     );
   }

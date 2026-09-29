@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { ArrowRightLeft, Eye, FileText, Pencil, Receipt, Trash2, X } from "lucide-react";
@@ -63,6 +63,35 @@ import { assignLicenseAction, removeLicenseAssignmentAction } from "@/lib/supaba
 
 const ROWS_PER_PAGE = 100;
 
+// Szerokości kolumn w pikselach: domyślne (gdy użytkownik jeszcze nie przeciągał) i granice
+// ręcznego rozciągania. Tabela używa table-layout: fixed — te wartości są jedynym źródłem
+// szerokości kolumn (szybsze renderowanie niż auto-layout, bo przeglądarka nie mierzy treści
+// wszystkich komórek, tylko stosuje podane liczby).
+const DEFAULT_COLUMN_WIDTH = 150;
+const MIN_COLUMN_WIDTH = 70;
+const MAX_COLUMN_WIDTH = 640;
+const DEFAULT_COLUMN_WIDTHS: Partial<Record<EquipmentColumnKey, number>> = {
+  inventoryNumber: 120,
+  category: 140,
+  employee: 160,
+  assignmentDates: 190,
+  name: 220,
+  manufacturer: 170,
+  model: 200,
+  serialNumber: 140,
+  software: 220,
+  linkedEquipment: 170,
+  status: 140,
+  location: 150,
+  notes: 220,
+  lastProtocol: 70,
+  invoice: 60,
+  domain: 90,
+  protocolCondition: 140,
+  windows: 100,
+  lastHolder: 180,
+};
+
 export function EquipmentTable({
   equipment,
   categories,
@@ -78,6 +107,8 @@ export function EquipmentTable({
   visibleColumns,
   columnColors,
   columnFormats,
+  columnWidths,
+  onColumnWidthsChange,
   showRowNumbers,
   selectedIds,
   allSelected,
@@ -98,6 +129,8 @@ export function EquipmentTable({
   visibleColumns: EquipmentColumnKey[];
   columnColors: Partial<Record<EquipmentColumnKey, string>>;
   columnFormats: Partial<Record<EquipmentColumnKey, ColumnFormat>>;
+  columnWidths: Partial<Record<EquipmentColumnKey, number>>;
+  onColumnWidthsChange: (widths: Partial<Record<EquipmentColumnKey, number>>) => void;
   showRowNumbers: boolean;
   selectedIds: Set<string>;
   allSelected: boolean;
@@ -127,6 +160,33 @@ export function EquipmentTable({
   // Rysujemy wiersze partiami — tysiąc wierszy z edytowalnymi komórkami naraz to główny powód
   // wolnego działania listy. Filtry i sortowanie nadal dotyczą całego zbioru.
   const [rowLimit, setRowLimit] = useState(ROWS_PER_PAGE);
+  const colRefs = useRef<Partial<Record<EquipmentColumnKey, HTMLTableColElement>>>({});
+
+  // Rozciąganie kolumny myszką: podczas przeciągania zmieniamy szerokość bezpośrednio na
+  // elemencie <col> (bez re-renderu Reacta, więc jest płynne niezależnie od liczby wierszy),
+  // a do stanu (i localStorage) zapisujemy dopiero ostateczną szerokość po puszczeniu przycisku.
+  function startResize(col: EquipmentColumnKey, e: React.PointerEvent<HTMLSpanElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = columnWidths[col] ?? DEFAULT_COLUMN_WIDTHS[col] ?? DEFAULT_COLUMN_WIDTH;
+    let finalWidth = startWidth;
+    const handle = e.currentTarget;
+    handle.setPointerCapture(e.pointerId);
+
+    function onMove(ev: PointerEvent) {
+      finalWidth = Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, startWidth + (ev.clientX - startX)));
+      const colEl = colRefs.current[col];
+      if (colEl) colEl.style.width = `${finalWidth}px`;
+    }
+    function onUp() {
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      onColumnWidthsChange({ ...columnWidths, [col]: finalWidth });
+    }
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+  }
 
   function handleDeleteConfirm() {
     if (!deleteTarget) return;
@@ -328,7 +388,21 @@ export function EquipmentTable({
         </p>
       )}
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-      <table className="w-full min-w-[960px] text-sm">
+      <table className="text-sm" style={{ tableLayout: "fixed" }}>
+        <colgroup>
+          {(isAdmin || canEditEquipment || canTransferEquipment) && <col style={{ width: 32 }} />}
+          {showRowNumbers && <col style={{ width: 40 }} />}
+          {visibleColumns.map((col) => (
+            <col
+              key={col}
+              ref={(el) => {
+                colRefs.current[col] = el ?? undefined;
+              }}
+              style={{ width: columnWidths[col] ?? DEFAULT_COLUMN_WIDTHS[col] ?? DEFAULT_COLUMN_WIDTH }}
+            />
+          ))}
+          {(isAdmin || canEditEquipment || canTransferEquipment) && <col style={{ width: 112 }} />}
+        </colgroup>
         <thead>
           <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
             {(isAdmin || canEditEquipment || canTransferEquipment) && (
@@ -351,7 +425,14 @@ export function EquipmentTable({
                 currentKey={sortKey}
                 direction={sortDir}
                 onSort={(k) => toggleSort(k as EquipmentColumnKey)}
-                className="whitespace-nowrap px-3 py-2.5 font-medium"
+                className="overflow-hidden px-3 py-2.5 font-medium"
+                resizeHandle={
+                  <span
+                    onPointerDown={(e) => startResize(col, e)}
+                    className="absolute right-0 top-0 z-10 h-full w-1.5 cursor-col-resize touch-none select-none hover:bg-primary/40 active:bg-primary/60"
+                    title="Przeciągnij, aby zmienić szerokość kolumny"
+                  />
+                }
               />
             ))}
             {(isAdmin || canEditEquipment || canTransferEquipment) && (
@@ -393,7 +474,7 @@ export function EquipmentTable({
                   return (
                     <td
                       key={col}
-                      className="px-3 py-2 align-middle"
+                      className="break-words px-3 py-2 align-middle"
                       style={{
                         color: columnColors[col] ? adaptColorForTheme(columnColors[col], isDark) : undefined,
                         fontWeight: fmt?.bold ? 700 : undefined,

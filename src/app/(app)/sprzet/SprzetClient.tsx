@@ -118,6 +118,10 @@ function SprzetPageInner({
     "sprzet-formatowanie-kolumn",
     {}
   );
+  const [columnWidths, setColumnWidths] = useLocalStorage<Partial<Record<EquipmentColumnKey, number>>>(
+    "sprzet-szerokosc-kolumn",
+    {}
+  );
 
   const activeAssignmentByEquipment = useMemo(() => {
     const map = new Map<string, Assignment>();
@@ -381,6 +385,8 @@ function SprzetPageInner({
           visibleColumns={visibleColumns.length ? visibleColumns : EQUIPMENT_COLUMNS.slice(0, 3)}
           columnColors={columnColors}
           columnFormats={columnFormats}
+          columnWidths={columnWidths}
+          onColumnWidthsChange={setColumnWidths}
           showRowNumbers={showRowNumbers}
           selectedIds={visibleSelectedIds}
           allSelected={allFilteredSelected}

@@ -62,7 +62,7 @@ export function SoftwareCell({
   }
 
   return (
-    <div className="flex min-w-[160px] max-w-[280px] flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+    <div className="flex w-full flex-col gap-1" onClick={(e) => e.stopPropagation()}>
       <div className="flex flex-wrap items-center gap-1">
         {empty && !canEdit && <span className="text-muted">—</span>}
         {installedNames.map((name) => (
