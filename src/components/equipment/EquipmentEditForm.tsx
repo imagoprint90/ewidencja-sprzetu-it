@@ -186,15 +186,17 @@ export function EquipmentEditForm({
       </FormSection>
 
       <FormSection title="Zakup i gwarancja">
-        <FormField label="Data zakupu" htmlFor="purchaseDate" error={errors.purchaseDate?.message}>
-          <input id="purchaseDate" type="date" className={inputClass} {...register("purchaseDate")} />
-        </FormField>
-        <FormField label="Koniec gwarancji" htmlFor="warrantyEnd" error={errors.warrantyEnd?.message}>
-          <input id="warrantyEnd" type="date" className={inputClass} {...register("warrantyEnd")} />
-        </FormField>
-        <FormField label="Cena zakupu (PLN)" htmlFor="purchasePrice" error={errors.purchasePrice?.message}>
-          <input id="purchasePrice" type="number" step="0.01" className={inputClass} {...register("purchasePrice")} />
-        </FormField>
+        <div className="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-3">
+          <FormField label="Data zakupu" htmlFor="purchaseDate" error={errors.purchaseDate?.message}>
+            <input id="purchaseDate" type="date" className={inputClass} {...register("purchaseDate")} />
+          </FormField>
+          <FormField label="Koniec gwarancji" htmlFor="warrantyEnd" error={errors.warrantyEnd?.message}>
+            <input id="warrantyEnd" type="date" className={inputClass} {...register("warrantyEnd")} />
+          </FormField>
+          <FormField label="Cena zakupu (PLN)" htmlFor="purchasePrice" error={errors.purchasePrice?.message}>
+            <input id="purchasePrice" type="number" step="0.01" className={inputClass} {...register("purchasePrice")} />
+          </FormField>
+        </div>
         <div className="sm:col-span-2">
           <p className="mb-1.5 block text-sm font-medium">Faktura zakupu (PDF)</p>
           <InvoiceAttachment
