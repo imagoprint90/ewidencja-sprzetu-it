@@ -289,14 +289,16 @@ export function EquipmentTable({
     for (const a of licenseAssignments) {
       seatsUsedByLicense.set(a.licenseId, (seatsUsedByLicense.get(a.licenseId) ?? 0) + 1);
     }
-    // Licencje "na urządzenie" z wolnym stanowiskiem — kandydaci do przypisania z listy.
+    // Licencje "na urządzenie" z wolnym stanowiskiem — kandydaci do przypisania z listy,
+    // ułożeni alfabetycznie po nazwie produktu, żeby łatwiej było znaleźć właściwą.
     const availableDeviceLicenses: AvailableDeviceLicense[] = licenses
       .filter((l) => l.licenseType === "urzadzenie" && (seatsUsedByLicense.get(l.id) ?? 0) < l.seatsTotal)
       .map((l) => {
         const productName = productNameById.get(l.productId) ?? "Nieznany produkt";
         const used = seatsUsedByLicense.get(l.id) ?? 0;
         return { licenseId: l.id, label: `${productName} (${used}/${l.seatsTotal})` };
-      });
+      })
+      .sort((a, b) => compareStrings(a.label, b.label));
 
     const linkedIds = new Map<string, string[]>();
     const addLink = (from: string, to: string) => {
@@ -319,12 +321,14 @@ export function EquipmentTable({
       const lastProtocol = lastProtocols[item.id];
       const rowDeviceAssignments = deviceAssignmentsByEquipment.get(item.id) ?? [];
       const licensedProductIds = new Set<string>();
-      const deviceLicenses: AssignedDeviceLicense[] = rowDeviceAssignments.map((a) => {
-        const license = licenses.find((l) => l.id === a.licenseId);
-        if (license) licensedProductIds.add(license.productId);
-        const productName = license ? (productNameById.get(license.productId) ?? "Nieznany produkt") : "Nieznana licencja";
-        return { assignmentId: a.id, label: productName };
-      });
+      const deviceLicenses: AssignedDeviceLicense[] = rowDeviceAssignments
+        .map((a) => {
+          const license = licenses.find((l) => l.id === a.licenseId);
+          if (license) licensedProductIds.add(license.productId);
+          const productName = license ? (productNameById.get(license.productId) ?? "Nieznany produkt") : "Nieznana licencja";
+          return { assignmentId: a.id, label: productName };
+        })
+        .sort((a, b) => compareStrings(a.label, b.label));
       const assignedLicenseIds = new Set(rowDeviceAssignments.map((a) => a.licenseId));
       const availableLicensesForRow = availableDeviceLicenses.filter((l) => !assignedLicenseIds.has(l.licenseId));
       // Produkt z licencją na tym sprzęcie pokazujemy tylko jako licencję (wyżej) — tu tylko te,

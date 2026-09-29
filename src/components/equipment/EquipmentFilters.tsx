@@ -64,7 +64,8 @@ export function EquipmentFilters({
     .map((l) => ({
       value: l.id,
       label: `${productNameById.get(l.productId) ?? "Nieznany produkt"} (${l.seatsTotal} stan.)`,
-    }));
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, "pl"));
 
   function set<K extends keyof EquipmentFiltersState>(key: K, val: EquipmentFiltersState[K]) {
     onChange({ ...value, [key]: val });
