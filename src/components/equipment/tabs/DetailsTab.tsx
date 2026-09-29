@@ -60,6 +60,7 @@ export function DetailsTab({
             <DetailRow label="Parametry" value={equipment.model ?? "—"} />
             <DetailRow label="Numer seryjny" value={equipment.serialNumber ?? "—"} />
             <DetailRow label="Domena" value={equipment.inDomain ? "TAK" : "NIE"} />
+            <DetailRow label="OpenVPN" value={equipment.hasOpenvpn ? "TAK" : "NIE"} />
             <DetailRow label="Data zakupu" value={formatDate(equipment.purchaseDate)} />
             <DetailRow label="Koniec gwarancji" value={formatDate(equipment.warrantyEnd)} />
             <DetailRow

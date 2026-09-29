@@ -59,6 +59,7 @@ export function EquipmentEditForm({
       technicalCondition: equipment.technicalCondition ?? undefined,
       purchasePrice: equipment.purchasePrice?.toString() ?? "",
       inDomain: equipment.inDomain ? "tak" : "nie",
+      hasOpenvpn: equipment.hasOpenvpn ? "tak" : "nie",
       windowsEdition: equipment.windowsEdition ?? "",
       notes: equipment.notes ?? "",
     },
@@ -75,6 +76,7 @@ export function EquipmentEditForm({
     const technicalCondition = (values.technicalCondition || null) as Equipment["technicalCondition"];
     const purchasePrice = values.purchasePrice ? Number(values.purchasePrice) : null;
     const inDomain = values.inDomain === "tak";
+    const hasOpenvpn = values.hasOpenvpn === "tak";
     const lastHolderId = lastHolderSelect === MANUAL_OPTION ? null : lastHolderSelect || null;
     const lastHolderName = lastHolderSelect === MANUAL_OPTION ? lastHolderManual.trim() || null : null;
 
@@ -90,6 +92,7 @@ export function EquipmentEditForm({
       technicalCondition,
       purchasePrice,
       inDomain,
+      hasOpenvpn,
       windowsEdition,
       notes: values.notes || null,
       locationId: locationId || null,
@@ -114,6 +117,7 @@ export function EquipmentEditForm({
       technicalCondition,
       purchasePrice,
       inDomain,
+      hasOpenvpn,
       ...(windowsEdition !== undefined ? { windowsEdition } : {}),
       notes: values.notes || null,
       locationId: locationId || null,
@@ -167,6 +171,12 @@ export function EquipmentEditForm({
         </FormField>
         <FormField label="Domena" htmlFor="inDomain" error={errors.inDomain?.message}>
           <select id="inDomain" className={inputClass} {...register("inDomain")}>
+            <option value="nie">NIE</option>
+            <option value="tak">TAK</option>
+          </select>
+        </FormField>
+        <FormField label="OpenVPN" htmlFor="hasOpenvpn" error={errors.hasOpenvpn?.message}>
+          <select id="hasOpenvpn" className={inputClass} {...register("hasOpenvpn")}>
             <option value="nie">NIE</option>
             <option value="tak">TAK</option>
           </select>

@@ -55,6 +55,7 @@ const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "lastProtocol",
   "invoice",
   "domain",
+  "openvpn",
 ];
 
 function SprzetPageInner({
@@ -193,6 +194,8 @@ function SprzetPageInner({
       if (filters.categoryIds.length > 0 && !filters.categoryIds.includes(item.categoryId)) return false;
       if (filters.statuses.length > 0 && !filters.statuses.includes(item.status)) return false;
       if ((filters.domains ?? []).length > 0 && !filters.domains!.includes(item.inDomain ? "tak" : "nie"))
+        return false;
+      if ((filters.openvpns ?? []).length > 0 && !filters.openvpns!.includes(item.hasOpenvpn ? "tak" : "nie"))
         return false;
       if ((filters.conditions ?? []).length > 0) {
         const cond =

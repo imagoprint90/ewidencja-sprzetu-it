@@ -105,6 +105,7 @@ export function mapEquipment(row: {
   technical_condition: Equipment["technicalCondition"];
   purchase_price: number | string | null;
   in_domain: boolean;
+  has_openvpn: boolean;
   windows_edition?: Equipment["windowsEdition"];
   status: Equipment["status"];
   location_id: string | null;
@@ -128,6 +129,7 @@ export function mapEquipment(row: {
     technicalCondition: row.technical_condition,
     purchasePrice: row.purchase_price === null ? null : Number(row.purchase_price),
     inDomain: row.in_domain,
+    hasOpenvpn: row.has_openvpn,
     windowsEdition: row.windows_edition ?? null,
     status: row.status,
     locationId: row.location_id,

@@ -66,7 +66,7 @@ export function NowySprzetForm({
     formState: { errors, isSubmitting },
   } = useForm<EquipmentAddFormValues>({
     resolver: zodResolver(equipmentAddFormSchema),
-    defaultValues: { categoryId: categories.find((c) => !c.isArchived)?.id ?? "", inDomain: "nie" },
+    defaultValues: { categoryId: categories.find((c) => !c.isArchived)?.id ?? "", inDomain: "nie", hasOpenvpn: "nie" },
   });
 
   const selectedCategoryId = useWatch({ control, name: "categoryId" });
@@ -89,6 +89,7 @@ export function NowySprzetForm({
       technicalCondition: values.technicalCondition || null,
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
       inDomain: values.inDomain === "tak",
+      hasOpenvpn: values.hasOpenvpn === "tak",
       windowsEdition: supportsWindows ? values.windowsEdition || null : undefined,
       lastHolderId: lastHolderSelect === MANUAL_OPTION ? null : lastHolderSelect || null,
       lastHolderName: lastHolderSelect === MANUAL_OPTION ? lastHolderManual.trim() || null : null,
@@ -181,6 +182,12 @@ export function NowySprzetForm({
           </FormField>
           <FormField label="Domena" htmlFor="inDomain" error={errors.inDomain?.message}>
             <select id="inDomain" className={inputClass} {...register("inDomain")}>
+              <option value="nie">NIE</option>
+              <option value="tak">TAK</option>
+            </select>
+          </FormField>
+          <FormField label="OpenVPN" htmlFor="hasOpenvpn" error={errors.hasOpenvpn?.message}>
+            <select id="hasOpenvpn" className={inputClass} {...register("hasOpenvpn")}>
               <option value="nie">NIE</option>
               <option value="tak">TAK</option>
             </select>

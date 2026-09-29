@@ -28,6 +28,7 @@ import { EQUIPMENT_COLUMN_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { getEffectiveCondition, getLastHolderDisplay } from "@/lib/equipment-helpers";
 import { LastHolderCell } from "@/components/equipment/LastHolderCell";
 import { DomainIcon } from "@/components/ui/DomainIcon";
+import { OpenVpnIcon } from "@/components/ui/OpenVpnIcon";
 import {
   SoftwareCell,
   type AssignedDeviceLicense,
@@ -88,6 +89,7 @@ const DEFAULT_COLUMN_WIDTHS: Partial<Record<EquipmentColumnKey, number>> = {
   lastProtocol: 70,
   invoice: 60,
   domain: 90,
+  openvpn: 90,
   protocolCondition: 140,
   windows: 100,
   lastHolder: 180,
@@ -387,6 +389,7 @@ export function EquipmentTable({
       windows: (a, b) => compareStrings(a.item.windowsEdition ?? "", b.item.windowsEdition ?? ""),
       protocolCondition: (a, b) => compareStrings(a.protocolCondition ?? "", b.protocolCondition ?? ""),
       domain: (a, b) => compareNumbers(a.item.inDomain ? 1 : 0, b.item.inDomain ? 1 : 0),
+      openvpn: (a, b) => compareNumbers(a.item.hasOpenvpn ? 1 : 0, b.item.hasOpenvpn ? 1 : 0),
       invoice: (a, b) => compareNumbers(a.item.purchaseInvoicePath ? 1 : 0, b.item.purchaseInvoicePath ? 1 : 0),
       lastHolder: (a, b) => compareStrings(a.lastHolderName, b.lastHolderName),
     };
@@ -881,6 +884,19 @@ function renderCell(
             { value: "nie", label: "NIE" },
           ]}
           onSave={(v) => extra.onSave({ inDomain: v === "tak" })}
+        />
+      );
+    case "openvpn":
+      if (!extra.canEdit) return item.hasOpenvpn ? <OpenVpnIcon /> : <span>—</span>;
+      return (
+        <EditableCell
+          value={item.hasOpenvpn ? "tak" : "nie"}
+          displayValue={item.hasOpenvpn ? <OpenVpnIcon /> : <span>—</span>}
+          options={[
+            { value: "tak", label: "TAK" },
+            { value: "nie", label: "NIE" },
+          ]}
+          onSave={(v) => extra.onSave({ hasOpenvpn: v === "tak" })}
         />
       );
     case "invoice":

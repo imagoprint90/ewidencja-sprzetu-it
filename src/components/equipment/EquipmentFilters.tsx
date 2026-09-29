@@ -14,6 +14,7 @@ export interface EquipmentFiltersState {
   locationIds: string[];
   employeeIds: string[];
   domains?: ("tak" | "nie")[];
+  openvpns?: ("tak" | "nie")[];
   conditions?: string[];
   windows?: string[];
   lastHolderIds?: string[];
@@ -31,6 +32,7 @@ export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
   locationIds: [],
   employeeIds: [],
   domains: [],
+  openvpns: [],
   conditions: [],
   windows: [],
   lastHolderIds: [],
@@ -115,6 +117,16 @@ export function EquipmentFilters({
         ]}
         selected={value.domains ?? []}
         onChange={(v) => set("domains", v as ("tak" | "nie")[])}
+      />
+
+      <MultiSelectFilter
+        label="OpenVPN"
+        options={[
+          { value: "tak", label: "TAK" },
+          { value: "nie", label: "NIE" },
+        ]}
+        selected={value.openvpns ?? []}
+        onChange={(v) => set("openvpns", v as ("tak" | "nie")[])}
       />
 
       <MultiSelectFilter

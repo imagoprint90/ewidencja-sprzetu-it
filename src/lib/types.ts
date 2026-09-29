@@ -111,6 +111,7 @@ export interface Equipment {
   purchasePrice: number | null;
   windowsEdition: WindowsEdition | null;
   inDomain: boolean;
+  hasOpenvpn: boolean;
   status: EquipmentStatus;
   // null = brak lokalizacji (lokalizacja sprzętu jest niezależna od lokalizacji pracownika)
   locationId: string | null;
@@ -358,6 +359,7 @@ export const EQUIPMENT_COLUMNS = [
   "lastProtocol",
   "invoice",
   "domain",
+  "openvpn",
   "protocolCondition",
   "windows",
   "lastHolder",
@@ -390,6 +392,7 @@ export const EQUIPMENT_COLUMN_LABELS: Record<EquipmentColumnKey, string> = {
   lastProtocol: "Ostatni protokół",
   invoice: "FV",
   domain: "Domena",
+  openvpn: "OpenVPN",
   protocolCondition: "Stan techniczny",
   windows: "Windows",
   lastHolder: "Ostatni posiadacz",

@@ -284,6 +284,9 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 15. `0037_fix_audit_trigger.sql` (poprawka triggera dziennika zmian)
 16. `0038_status_colors.sql` (kolory statusów sprzętu; zastąpione przez 0039)
 27. `0049_link_install_and_license.sql` (oznaczenie oprogramowania jako zainstalowanego automatycznie zajmuje/zwalnia wolne stanowisko pasującej licencji „na urządzenie”, i odwrotnie — triggery w obie strony, plus jednorazowe uzupełnienie danych już wpisanych)
+28. `0050_equipment_openvpn.sql` (kolumna `equipment.has_openvpn` — pole „OpenVPN” TAK/NIE przy
+   sprzęcie: w formularzach, na karcie sprzętu i jako edytowalna kolumna „OpenVPN” na liście
+   Sprzęt, identycznie jak „Domena”; istniejący sprzęt dostaje domyślnie NIE)
 26. `0048_equipment_last_protocols_fn_fast.sql` (poprawka wydajności 0047 — indeks na `protocol_items.equipment_id`, JSON migawki parsowany tylko dla wygranych wierszy)
 25. `0047_equipment_last_protocols_fn.sql` (funkcja SQL liczącą ostatni protokół każdej pozycji sprzętu w bazie — przyspiesza listę Sprzęt, zamiast ściągać do przeglądarki całą historię protokołów)
 24. `0046_equipment_last_holder_manual.sql` (pole „Ostatni posiadacz” — możliwość wpisania nazwiska ręcznie, gdy osoby nie ma na liście pracowników)
