@@ -27,6 +27,7 @@ import type {
 import { EQUIPMENT_COLUMN_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { getEffectiveCondition, getLastHolderDisplay } from "@/lib/equipment-helpers";
 import { LastHolderCell } from "@/components/equipment/LastHolderCell";
+import { DomainIcon } from "@/components/ui/DomainIcon";
 import {
   SoftwareCell,
   type AssignedDeviceLicense,
@@ -870,11 +871,11 @@ function renderCell(
         />
       );
     case "domain":
-      if (!extra.canEdit) return item.inDomain ? "TAK" : "NIE";
+      if (!extra.canEdit) return item.inDomain ? <DomainIcon /> : <span>—</span>;
       return (
         <EditableCell
           value={item.inDomain ? "tak" : "nie"}
-          displayValue={item.inDomain ? "TAK" : "NIE"}
+          displayValue={item.inDomain ? <DomainIcon /> : <span>—</span>}
           options={[
             { value: "tak", label: "TAK" },
             { value: "nie", label: "NIE" },
