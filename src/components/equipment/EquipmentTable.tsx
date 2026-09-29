@@ -722,7 +722,7 @@ function renderCell(
     case "model":
       if (!extra.canEdit) {
         return item.model ? (
-          <span className="block max-w-[320px] whitespace-pre-wrap break-words">{item.model}</span>
+          <span className="block w-full whitespace-pre-wrap break-words">{item.model}</span>
         ) : (
           <span>—</span>
         );
@@ -732,7 +732,7 @@ function renderCell(
           value={item.model ?? ""}
           displayValue={
             item.model ? (
-              <span className="block max-w-[320px] whitespace-pre-wrap break-words">{item.model}</span>
+              <span className="block w-full whitespace-pre-wrap break-words">{item.model}</span>
             ) : (
               <span>—</span>
             )
@@ -791,7 +791,7 @@ function renderCell(
       );    case "notes":
       if (!extra.canEdit) {
         return item.notes ? (
-          <span className="block max-w-[320px] whitespace-pre-wrap break-words">{item.notes}</span>
+          <span className="block w-full whitespace-pre-wrap break-words">{item.notes}</span>
         ) : (
           <span>—</span>
         );
@@ -801,7 +801,7 @@ function renderCell(
           value={item.notes ?? ""}
           displayValue={
             item.notes ? (
-              <span className="block max-w-[320px] whitespace-pre-wrap break-words">{item.notes}</span>
+              <span className="block w-full whitespace-pre-wrap break-words">{item.notes}</span>
             ) : (
               <span>—</span>
             )
