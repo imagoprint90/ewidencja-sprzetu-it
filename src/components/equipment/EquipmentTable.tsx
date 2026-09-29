@@ -27,6 +27,11 @@ import type {
 import { EQUIPMENT_COLUMN_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { getEffectiveCondition, getLastHolderDisplay } from "@/lib/equipment-helpers";
 import { LastHolderCell } from "@/components/equipment/LastHolderCell";
+import {
+  SoftwareCell,
+  type AssignedDeviceLicense,
+  type AvailableDeviceLicense,
+} from "@/components/equipment/SoftwareCell";
 import { resolveStatusColors, useStatusLookup, useStatuses } from "@/lib/statuses-context";
 import { StatusBadge } from "@/components/ui/Badge";
 import { ExpandableList } from "@/components/ui/ExpandableList";
@@ -54,6 +59,7 @@ import {
   type EquipmentInput,
 } from "@/lib/supabase/actions/equipment-actions";
 import { getProtocolDownloadUrlAction } from "@/lib/supabase/actions/protocol-actions";
+import { assignLicenseAction, removeLicenseAssignmentAction } from "@/lib/supabase/actions/software-actions";
 
 const ROWS_PER_PAGE = 100;
 
@@ -150,6 +156,18 @@ export function EquipmentTable({
     return result.ok ? { ok: true } : { ok: false, error: result.error };
   }
 
+  async function assignLicense(equipmentId: string, licenseId: string) {
+    const result = await assignLicenseAction({ licenseId, equipmentId, employeeId: null });
+    if (result.ok) router.refresh();
+    return result.ok ? { ok: true } : { ok: false, error: result.error };
+  }
+
+  async function removeLicense(assignmentId: string) {
+    const result = await removeLicenseAssignmentAction(assignmentId);
+    if (result.ok) router.refresh();
+    return result.ok ? { ok: true } : { ok: false, error: result.error };
+  }
+
   async function handleOpenProtocol(e: React.MouseEvent, protocol: LastProtocolInfo) {
     e.stopPropagation();
     if (!protocol.pdfPath) return;
@@ -189,6 +207,37 @@ export function EquipmentTable({
     for (const s of installedSoftware) addSoftware(s.equipmentId, s.softwareProductId);
     for (const a of licenseAssignments) addSoftware(a.equipmentId, licenseProductId.get(a.licenseId));
 
+    // Osobno: zainstalowane produkty (bez licencji) i przypisane licencje "na urządzenie" —
+    // do interaktywnej komórki Oprogramowanie (SoftwareCell), która pozwala przypiąć/odpiąć
+    // licencję wprost z listy.
+    const installedNamesByEquipment = new Map<string, string[]>();
+    for (const s of installedSoftware) {
+      const name = productNameById.get(s.softwareProductId);
+      if (!name || !s.equipmentId) continue;
+      const list = installedNamesByEquipment.get(s.equipmentId);
+      if (list) list.push(name);
+      else installedNamesByEquipment.set(s.equipmentId, [name]);
+    }
+    const deviceAssignmentsByEquipment = new Map<string, SoftwareLicenseAssignment[]>();
+    for (const a of licenseAssignments) {
+      if (!a.equipmentId) continue;
+      const list = deviceAssignmentsByEquipment.get(a.equipmentId);
+      if (list) list.push(a);
+      else deviceAssignmentsByEquipment.set(a.equipmentId, [a]);
+    }
+    const seatsUsedByLicense = new Map<string, number>();
+    for (const a of licenseAssignments) {
+      seatsUsedByLicense.set(a.licenseId, (seatsUsedByLicense.get(a.licenseId) ?? 0) + 1);
+    }
+    // Licencje "na urządzenie" z wolnym stanowiskiem — kandydaci do przypisania z listy.
+    const availableDeviceLicenses: AvailableDeviceLicense[] = licenses
+      .filter((l) => l.licenseType === "urzadzenie" && (seatsUsedByLicense.get(l.id) ?? 0) < l.seatsTotal)
+      .map((l) => {
+        const productName = productNameById.get(l.productId) ?? "Nieznany produkt";
+        const used = seatsUsedByLicense.get(l.id) ?? 0;
+        return { licenseId: l.id, label: `${productName} (${used}/${l.seatsTotal})` };
+      });
+
     const linkedIds = new Map<string, string[]>();
     const addLink = (from: string, to: string) => {
       const list = linkedIds.get(from);
@@ -208,6 +257,14 @@ export function EquipmentTable({
         .filter((e): e is Equipment => Boolean(e));
       const software = Array.from(softwareByEquipment.get(item.id) ?? []);
       const lastProtocol = lastProtocols[item.id];
+      const rowDeviceAssignments = deviceAssignmentsByEquipment.get(item.id) ?? [];
+      const deviceLicenses: AssignedDeviceLicense[] = rowDeviceAssignments.map((a) => {
+        const license = licenses.find((l) => l.id === a.licenseId);
+        const productName = license ? (productNameById.get(license.productId) ?? "Nieznany produkt") : "Nieznana licencja";
+        return { assignmentId: a.id, label: productName };
+      });
+      const assignedLicenseIds = new Set(rowDeviceAssignments.map((a) => a.licenseId));
+      const availableLicensesForRow = availableDeviceLicenses.filter((l) => !assignedLicenseIds.has(l.licenseId));
 
       return {
         item,
@@ -216,6 +273,9 @@ export function EquipmentTable({
         employeeName: employee ? employeeFullName(employee) : undefined,
         linked,
         software,
+        installedNames: installedNamesByEquipment.get(item.id) ?? [],
+        deviceLicenses,
+        availableLicensesForRow,
         lastProtocol,
         protocolCondition: getEffectiveCondition(item, lastProtocol),
         supportsWindows: windowsCategoryIds.has(item.categoryId),
@@ -292,7 +352,7 @@ export function EquipmentTable({
           </tr>
         </thead>
         <tbody>
-          {sortedRows.slice(0, rowLimit).map(({ item, activeAssignment, employeeName, linked, software, lastProtocol, protocolCondition, supportsWindows, categoryName, locationName, lastHolderName }, index) => {
+          {sortedRows.slice(0, rowLimit).map(({ item, activeAssignment, employeeName, linked, software, installedNames, deviceLicenses, availableLicensesForRow, lastProtocol, protocolCondition, supportsWindows, categoryName, locationName, lastHolderName }, index) => {
             return (
               <tr
                 key={item.id}
@@ -341,16 +401,24 @@ export function EquipmentTable({
                         activeAssignment,
                         linked,
                         software,
+                        installedNames,
+                        deviceLicenses,
+                        availableLicensesForRow,
                         categories: editableCategories,
                         statuses: statusList,
                         locations,
                         employees,
                         supportsWindows,
                         canEdit: canEditEquipment,
+                        // Przypisywanie/odpinanie licencji jest zastrzeżone dla administratora —
+                        // tak samo jak w module Oprogramowanie (RLS na software_license_assignments).
+                        canEditLicenses: isAdmin,
                         lastProtocol,
                         protocolCondition,
                         onSave: (patch) => saveField(item, patch),
                         onSaveStatus: (status) => saveStatus(item, status),
+                        onAssignLicense: (licenseId) => assignLicense(item.id, licenseId),
+                        onRemoveLicense: removeLicense,
                         onOpenProtocol: handleOpenProtocol,
                         onOpenInvoice: handleOpenInvoice,
                       })}
@@ -491,16 +559,22 @@ function renderCell(
     activeAssignment?: Assignment;
     linked: Equipment[];
     software: string[];
+    installedNames: string[];
+    deviceLicenses: AssignedDeviceLicense[];
+    availableLicensesForRow: AvailableDeviceLicense[];
     categories: Category[];
     statuses: EquipmentStatusDef[];
     locations: Location[];
     employees: Employee[];
     supportsWindows: boolean;
     canEdit: boolean;
+    canEditLicenses: boolean;
     lastProtocol?: LastProtocolInfo;
     protocolCondition?: string | null;
     onSave: (patch: Partial<EquipmentInput>) => Promise<{ ok: boolean; error?: string }>;
     onSaveStatus: (status: string) => Promise<{ ok: boolean; error?: string }>;
+    onAssignLicense: (licenseId: string) => Promise<{ ok: boolean; error?: string }>;
+    onRemoveLicense: (assignmentId: string) => Promise<{ ok: boolean; error?: string }>;
     onOpenProtocol: (e: React.MouseEvent, protocol: LastProtocolInfo) => void;
     onOpenInvoice: (e: React.MouseEvent, path: string) => void;
   }
@@ -584,7 +658,16 @@ function renderCell(
         />
       );
     case "software":
-      return <ExpandableList items={extra.software} visibleCount={extra.software.length} />;
+      return (
+        <SoftwareCell
+          installedNames={extra.installedNames}
+          deviceLicenses={extra.deviceLicenses}
+          availableLicenses={extra.availableLicensesForRow}
+          canEdit={extra.canEditLicenses}
+          onAssign={extra.onAssignLicense}
+          onRemove={extra.onRemoveLicense}
+        />
+      );
     case "linkedEquipment":
       return <ExpandableList items={extra.linked.map((l) => l.name)} visibleCount={extra.linked.length} />;
     case "status":

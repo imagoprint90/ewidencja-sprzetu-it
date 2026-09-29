@@ -129,22 +129,18 @@ function SprzetPageInner({
     [categories]
   );
   const employeeById = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees]);
-  // Zbiór id produktów oprogramowania na sprzęcie — zarówno oznaczonych jako zainstalowane,
-  // jak i przypisanych poprzez licencję "na urządzenie" (to samo, co pokazuje kolumna
-  // "Oprogramowanie" w tabeli).
-  const softwareProductIdsByEquipment = useMemo(() => {
-    const licenseProductId = new Map(licenses.map((l) => [l.id, l.productId]));
+  // Zbiór id konkretnych licencji "na urządzenie" przypisanych do sprzętu — do filtra
+  // "Oprogramowanie" (ten sam zestaw danych, co interaktywna kolumna Oprogramowanie).
+  const licenseIdsByEquipment = useMemo(() => {
     const map = new Map<string, Set<string>>();
-    const add = (equipmentId: string | null, productId: string | undefined) => {
-      if (!equipmentId || !productId) return;
-      let set = map.get(equipmentId);
-      if (!set) map.set(equipmentId, (set = new Set()));
-      set.add(productId);
-    };
-    for (const s of installedSoftware) add(s.equipmentId, s.softwareProductId);
-    for (const a of licenseAssignments) add(a.equipmentId, licenseProductId.get(a.licenseId));
+    for (const a of licenseAssignments) {
+      if (!a.equipmentId) continue;
+      let set = map.get(a.equipmentId);
+      if (!set) map.set(a.equipmentId, (set = new Set()));
+      set.add(a.licenseId);
+    }
     return map;
-  }, [installedSoftware, licenseAssignments, licenses]);
+  }, [licenseAssignments]);
 
   // Wpisywanie w wyszukiwarkę nie blokuje pola — filtrowanie listy nadąża w tle.
   const deferredQuery = useDeferredValue(filters.query);
@@ -176,9 +172,9 @@ function SprzetPageInner({
       if ((filters.lastHolderIds ?? []).length > 0) {
         if (!item.lastHolderId || !filters.lastHolderIds!.includes(item.lastHolderId)) return false;
       }
-      if ((filters.softwareProductIds ?? []).length > 0) {
-        const productIds = softwareProductIdsByEquipment.get(item.id);
-        if (!productIds || !filters.softwareProductIds!.some((id) => productIds.has(id))) return false;
+      if ((filters.licenseIds ?? []).length > 0) {
+        const ids = licenseIdsByEquipment.get(item.id);
+        if (!ids || !filters.licenseIds!.some((id) => ids.has(id))) return false;
       }
       if (q) {
         const active = activeAssignmentByEquipment.get(item.id);
@@ -199,7 +195,7 @@ function SprzetPageInner({
     employeeById,
     lastProtocols,
     windowsCategoryIds,
-    softwareProductIdsByEquipment,
+    licenseIdsByEquipment,
   ]);
 
   // Zaznaczenie jest pamiętane niezależnie od filtrów, ale do wyświetlania i akcji zbiorczych
@@ -296,6 +292,7 @@ function SprzetPageInner({
           employees={employees}
           locations={locations}
           softwareProducts={softwareProducts}
+          licenses={licenses}
         />
         <ColumnPicker
           visible={visibleColumns}

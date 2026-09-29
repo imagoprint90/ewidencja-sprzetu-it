@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import type { Category, Employee, EquipmentStatus, Location, SoftwareProduct } from "@/lib/types";
+import type { Category, Employee, EquipmentStatus, Location, SoftwareLicense, SoftwareProduct } from "@/lib/types";
 import { TECHNICAL_CONDITION_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { useStatuses } from "@/lib/statuses-context";
 import { MultiSelectFilter } from "@/components/ui/MultiSelectFilter";
@@ -17,7 +17,9 @@ export interface EquipmentFiltersState {
   conditions?: string[];
   windows?: string[];
   lastHolderIds?: string[];
-  softwareProductIds?: string[];
+  // Filtruje po konkretnych licencjach "na urządzenie" (tylko taki typ da się przypisać do
+  // sprzętu — patrz kolumna Oprogramowanie), nie po produktach.
+  licenseIds?: string[];
 }
 
 export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
@@ -30,7 +32,7 @@ export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
   conditions: [],
   windows: [],
   lastHolderIds: [],
-  softwareProductIds: [],
+  licenseIds: [],
 };
 
 export function EquipmentFilters({
@@ -40,6 +42,7 @@ export function EquipmentFilters({
   employees,
   locations,
   softwareProducts,
+  licenses,
 }: {
   value: EquipmentFiltersState;
   onChange: (next: EquipmentFiltersState) => void;
@@ -47,8 +50,18 @@ export function EquipmentFilters({
   employees: Employee[];
   locations: Location[];
   softwareProducts: SoftwareProduct[];
+  licenses: SoftwareLicense[];
 }) {
   const statusList = useStatuses();
+  const productNameById = new Map(softwareProducts.map((p) => [p.id, p.name]));
+  // Tylko licencje "na urządzenie" — tylko one da się kiedykolwiek przypisać do sprzętu
+  // (licencje "na użytkownika" wiążą się z pracownikiem, nie z konkretnym urządzeniem).
+  const deviceLicenseOptions = licenses
+    .filter((l) => l.licenseType === "urzadzenie")
+    .map((l) => ({
+      value: l.id,
+      label: `${productNameById.get(l.productId) ?? "Nieznany produkt"} (${l.seatsTotal} stan.)`,
+    }));
 
   function set<K extends keyof EquipmentFiltersState>(key: K, val: EquipmentFiltersState[K]) {
     onChange({ ...value, [key]: val });
@@ -136,12 +149,9 @@ export function EquipmentFilters({
 
       <MultiSelectFilter
         label="Oprogramowanie"
-        options={softwareProducts.map((p) => ({
-          value: p.id,
-          label: p.version ? `${p.name} ${p.version}` : p.name,
-        }))}
-        selected={value.softwareProductIds ?? []}
-        onChange={(v) => set("softwareProductIds", v)}
+        options={deviceLicenseOptions}
+        selected={value.licenseIds ?? []}
+        onChange={(v) => set("licenseIds", v)}
       />
     </div>
   );
