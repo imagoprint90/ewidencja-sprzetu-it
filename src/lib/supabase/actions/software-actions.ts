@@ -331,7 +331,11 @@ export async function addInstalledSoftwareAction(input: {
     return { ok: false, error: "Nie udało się dodać oprogramowania." };
   }
 
+  // Oznaczenie jako zainstalowane może (migracja 0049) automatycznie zająć wolne stanowisko
+  // pasującej licencji "na urządzenie" — odświeżamy więc też strony pokazujące licencje.
   revalidatePath(`/sprzet/${input.equipmentId}`);
+  revalidatePath("/sprzet");
+  revalidatePath("/oprogramowanie");
   return { ok: true, data: undefined };
 }
 
@@ -342,6 +346,9 @@ export async function removeInstalledSoftwareAction(
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("equipment_installed_software").delete().eq("id", id);
   if (error) return { ok: false, error: "Nie udało się usunąć oprogramowania." };
+  // Odinstalowanie może (migracja 0049) automatycznie zwolnić stanowisko licencji.
   revalidatePath(`/sprzet/${equipmentId}`);
+  revalidatePath("/sprzet");
+  revalidatePath("/oprogramowanie");
   return { ok: true, data: undefined };
 }
