@@ -553,11 +553,24 @@ function renderCell(
         />
       );
     case "model":
-      if (!extra.canEdit) return item.model ?? <span>—</span>;
+      if (!extra.canEdit) {
+        return item.model ? (
+          <span className="block max-w-[320px] whitespace-pre-wrap break-words">{item.model}</span>
+        ) : (
+          <span>—</span>
+        );
+      }
       return (
         <EditableCell
           value={item.model ?? ""}
-          displayValue={item.model ?? <span>—</span>}
+          displayValue={
+            item.model ? (
+              <span className="block max-w-[320px] whitespace-pre-wrap break-words">{item.model}</span>
+            ) : (
+              <span>—</span>
+            )
+          }
+          multiline
           onSave={(v) => extra.onSave({ model: v || null })}
         />
       );
