@@ -63,7 +63,10 @@ export function MultiSelectFilter({
         <ChevronDown size={14} />
       </Button>
       {open && (
-        <div className="absolute left-0 z-20 mt-2 max-h-72 w-56 overflow-y-auto rounded-lg border border-border bg-surface p-2 shadow-lg">
+        // Szerokość: domyślnie szersza niż przycisk (żeby długie nazwy się mieściły) i nigdy
+        // szersza niż ekran (max-w). "resize" dokłada uchwyt w prawym dolnym rogu — można
+        // ręcznie rozciągnąć jeszcze szerzej, gdy trzeba.
+        <div className="absolute left-0 z-20 mt-2 max-h-72 w-72 min-w-[14rem] max-w-[min(90vw,28rem)] resize-x overflow-y-auto rounded-lg border border-border bg-surface p-2 shadow-lg">
           <div className="relative mb-1">
             <Search size={14} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-muted" />
             <input

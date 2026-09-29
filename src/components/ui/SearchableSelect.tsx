@@ -90,7 +90,10 @@ export function SearchableSelect({
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 z-30 mt-1 rounded-lg border border-border bg-surface shadow-lg">
+        // Szerokość: domyślnie szersza niż przycisk (żeby długie nazwy się mieściły), nigdy węższa
+        // od przycisku (min-w-full) i nigdy szersza niż ekran (max-w). "resize" dokłada uchwyt w
+        // prawym dolnym rogu — można ręcznie rozciągnąć jeszcze szerzej, gdy trzeba.
+        <div className="absolute left-0 z-30 mt-1 w-[22rem] min-w-full max-w-[min(90vw,32rem)] resize-x overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
           <div className="relative border-b border-border p-2">
             <Search size={14} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input
