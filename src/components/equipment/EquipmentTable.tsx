@@ -207,16 +207,16 @@ export function EquipmentTable({
     for (const s of installedSoftware) addSoftware(s.equipmentId, s.softwareProductId);
     for (const a of licenseAssignments) addSoftware(a.equipmentId, licenseProductId.get(a.licenseId));
 
-    // Osobno: zainstalowane produkty (bez licencji) i przypisane licencje "na urządzenie" —
-    // do interaktywnej komórki Oprogramowanie (SoftwareCell), która pozwala przypiąć/odpiąć
-    // licencję wprost z listy.
-    const installedNamesByEquipment = new Map<string, string[]>();
+    // Osobno: zainstalowane produkty i przypisane licencje "na urządzenie" — do interaktywnej
+    // komórki Oprogramowanie (SoftwareCell), która pozwala przypiąć/odpiąć licencję wprost z
+    // listy. Produkt, który ma już licencję na tym sprzęcie, pokazujemy tylko jako licencję
+    // (patrz niżej) — inaczej dublowałby się na dwóch plakietkach dla tego samego programu.
+    const installedProductIdsByEquipment = new Map<string, Set<string>>();
     for (const s of installedSoftware) {
-      const name = productNameById.get(s.softwareProductId);
-      if (!name || !s.equipmentId) continue;
-      const list = installedNamesByEquipment.get(s.equipmentId);
-      if (list) list.push(name);
-      else installedNamesByEquipment.set(s.equipmentId, [name]);
+      if (!s.equipmentId || !productNameById.has(s.softwareProductId)) continue;
+      let set = installedProductIdsByEquipment.get(s.equipmentId);
+      if (!set) installedProductIdsByEquipment.set(s.equipmentId, (set = new Set()));
+      set.add(s.softwareProductId);
     }
     const deviceAssignmentsByEquipment = new Map<string, SoftwareLicenseAssignment[]>();
     for (const a of licenseAssignments) {
@@ -258,13 +258,21 @@ export function EquipmentTable({
       const software = Array.from(softwareByEquipment.get(item.id) ?? []);
       const lastProtocol = lastProtocols[item.id];
       const rowDeviceAssignments = deviceAssignmentsByEquipment.get(item.id) ?? [];
+      const licensedProductIds = new Set<string>();
       const deviceLicenses: AssignedDeviceLicense[] = rowDeviceAssignments.map((a) => {
         const license = licenses.find((l) => l.id === a.licenseId);
+        if (license) licensedProductIds.add(license.productId);
         const productName = license ? (productNameById.get(license.productId) ?? "Nieznany produkt") : "Nieznana licencja";
         return { assignmentId: a.id, label: productName };
       });
       const assignedLicenseIds = new Set(rowDeviceAssignments.map((a) => a.licenseId));
       const availableLicensesForRow = availableDeviceLicenses.filter((l) => !assignedLicenseIds.has(l.licenseId));
+      // Produkt z licencją na tym sprzęcie pokazujemy tylko jako licencję (wyżej) — tu tylko te,
+      // które są zainstalowane, ale nie mają żadnej licencji przypisanej na tym sprzęcie.
+      const installedNames = Array.from(installedProductIdsByEquipment.get(item.id) ?? [])
+        .filter((productId) => !licensedProductIds.has(productId))
+        .map((productId) => productNameById.get(productId))
+        .filter((name): name is string => Boolean(name));
 
       return {
         item,
@@ -273,7 +281,7 @@ export function EquipmentTable({
         employeeName: employee ? employeeFullName(employee) : undefined,
         linked,
         software,
-        installedNames: installedNamesByEquipment.get(item.id) ?? [],
+        installedNames,
         deviceLicenses,
         availableLicensesForRow,
         lastProtocol,

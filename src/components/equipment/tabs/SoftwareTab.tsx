@@ -39,8 +39,18 @@ export function SoftwareTab({
   const [selectedProduct, setSelectedProduct] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const installed = installedSoftware.filter((s) => s.equipmentId === equipment.id);
   const deviceLicenseAssignments = licenseAssignments.filter((a) => a.equipmentId === equipment.id);
+  const licensedProductIds = new Set(
+    deviceLicenseAssignments
+      .map((a) => licenses.find((l) => l.id === a.licenseId)?.productId)
+      .filter((id): id is string => Boolean(id))
+  );
+  // Produkt z licencją na tym sprzęcie pokazujemy tylko w sekcji "Licencje" niżej — inaczej
+  // dublowałby się w obu sekcjach dla tego samego programu (od migracji 0049 oznaczenie jako
+  // zainstalowane i przypisanie licencji "na urządzenie" są ze sobą zsynchronizowane).
+  const installed = installedSoftware.filter(
+    (s) => s.equipmentId === equipment.id && !licensedProductIds.has(s.softwareProductId)
+  );
 
   function handleAdd() {
     if (!selectedProduct) return;
@@ -67,15 +77,24 @@ export function SoftwareTab({
     });
   }
 
-  const availableProducts = products.filter((p) => !installed.some((i) => i.softwareProductId === p.id));
+  // Liczone względem PEŁNEJ listy zainstalowanych (nie tylko widocznej niżej) — produkt z już
+  // przypisaną licencją i tak ma swój wiersz w equipment_installed_software (utworzony
+  // automatycznie), więc nie powinien dać się dodać drugi raz.
+  const allInstalledProductIds = new Set(
+    installedSoftware.filter((s) => s.equipmentId === equipment.id).map((s) => s.softwareProductId)
+  );
+  const availableProducts = products.filter((p) => !allInstalledProductIds.has(p.id));
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="mb-3 text-sm font-semibold">Zainstalowane oprogramowanie</h2>
+        <h2 className="mb-3 text-sm font-semibold">Zainstalowane oprogramowanie (bez licencji)</h2>
+        <p className="mb-2 -mt-2 text-xs text-muted">
+          Oprogramowanie z przypisaną licencją pokazuje się w sekcji „Licencje” niżej, nie tutaj.
+        </p>
         {installed.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border bg-surface p-5 text-sm text-muted">
-            Nie oznaczono żadnego oprogramowania jako zainstalowanego na tym sprzęcie.
+            Nie oznaczono żadnego oprogramowania bez licencji jako zainstalowanego na tym sprzęcie.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
