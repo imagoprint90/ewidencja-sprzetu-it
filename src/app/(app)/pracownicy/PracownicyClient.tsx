@@ -3,7 +3,8 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Upload } from "lucide-react";
+import { Download, Plus, Upload } from "lucide-react";
+import writeXlsxFile from "write-excel-file/browser";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -17,6 +18,7 @@ import { useSort } from "@/lib/useSort";
 import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
 import { getDepartmentName, getLocationName } from "@/lib/equipment-helpers";
 import { parseCsv, normalizeHeader } from "@/lib/csv";
+import { todayIsoDate } from "@/lib/format";
 import {
   DEFAULT_EMPLOYEE_FILTERS,
   EmployeeFilters,
@@ -98,6 +100,7 @@ export function PracownicyClient({
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<string | null>(null);
   const [isImporting, startImportTransition] = useTransition();
+  const [isExporting, setIsExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function saveField(
@@ -166,6 +169,48 @@ export function PracownicyClient({
     };
     return applySort(filtered, sortKey, sortDir, comparators);
   }, [filtered, sortKey, sortDir, locations, departments, assignedEquipmentNames]);
+
+  // Wartość kolumny tak, jak jest pokazywana w tabeli — eksport ma odzwierciedlać dokładnie to,
+  // co widać na ekranie (te same filtry, sortowanie i widoczne kolumny).
+  function getExportValue(e: Employee, col: EmployeeColumnKey): string {
+    switch (col) {
+      case "email":
+        return e.email || "—";
+      case "phone":
+        return e.phone || "—";
+      case "department":
+        return getDepartmentName(departments, e.departmentId);
+      case "location":
+        return getLocationName(locations, e.locationId);
+      case "assignedEquipment": {
+        const list = assignedEquipmentNames[e.id] ?? [];
+        return list.length ? list.join(", ") : "—";
+      }
+      case "status":
+        return e.isActive ? "Aktywny" : "Nieaktywny";
+      default:
+        return "";
+    }
+  }
+
+  async function handleExport() {
+    setIsExporting(true);
+    try {
+      const headerRow = [
+        { value: "Imię", fontWeight: "bold" as const },
+        { value: "Nazwisko", fontWeight: "bold" as const },
+        ...visibleColumns.map((col) => ({ value: EMPLOYEE_COLUMN_LABELS[col], fontWeight: "bold" as const })),
+      ];
+      const dataRows = sorted.map((e) => [
+        e.firstName,
+        e.lastName ?? "—",
+        ...visibleColumns.map((col) => getExportValue(e, col)),
+      ]);
+      await writeXlsxFile([headerRow, ...dataRows]).toFile(`pracownicy_${todayIsoDate()}.xlsx`);
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   function handleFilePicked(file: File) {
     setImportError(null);
@@ -240,35 +285,45 @@ export function PracownicyClient({
             {filtered.length} z {employees.length} pozycji
           </p>
         </div>
-        {isAdmin && (
-          <div className="flex flex-wrap gap-2">
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFilePicked(file);
-                e.target.value = "";
-              }}
-            />
-            <Button
-              variant="secondary"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isImporting}
-            >
-              <Upload size={16} />
-              {isImporting ? "Importowanie…" : "Importuj CSV"}
-            </Button>
-            <Link href="/pracownicy/nowy">
-              <Button>
-                <Plus size={16} />
-                Dodaj pracownika
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            onClick={handleExport}
+            disabled={isExporting || sorted.length === 0}
+          >
+            <Download size={16} />
+            {isExporting ? "Eksportowanie…" : "Eksportuj do Excela"}
+          </Button>
+          {isAdmin && (
+            <>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFilePicked(file);
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                variant="secondary"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImporting}
+              >
+                <Upload size={16} />
+                {isImporting ? "Importowanie…" : "Importuj CSV"}
               </Button>
-            </Link>
-          </div>
-        )}
+              <Link href="/pracownicy/nowy">
+                <Button>
+                  <Plus size={16} />
+                  Dodaj pracownika
+                </Button>
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       {importError && (
