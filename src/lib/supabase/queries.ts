@@ -17,6 +17,7 @@ import {
   mapSoftwareProduct,
   mapTicket,
   mapTicketAssignableUser,
+  mapTicketAttachment,
   mapTicketCategory,
   mapTicketComment,
   mapTicketHistoryEntry,
@@ -43,6 +44,7 @@ import type {
   LastProtocolInfo,
   Ticket,
   TicketAssignableUser,
+  TicketAttachment,
   TicketCategory,
   TicketComment,
   TicketHistoryEntry,
@@ -454,4 +456,14 @@ export async function getTicketAssignableUsers(supabase: SupabaseClient): Promis
   const { data, error } = await supabase.rpc("list_ticket_assignable_users");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapTicketAssignableUser);
+}
+
+export async function getTicketAttachments(supabase: SupabaseClient, ticketId: string): Promise<TicketAttachment[]> {
+  const { data, error } = await supabase
+    .from("ticket_attachments")
+    .select("*")
+    .eq("ticket_id", ticketId)
+    .order("created_at");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapTicketAttachment);
 }

@@ -18,6 +18,7 @@ import type {
   SoftwareProduct,
   Ticket,
   TicketAssignableUser,
+  TicketAttachment,
   TicketCategory,
   TicketComment,
   TicketHistoryAction,
@@ -460,4 +461,28 @@ export function mapTicketHistoryEntry(row: {
 
 export function mapTicketAssignableUser(row: { id: string; full_name: string }): TicketAssignableUser {
   return { id: row.id, fullName: row.full_name };
+}
+
+export function mapTicketAttachment(row: {
+  id: string;
+  ticket_id: string;
+  file_path: string;
+  file_name: string;
+  file_size: number;
+  content_type: string;
+  uploaded_by: string;
+  uploaded_by_name: string;
+  created_at: string;
+}): TicketAttachment {
+  return {
+    id: row.id,
+    ticketId: row.ticket_id,
+    filePath: row.file_path,
+    fileName: row.file_name,
+    fileSize: row.file_size,
+    contentType: row.content_type,
+    uploadedBy: row.uploaded_by,
+    uploadedByName: row.uploaded_by_name,
+    createdAt: row.created_at,
+  };
 }

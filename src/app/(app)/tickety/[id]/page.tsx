@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireTabAccess } from "@/lib/supabase/require-tab";
 import {
   getTicketAssignableUsers,
+  getTicketAttachments,
   getTicketById,
   getTicketCategories,
   getTicketComments,
@@ -32,11 +33,12 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
     );
   }
 
-  const [categories, assignableUsers, comments, history] = await Promise.all([
+  const [categories, assignableUsers, comments, history, attachments] = await Promise.all([
     getTicketCategories(supabase),
     getTicketAssignableUsers(supabase),
     getTicketComments(supabase, id),
     getTicketHistory(supabase, id),
+    getTicketAttachments(supabase, id),
   ]);
 
   return (
@@ -46,6 +48,7 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
       assignableUsers={assignableUsers}
       comments={comments}
       history={history}
+      attachments={attachments}
     />
   );
 }

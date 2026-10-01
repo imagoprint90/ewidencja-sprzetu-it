@@ -9,7 +9,9 @@ import {
   getEquipmentStatuses,
   getSoftwareLicenses,
   getSoftwareProducts,
+  getTickets,
 } from "@/lib/supabase/queries";
+import { TICKET_STATUS_LABELS } from "@/lib/types";
 import { daysUntil, formatDate } from "@/lib/format";
 import { canViewTab } from "@/lib/access";
 import { employeeFullName } from "@/lib/equipment-helpers";
@@ -41,16 +43,19 @@ export default async function PulpitPage(): Promise<ReactNode> {
   const profile = user ? await getCurrentProfile(supabase, user.id) : null;
   const canSeeEquipment = profile ? canViewTab(profile.role, profile.visibleTabs, "sprzet") : false;
   const canSeeSoftware = profile ? canViewTab(profile.role, profile.visibleTabs, "oprogramowanie") : false;
+  const canSeeTickets = profile ? canViewTab(profile.role, profile.visibleTabs, "tickety") : false;
 
-  const [equipment, employees, assignments, categories, licenses, softwareProducts, statuses] = await Promise.all([
-    getEquipment(supabase),
-    getEmployees(supabase),
-    getAssignments(supabase),
-    getCategories(supabase),
-    getSoftwareLicenses(supabase),
-    getSoftwareProducts(supabase),
-    getEquipmentStatuses(supabase),
-  ]);
+  const [equipment, employees, assignments, categories, licenses, softwareProducts, statuses, tickets] =
+    await Promise.all([
+      getEquipment(supabase),
+      getEmployees(supabase),
+      getAssignments(supabase),
+      getCategories(supabase),
+      getSoftwareLicenses(supabase),
+      getSoftwareProducts(supabase),
+      getEquipmentStatuses(supabase),
+      canSeeTickets ? getTickets(supabase) : Promise.resolve([]),
+    ]);
 
   const counts: Record<string, number> = {};
   for (const e of equipment) counts[e.status] = (counts[e.status] ?? 0) + 1;
@@ -72,6 +77,13 @@ export default async function PulpitPage(): Promise<ReactNode> {
   const recentAssignments = [...assignments]
     .sort((a, b) => (a.assignedAt < b.assignedAt ? 1 : a.assignedAt > b.assignedAt ? -1 : (a.id < b.id ? 1 : -1)))
     .slice(0, 5);
+
+  const ticketCounts: Record<string, number> = {};
+  for (const t of tickets) ticketCounts[t.status] = (ticketCounts[t.status] ?? 0) + 1;
+  const openTickets = tickets.filter((t) => t.status !== "rozwiazane" && t.status !== "zamkniete");
+  const criticalOpenTickets = openTickets.filter((t) => t.priority === "krytyczny").length;
+  const unassignedOpenTickets = openTickets.filter((t) => t.assignedTo === null).length;
+  const myOpenTickets = user ? openTickets.filter((t) => t.assignedTo === user.id).length : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -181,7 +193,22 @@ export default async function PulpitPage(): Promise<ReactNode> {
         </div>
       )}
 
-      {!canSeeEquipment && !canSeeSoftware && (
+      {canSeeTickets && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold">Tickety</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+            <StatCard label="Wszystkie zgłoszenia" value={tickets.length} href="/tickety" />
+            <StatCard label={TICKET_STATUS_LABELS.nowe} value={ticketCounts.nowe ?? 0} href="/tickety" />
+            <StatCard label={TICKET_STATUS_LABELS.w_trakcie} value={ticketCounts.w_trakcie ?? 0} href="/tickety" />
+            <StatCard label={TICKET_STATUS_LABELS.oczekujace} value={ticketCounts.oczekujace ?? 0} href="/tickety" />
+            <StatCard label="Krytyczne (otwarte)" value={criticalOpenTickets} href="/tickety" />
+            <StatCard label="Przypisane do mnie (otwarte)" value={myOpenTickets} href="/tickety" />
+            <StatCard label="Nieprzydzielone (otwarte)" value={unassignedOpenTickets} href="/tickety" />
+          </div>
+        </div>
+      )}
+
+      {!canSeeEquipment && !canSeeSoftware && !canSeeTickets && (
         <div className="rounded-xl border border-dashed border-border bg-surface p-5 text-sm text-muted">
           Twoje konto nie ma dostępu do żadnej zakładki z podsumowaniem. Skorzystaj z menu po
           lewej stronie.

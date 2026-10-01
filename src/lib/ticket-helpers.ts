@@ -49,5 +49,8 @@ export function ticketHistoryChangeText(entry: TicketHistoryEntry): string {
   if (entry.action === "zmiana_kategorii" || entry.action === "przydzielono") {
     return `${entry.oldValue ?? "—"} → ${entry.newValue ?? "—"}`;
   }
+  if (entry.action === "wyslano_powiadomienie") {
+    return entry.newValue ?? "";
+  }
   return "";
 }

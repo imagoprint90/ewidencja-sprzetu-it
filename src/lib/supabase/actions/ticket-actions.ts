@@ -1,12 +1,20 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { sendSmtpEmail } from "@/lib/email";
-import { mapTicket, mapTicketComment } from "@/lib/supabase/mappers";
+import { mapTicket, mapTicketAttachment, mapTicketComment } from "@/lib/supabase/mappers";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Ticket, TicketComment, TicketPriority, TicketStatus } from "@/lib/types";
+import type { Ticket, TicketAttachment, TicketComment, TicketPriority, TicketStatus } from "@/lib/types";
 import { TICKET_WORKFLOW_STATUSES } from "@/lib/types";
+
+const ATTACHMENT_BUCKET = "tickety-zalaczniki";
+const ALLOWED_ATTACHMENT_EXTENSIONS = [
+  "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg",
+  "pdf", "doc", "docx", "xls", "xlsx", "txt", "csv", "zip",
+];
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
 
 type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -59,23 +67,54 @@ async function requireTicketPermission(flag: TicketPermissionFlag): Promise<
 }
 
 // Najlepszy wysiłek — brak e-maila (niewypełniony SMTP, błąd dostawcy, konto bez adresu) nie
-// może zablokować samego przydzielenia ticketu, więc błędy są tu celowo wyciszane.
-async function notifyTicketAssignment(assigneeId: string, ticketNumber: string, ticketTitle: string) {
+// może zablokować samego przydzielenia ticketu. Wynik (sukces albo powód błędu) jest zawsze
+// zapisywany w historii zgłoszenia — service client, bo zwykli użytkownicy nie mają uprawnień
+// insert na ticket_history (wpisy tworzy wyłącznie trigger albo, jak tutaj, ta funkcja).
+async function notifyTicketAssignment(
+  assigneeId: string,
+  ticketId: string,
+  ticketNumber: string,
+  ticketTitle: string,
+  actorId: string,
+  actorName: string
+): Promise<void> {
+  const service = createSupabaseServiceClient();
+  let logMessage: string;
+
   try {
-    const service = createSupabaseServiceClient();
     const { data: assignee } = await service
       .from("profiles")
       .select("email, full_name")
       .eq("id", assigneeId)
       .maybeSingle();
-    if (!assignee?.email) return;
-    await sendSmtpEmail({
-      to: assignee.email,
-      subject: `Przydzielono Ci zgłoszenie ${ticketNumber}`,
-      text: `Cześć ${assignee.full_name},\n\nPrzydzielono Ci zgłoszenie ${ticketNumber}: "${ticketTitle}".\n\nSzczegóły znajdziesz w systemie Ewidencja sprzętu IT, w zakładce Tickety.`,
+
+    if (!assignee?.email) {
+      logMessage = `Nie wysłano — konto „${assignee?.full_name ?? "nieznane"}” nie ma zapisanego adresu e-mail.`;
+    } else {
+      const result = await sendSmtpEmail({
+        to: assignee.email,
+        subject: `Przydzielono Ci zgłoszenie ${ticketNumber}`,
+        text: `Cześć ${assignee.full_name},\n\nPrzydzielono Ci zgłoszenie ${ticketNumber}: "${ticketTitle}".\n\nSzczegóły znajdziesz w systemie Ewidencja sprzętu IT, w zakładce Tickety.`,
+      });
+      logMessage = result.ok
+        ? `Wysłano powiadomienie e-mail na adres ${assignee.email}.`
+        : `Nie udało się wysłać powiadomienia e-mail na adres ${assignee.email}: ${result.error ?? "nieznany błąd"}.`;
+    }
+  } catch (err) {
+    logMessage = `Nie udało się wysłać powiadomienia e-mail: ${err instanceof Error ? err.message : "nieznany błąd"}.`;
+  }
+
+  try {
+    await service.from("ticket_history").insert({
+      ticket_id: ticketId,
+      actor_id: actorId,
+      actor_name: actorName,
+      action: "wyslano_powiadomienie",
+      field: "email",
+      new_value: logMessage,
     });
   } catch {
-    // Celowo ignorowane — patrz komentarz funkcji.
+    // Brak wpisu w historii nie może zablokować przydzielenia.
   }
 }
 
@@ -112,7 +151,7 @@ export async function createTicketAction(input: TicketInput): Promise<ActionResu
   }
 
   if (input.assignedTo) {
-    await notifyTicketAssignment(input.assignedTo, data.ticket_number, title);
+    await notifyTicketAssignment(input.assignedTo, data.id, data.ticket_number, title, guard.userId, guard.fullName);
   }
 
   revalidatePath("/tickety");
@@ -184,7 +223,7 @@ export async function assignTicketAction(id: string, userId: string | null): Pro
   if (error || !data) return { ok: false, error: "Nie udało się przydzielić zgłoszenia." };
 
   if (userId) {
-    await notifyTicketAssignment(userId, data.ticket_number, data.title);
+    await notifyTicketAssignment(userId, id, data.ticket_number, data.title, guard.userId, guard.fullName);
   }
 
   revalidatePath("/tickety");
@@ -307,4 +346,131 @@ export async function setTicketCategoryArchivedAction(id: string, isArchived: bo
 
   revalidatePath("/tickety");
   return { ok: true, data: undefined };
+}
+
+// ids = nowa kolejność (przeciągnij i upuść w panelu kategorii) — ten sam wzorzec co
+// reorderCategoriesAction dla kategorii sprzętu.
+export async function reorderTicketCategoriesAction(ids: string[]): Promise<ActionResult<undefined>> {
+  const guard = await requireTicketPermission("can_admin_tickets");
+  if (!guard.ok) return guard;
+
+  const results = await Promise.all(
+    ids.map((id, i) => guard.supabase.from("ticket_categories").update({ sort_order: i + 1 }).eq("id", id))
+  );
+  if (results.some((r) => r.error)) {
+    return { ok: false, error: "Nie udało się zapisać kolejności kategorii." };
+  }
+
+  revalidatePath("/tickety");
+  return { ok: true, data: undefined };
+}
+
+// ------------------------------------------------------------------------------------------
+// Załączniki — wiele plików na zgłoszenie (np. zrzuty ekranu), w osobnym prywatnym buckecie
+// Storage. Kto może dodawać: każdy, kto może komentować/edytować/administrować ticketami (te
+// same trzy flagi co RLS na ticket_attachments w migracji 0052) — nie ma tu jednej "właściwej"
+// flagi do użycia z requireTicketPermission, więc sprawdzenie jest inline.
+// ------------------------------------------------------------------------------------------
+
+export async function uploadTicketAttachmentAction(
+  ticketId: string,
+  fileBase64: string,
+  fileName: string,
+  contentType: string
+): Promise<ActionResult<TicketAttachment>> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Brak zalogowanego użytkownika." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, full_name, can_comment_tickets, can_edit_tickets, can_admin_tickets")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!profile) return { ok: false, error: "Brak profilu użytkownika." };
+
+  const isAdmin = profile.role === "administrator";
+  if (!isAdmin && !profile.can_comment_tickets && !profile.can_edit_tickets && !profile.can_admin_tickets) {
+    return { ok: false, error: "Brak uprawnień do dodawania załączników." };
+  }
+
+  const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
+  if (!ALLOWED_ATTACHMENT_EXTENSIONS.includes(extension)) {
+    return {
+      ok: false,
+      error: "Niedozwolony typ pliku. Dozwolone: obrazy, PDF, dokumenty biurowe, TXT/CSV, ZIP.",
+    };
+  }
+
+  const buffer = Buffer.from(fileBase64, "base64");
+  if (buffer.byteLength > MAX_ATTACHMENT_SIZE) {
+    return { ok: false, error: "Plik jest za duży (maks. 10 MB)." };
+  }
+
+  const safeName = fileName.replace(/[^\w.\-]+/g, "_");
+  const storagePath = `${ticketId}/${randomUUID()}-${safeName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(ATTACHMENT_BUCKET)
+    .upload(storagePath, buffer, { contentType, upsert: false });
+  if (uploadError) return { ok: false, error: "Nie udało się wgrać pliku." };
+
+  const { data, error } = await supabase
+    .from("ticket_attachments")
+    .insert({
+      ticket_id: ticketId,
+      file_path: storagePath,
+      file_name: fileName,
+      file_size: buffer.byteLength,
+      content_type: contentType,
+      uploaded_by: user.id,
+      uploaded_by_name: profile.full_name,
+    })
+    .select()
+    .single();
+
+  if (error || !data) {
+    // Sprzątamy po sobie — nie zostawiamy w Storage pliku, którego nic nie zna.
+    await supabase.storage.from(ATTACHMENT_BUCKET).remove([storagePath]);
+    return { ok: false, error: "Nie udało się zapisać załącznika." };
+  }
+
+  revalidatePath(`/tickety/${ticketId}`);
+  return { ok: true, data: mapTicketAttachment(data) };
+}
+
+export async function deleteTicketAttachmentAction(id: string): Promise<ActionResult<undefined>> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Brak zalogowanego użytkownika." };
+
+  // RLS (uploaded_by = auth.uid() albo can_edit_tickets/can_admin_tickets) decyduje, czy wiersz
+  // w ogóle zostanie usunięty — .select() po delete pozwala to tu rozróżnić od "nie istnieje".
+  const { data: deleted, error } = await supabase
+    .from("ticket_attachments")
+    .delete()
+    .eq("id", id)
+    .select("ticket_id, file_path")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: "Nie udało się usunąć załącznika." };
+  if (!deleted) {
+    return { ok: false, error: "Brak uprawnień do usunięcia tego załącznika albo załącznik już nie istnieje." };
+  }
+
+  await supabase.storage.from(ATTACHMENT_BUCKET).remove([deleted.file_path]);
+
+  revalidatePath(`/tickety/${deleted.ticket_id}`);
+  return { ok: true, data: undefined };
+}
+
+export async function getTicketAttachmentDownloadUrlAction(path: string): Promise<ActionResult<{ url: string }>> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.storage.from(ATTACHMENT_BUCKET).createSignedUrl(path, 60);
+  if (error || !data) return { ok: false, error: "Nie udało się przygotować linku do pobrania." };
+  return { ok: true, data: { url: data.signedUrl } };
 }

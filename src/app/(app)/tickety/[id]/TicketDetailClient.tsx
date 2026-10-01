@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
 import { FormField, inputClass } from "@/components/ui/Form";
-import { useTicketPermissions } from "@/lib/current-user-context";
+import { useCurrentUser, useTicketPermissions } from "@/lib/current-user-context";
 import { formatDateTime } from "@/lib/format";
 import { getTicketCategoryName, ticketHistoryChangeText, ticketPriorityTone, ticketStatusTone } from "@/lib/ticket-helpers";
+import { TicketAttachments } from "@/components/tickets/TicketAttachments";
 import {
   TICKET_HISTORY_ACTION_LABELS,
   TICKET_PRIORITY_LABELS,
@@ -17,6 +18,7 @@ import {
   TICKET_WORKFLOW_STATUSES,
   type Ticket,
   type TicketAssignableUser,
+  type TicketAttachment,
   type TicketCategory,
   type TicketComment,
   type TicketHistoryEntry,
@@ -128,14 +130,17 @@ export function TicketDetailClient({
   assignableUsers,
   comments,
   history,
+  attachments,
 }: {
   ticket: Ticket;
   categories: TicketCategory[];
   assignableUsers: TicketAssignableUser[];
   comments: TicketComment[];
   history: TicketHistoryEntry[];
+  attachments: TicketAttachment[];
 }) {
   const router = useRouter();
+  const currentUser = useCurrentUser();
   const perms = useTicketPermissions();
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -371,6 +376,19 @@ export function TicketDetailClient({
         <Tabs
           tabs={[
             { key: "komentarze", label: `Komentarze (${comments.length})`, content: <CommentsPanel ticketId={ticket.id} comments={comments} /> },
+            {
+              key: "zalaczniki",
+              label: `Załączniki (${attachments.length})`,
+              content: (
+                <TicketAttachments
+                  ticketId={ticket.id}
+                  attachments={attachments}
+                  canUpload={perms.canComment || perms.canEdit || perms.canAdmin}
+                  canManageAll={perms.canEdit || perms.canAdmin}
+                  currentUserId={currentUser.id}
+                />
+              ),
+            },
             { key: "historia", label: "Historia zmian", content: <HistoryPanel history={history} /> },
           ]}
         />

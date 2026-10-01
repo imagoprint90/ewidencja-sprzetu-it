@@ -410,7 +410,8 @@ export type TicketHistoryAction =
   | "przydzielono"
   | "zmiana_statusu"
   | "zmiana_priorytetu"
-  | "zmiana_kategorii";
+  | "zmiana_kategorii"
+  | "wyslano_powiadomienie";
 
 export const TICKET_HISTORY_ACTION_LABELS: Record<TicketHistoryAction, string> = {
   utworzono: "Utworzono zgłoszenie",
@@ -418,6 +419,7 @@ export const TICKET_HISTORY_ACTION_LABELS: Record<TicketHistoryAction, string> =
   zmiana_statusu: "Zmieniono status",
   zmiana_priorytetu: "Zmieniono priorytet",
   zmiana_kategorii: "Zmieniono kategorię",
+  wyslano_powiadomienie: "Powiadomienie e-mail",
 };
 
 export interface TicketHistoryEntry {
@@ -437,6 +439,18 @@ export interface TicketHistoryEntry {
 export interface TicketAssignableUser {
   id: string;
   fullName: string;
+}
+
+export interface TicketAttachment {
+  id: string;
+  ticketId: string;
+  filePath: string;
+  fileName: string;
+  fileSize: number;
+  contentType: string;
+  uploadedBy: string;
+  uploadedByName: string;
+  createdAt: string;
 }
 
 // Kolumny dostępne do wyboru w tabeli sprzętu.

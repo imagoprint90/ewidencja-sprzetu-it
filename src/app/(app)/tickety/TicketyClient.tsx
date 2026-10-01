@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Pencil, Archive, ArchiveRestore, Check, X } from "lucide-react";
+import { Plus, Pencil, Archive, ArchiveRestore, Check, GripVertical, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -30,6 +30,7 @@ import {
 import {
   createTicketCategoryAction,
   renameTicketCategoryAction,
+  reorderTicketCategoriesAction,
   setTicketCategoryArchivedAction,
 } from "@/lib/supabase/actions/ticket-actions";
 
@@ -257,6 +258,23 @@ function TicketCategoriesPanel({ categories }: { categories: TicketCategory[] })
   const [editValue, setEditValue] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  function moveCategory(fromId: string, toId: string) {
+    if (fromId === toId) return;
+    const ids = active.map((c) => c.id);
+    const from = ids.indexOf(fromId);
+    const to = ids.indexOf(toId);
+    if (from < 0 || to < 0) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    startTransition(async () => {
+      const result = await reorderTicketCategoriesAction(ids);
+      if (!result.ok) setActionError(result.error);
+      else setActionError(null);
+      router.refresh();
+    });
+  }
 
   function handleAdd() {
     startTransition(async () => {
@@ -323,17 +341,59 @@ function TicketCategoriesPanel({ categories }: { categories: TicketCategory[] })
         <p className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-danger">{actionError}</p>
       )}
 
+      <p className="text-xs text-muted">
+        Przeciągnij uchwyt <GripVertical size={12} className="inline" />, żeby zmienić kolejność —
+        w tej samej kolejności kategorie pojawią się później na liście wyboru.
+      </p>
+
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-black/[0.02] text-left text-xs uppercase tracking-wide text-muted">
+              <th className="w-8 px-2 py-3" />
               <th className="px-4 py-3 font-medium">Nazwa</th>
               <th className="px-4 py-3 font-medium text-right">Działania</th>
             </tr>
           </thead>
           <tbody>
             {active.map((c) => (
-              <tr key={c.id} className="border-b border-border last:border-0">
+              <tr
+                key={c.id}
+                onDragOver={(e) => {
+                  if (dragId) {
+                    e.preventDefault();
+                    setOverId(c.id);
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragId) moveCategory(dragId, c.id);
+                  setDragId(null);
+                  setOverId(null);
+                }}
+                className={`border-b border-border last:border-0 ${dragId === c.id ? "opacity-40" : ""} ${
+                  overId === c.id && dragId && dragId !== c.id ? "bg-primary/10" : ""
+                }`}
+              >
+                <td className="px-2 py-3">
+                  <span
+                    draggable
+                    onDragStart={(e) => {
+                      setDragId(c.id);
+                      e.dataTransfer.effectAllowed = "move";
+                      const row = e.currentTarget.closest("tr");
+                      if (row) e.dataTransfer.setDragImage(row, 10, 10);
+                    }}
+                    onDragEnd={() => {
+                      setDragId(null);
+                      setOverId(null);
+                    }}
+                    className="inline-flex cursor-grab text-muted hover:text-foreground"
+                    title="Przeciągnij, aby zmienić kolejność"
+                  >
+                    <GripVertical size={16} />
+                  </span>
+                </td>
                 <td className="px-4 py-3">
                   {editingId === c.id ? (
                     <div className="flex flex-col gap-1">
