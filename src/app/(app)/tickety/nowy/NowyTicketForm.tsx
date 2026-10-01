@@ -24,6 +24,96 @@ function readFileAsBase64(file: File): Promise<string> {
   });
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Strefa przeciągnij-i-upuść + chipy ze stage'owanymi plikami (krzyżyk usuwa przed wysłaniem) —
+// pliki trafiają na serwer dopiero po udanym utworzeniu zgłoszenia (patrz onSubmit).
+function AttachmentPicker({
+  files,
+  onAdd,
+  onRemove,
+  error,
+}: {
+  files: File[];
+  onAdd: (list: FileList | null) => void;
+  onRemove: (index: number) => void;
+  error: string | null;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  return (
+    <div>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+          onAdd(e.dataTransfer.files);
+        }}
+        className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
+          isDragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
+        }`}
+      >
+        <Paperclip size={20} className="text-muted" />
+        <p className="text-sm">
+          <span className="font-medium text-primary">Wybierz pliki</span> albo przeciągnij je tutaj
+        </p>
+        <p className="text-xs text-muted">Obrazy (np. zrzuty ekranu), PDF, dokumenty biurowe, TXT/CSV, ZIP — maks. 10 MB na plik.</p>
+      </div>
+      <input
+        type="file"
+        multiple
+        accept={ATTACHMENT_ACCEPT}
+        ref={fileInputRef}
+        className="hidden"
+        onChange={(e) => {
+          onAdd(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
+      {error && <p className="mt-1.5 text-sm text-danger">{error}</p>}
+
+      {files.length > 0 && (
+        <ul className="mt-2 flex flex-wrap gap-2">
+          {files.map((f, i) => (
+            <li
+              key={`${f.name}-${i}`}
+              className="flex items-center gap-2 rounded-full border border-border bg-surface py-1 pl-3 pr-1.5 text-xs"
+            >
+              <span className="max-w-[200px] truncate">{f.name}</span>
+              <span className="text-muted">{formatFileSize(f.size)}</span>
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                title="Usuń załącznik"
+                className="rounded-full p-0.5 text-muted hover:bg-black/10 hover:text-danger"
+              >
+                <X size={12} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function NowyTicketForm({
   categories,
   assignableUsers,
@@ -37,7 +127,6 @@ export function NowyTicketForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -114,6 +203,11 @@ export function NowyTicketForm({
           <FormField label="Opis" htmlFor="description" error={errors.description?.message} full>
             <textarea id="description" rows={5} className={inputClass} {...register("description")} />
           </FormField>
+          {canAttach && (
+            <FormField label="Załączniki" htmlFor="attachments" full>
+              <AttachmentPicker files={files} onAdd={addFiles} onRemove={removeFile} error={attachmentError} />
+            </FormField>
+          )}
           <FormField label="Kategoria" htmlFor="categoryId" error={errors.categoryId?.message}>
             <select id="categoryId" className={inputClass} {...register("categoryId")}>
               <option value="">— brak —</option>
@@ -145,46 +239,6 @@ export function NowyTicketForm({
                   </option>
                 ))}
               </select>
-            </FormField>
-          )}
-          {canAttach && (
-            <FormField label="Załączniki" htmlFor="attachments" full>
-              <input
-                id="attachments"
-                type="file"
-                multiple
-                accept={ATTACHMENT_ACCEPT}
-                ref={fileInputRef}
-                className="hidden"
-                onChange={(e) => {
-                  addFiles(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-              <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()}>
-                <Paperclip size={16} />
-                Dodaj pliki
-              </Button>
-              {files.length > 0 && (
-                <ul className="mt-2 flex flex-col gap-1">
-                  {files.map((f, i) => (
-                    <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate">{f.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(i)}
-                        className="shrink-0 text-muted hover:text-danger"
-                      >
-                        <X size={14} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {attachmentError && <p className="mt-1 text-sm text-danger">{attachmentError}</p>}
-              <p className="mt-1.5 text-xs text-muted">
-                Obrazy (np. zrzuty ekranu), PDF, dokumenty biurowe, TXT/CSV, ZIP — maks. 10 MB na plik.
-              </p>
             </FormField>
           )}
         </FormSection>
