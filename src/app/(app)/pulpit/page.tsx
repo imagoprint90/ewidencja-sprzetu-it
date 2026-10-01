@@ -17,17 +17,32 @@ import { canViewTab } from "@/lib/access";
 import { employeeFullName } from "@/lib/equipment-helpers";
 import type { ReactNode } from "react";
 
+type StatTone = "default" | "primary" | "warning" | "danger" | "success";
+
+// Każdy ton niesie swoje własne tło (nigdy nie łączymy dwóch klas bg-* naraz — kolejność
+// wygranej klasy w Tailwindzie zależy od kolejności w arkuszu, nie w className, więc mieszanie
+// bg-surface z bg-*/5 byłoby nieprzewidywalne).
+const STAT_TONE_CLASSES: Record<StatTone, string> = {
+  default: "border-border bg-surface hover:border-primary/40",
+  primary: "border-primary/30 bg-primary/5 hover:border-primary/50",
+  warning: "border-warning/30 bg-warning/5 hover:border-warning/50",
+  danger: "border-danger/30 bg-danger/5 hover:border-danger/50",
+  success: "border-success/30 bg-success/5 hover:border-success/50",
+};
+
 function StatCard({
   label,
   value,
   href,
+  tone = "default",
 }: {
   label: string;
   value: string | number;
   href?: string;
+  tone?: StatTone;
 }) {
   const content = (
-    <div className="rounded-xl border border-border bg-surface p-5 transition-colors hover:border-primary/40">
+    <div className={`rounded-xl border p-5 transition-colors ${STAT_TONE_CLASSES[tone]}`}>
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-2 text-2xl font-semibold">{value}</p>
     </div>
@@ -95,6 +110,21 @@ export default async function PulpitPage(): Promise<ReactNode> {
           pracowników).
         </p>
       </div>
+
+      {canSeeTickets && (
+        <div className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold">Tickety</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+            <StatCard label="Wszystkie zgłoszenia" value={tickets.length} href="/tickety" />
+            <StatCard label={TICKET_STATUS_LABELS.nowe} value={ticketCounts.nowe ?? 0} href="/tickety" />
+            <StatCard label={TICKET_STATUS_LABELS.w_trakcie} value={ticketCounts.w_trakcie ?? 0} href="/tickety" tone="success" />
+            <StatCard label={TICKET_STATUS_LABELS.oczekujace} value={ticketCounts.oczekujace ?? 0} href="/tickety" tone="warning" />
+            <StatCard label="Krytyczne (otwarte)" value={criticalOpenTickets} href="/tickety" tone="danger" />
+            <StatCard label="Przypisane do mnie (otwarte)" value={myOpenTickets} href="/tickety" tone="primary" />
+            <StatCard label="Nieprzydzielone (otwarte)" value={unassignedOpenTickets} href="/tickety" tone="warning" />
+          </div>
+        </div>
+      )}
 
       {canSeeEquipment && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
@@ -190,21 +220,6 @@ export default async function PulpitPage(): Promise<ReactNode> {
               </table>
             </div>
           )}
-        </div>
-      )}
-
-      {canSeeTickets && (
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold">Tickety</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-            <StatCard label="Wszystkie zgłoszenia" value={tickets.length} href="/tickety" />
-            <StatCard label={TICKET_STATUS_LABELS.nowe} value={ticketCounts.nowe ?? 0} href="/tickety" />
-            <StatCard label={TICKET_STATUS_LABELS.w_trakcie} value={ticketCounts.w_trakcie ?? 0} href="/tickety" />
-            <StatCard label={TICKET_STATUS_LABELS.oczekujace} value={ticketCounts.oczekujace ?? 0} href="/tickety" />
-            <StatCard label="Krytyczne (otwarte)" value={criticalOpenTickets} href="/tickety" />
-            <StatCard label="Przypisane do mnie (otwarte)" value={myOpenTickets} href="/tickety" />
-            <StatCard label="Nieprzydzielone (otwarte)" value={unassignedOpenTickets} href="/tickety" />
-          </div>
         </div>
       )}
 

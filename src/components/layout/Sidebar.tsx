@@ -31,15 +31,18 @@ interface NavItem {
   icon: typeof LayoutDashboard;
   tab?: TabKey;
   adminOnly?: boolean;
+  // Delikatne wyróżnienie w menu (inny kolor ikony + lekkie tło) nawet poza stroną aktywną —
+  // na razie tylko Tickety, jako nowy, świeżo dodany moduł.
+  highlight?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/pulpit", label: "Pulpit", icon: LayoutDashboard },
+  { href: "/tickety", label: "Tickety", icon: Ticket, tab: "tickety", highlight: true },
   { href: "/sprzet", label: "Sprzęt", icon: Laptop, tab: "sprzet" },
   { href: "/pracownicy", label: "Pracownicy", icon: Users, tab: "pracownicy" },
   { href: "/oprogramowanie", label: "Oprogramowanie", icon: AppWindow, tab: "oprogramowanie" },
   { href: "/protokoly", label: "Protokoły", icon: FileText, tab: "protokoly" },
-  { href: "/tickety", label: "Tickety", icon: Ticket, tab: "tickety" },
 ];
 
 // Rozwijane menu "Ustawienia" jest widoczne zawsze. Kliknięcie otwiera stronę ustawień firmy (jeśli
@@ -85,24 +88,29 @@ function NavLinks({
     setClosedAt(next ? null : pathname);
   };
 
-  const linkClass = (active: boolean, extra = "") =>
+  const linkClass = (active: boolean, highlight: boolean, extra = "") =>
     `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${extra} ${
-      active ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-black/5"
+      active
+        ? "bg-primary/10 text-primary"
+        : highlight
+          ? "bg-primary/5 text-foreground/80 hover:bg-primary/10"
+          : "text-foreground/80 hover:bg-black/5"
     }`;
 
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
       {items.map((item) => {
         const Icon = item.icon;
+        const active = pathname.startsWith(item.href);
         return (
           <Link
             key={item.href}
             href={item.href}
             onClick={onNavigate}
             title={collapsed ? item.label : undefined}
-            className={linkClass(pathname.startsWith(item.href), collapsed ? "justify-center" : "")}
+            className={linkClass(active, Boolean(item.highlight), collapsed ? "justify-center" : "")}
           >
-            <Icon size={18} strokeWidth={2} />
+            <Icon size={18} strokeWidth={2} className={!active && item.highlight ? "text-primary" : undefined} />
             {!collapsed && item.label}
           </Link>
         );
@@ -119,7 +127,7 @@ function NavLinks({
                   onNavigate?.();
                 }}
                 title={collapsed ? SETTINGS_ITEM.label : undefined}
-                className={`${linkClass(pathname.startsWith(SETTINGS_ITEM.href), collapsed ? "justify-center" : "")} flex-1`}
+                className={`${linkClass(pathname.startsWith(SETTINGS_ITEM.href), false, collapsed ? "justify-center" : "")} flex-1`}
               >
                 <Settings size={18} strokeWidth={2} />
                 {!collapsed && SETTINGS_ITEM.label}
@@ -129,7 +137,7 @@ function NavLinks({
                 type="button"
                 onClick={() => setOpen(!open)}
                 title={collapsed ? SETTINGS_ITEM.label : undefined}
-                className={`${linkClass(false, collapsed ? "justify-center" : "")} flex-1`}
+                className={`${linkClass(false, false, collapsed ? "justify-center" : "")} flex-1`}
               >
                 <Settings size={18} strokeWidth={2} />
                 {!collapsed && SETTINGS_ITEM.label}
@@ -159,7 +167,7 @@ function NavLinks({
                     key={item.href}
                     href={item.href}
                     onClick={onNavigate}
-                    className={linkClass(pathname.startsWith(item.href)).replace("py-2.5", "py-2")}
+                    className={linkClass(pathname.startsWith(item.href), false).replace("py-2.5", "py-2")}
                   >
                     <Icon size={16} strokeWidth={2} />
                     {item.label}
