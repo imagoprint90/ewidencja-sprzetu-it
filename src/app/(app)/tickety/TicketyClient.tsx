@@ -53,6 +53,7 @@ interface TicketFiltersState {
   categoryIds: string[];
   assigneeIds: string[];
   quickView: QuickView;
+  showArchived: boolean;
 }
 
 const EMPTY_FILTERS: TicketFiltersState = {
@@ -61,6 +62,7 @@ const EMPTY_FILTERS: TicketFiltersState = {
   priorities: [],
   categoryIds: [],
   assigneeIds: [],
+  showArchived: false,
   quickView: "wszystkie",
 };
 
@@ -91,6 +93,7 @@ function TicketListView({
   const filtered = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
     return tickets.filter((t) => {
+      if (!filters.showArchived && t.isArchived) return false;
       if (filters.quickView === "moje" && t.assignedTo !== currentUser.id) return false;
       if (filters.quickView === "nieprzydzielone" && t.assignedTo !== null) return false;
       if (filters.quickView === "otwarte" && (t.status === "rozwiazane" || t.status === "zamkniete")) return false;
@@ -150,6 +153,17 @@ function TicketListView({
             {v.label}
           </button>
         ))}
+        {perms.canAdmin && (
+          <label className="ml-auto flex items-center gap-2 text-sm text-muted">
+            <input
+              type="checkbox"
+              checked={filters.showArchived}
+              onChange={(e) => setFiltersAndResetPage({ ...filters, showArchived: e.target.checked })}
+              className="h-4 w-4 rounded border-border text-primary"
+            />
+            Pokaż zarchiwizowane
+          </label>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -224,8 +238,13 @@ function TicketListView({
                   onClick={() => router.push(`/tickety/${t.id}`)}
                 >
                   <td className="px-4 py-3 font-medium text-primary">{t.ticketNumber}</td>
-                  <td className="max-w-[320px] truncate px-4 py-3" title={t.title}>
-                    {t.title}
+                  <td className="max-w-[320px] px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate" title={t.title}>
+                        {t.title}
+                      </span>
+                      {t.isArchived && <Badge>Archiwum</Badge>}
+                    </div>
                   </td>
                   <td className="px-4 py-3">{getTicketCategoryName(categories, t.categoryId)}</td>
                   <td className="px-4 py-3">

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Paperclip, Trash2, Upload } from "lucide-react";
+import { Download, Paperclip, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatDateTime } from "@/lib/format";
@@ -31,6 +31,11 @@ function readFileAsBase64(file: File): Promise<string> {
   });
 }
 
+// Komponent jest reużywany w dwóch miejscach na karcie zgłoszenia: w zakładce "Załączniki"
+// (zawsze widocznej, dla każdego z Komentowaniem/Edycją/Administracją) i wewnątrz panelu
+// "Edytuj" (żeby nie trzeba było przełączać zakładki w trakcie edycji tytułu/opisu/kategorii).
+// Upload tu jest NATYCHMIASTOWY per plik (nie ma kroku "Zapisz") — inaczej niż przy tworzeniu
+// nowego zgłoszenia, gdzie pliki czekają na utworzenie ticketu i dopiero wtedy się wysyłają.
 export function TicketAttachments({
   ticketId,
   attachments,
@@ -46,27 +51,33 @@ export function TicketAttachments({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TicketAttachment | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function handleFilePicked(file: File) {
+  function handleFilesPicked(list: FileList | null) {
+    if (!list || list.length === 0) return;
     setError(null);
-    if (file.size > MAX_SIZE) {
-      setError("Plik jest za duży (maks. 10 MB).");
+    const files = Array.from(list);
+    const tooBig = files.find((f) => f.size > MAX_SIZE);
+    if (tooBig) {
+      setError(`Plik „${tooBig.name}” jest za duży (maks. 10 MB).`);
       return;
     }
     startTransition(async () => {
-      const base64 = await readFileAsBase64(file);
-      const result = await uploadTicketAttachmentAction(
-        ticketId,
-        base64,
-        file.name,
-        file.type || "application/octet-stream"
-      );
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      for (const file of files) {
+        const base64 = await readFileAsBase64(file);
+        const result = await uploadTicketAttachmentAction(
+          ticketId,
+          base64,
+          file.name,
+          file.type || "application/octet-stream"
+        );
+        if (!result.ok) {
+          setError(`Nie udało się dodać „${file.name}”: ${result.error}`);
+          return;
+        }
       }
       router.refresh();
     });
@@ -136,30 +147,51 @@ export function TicketAttachments({
         </ul>
       )}
 
-      {error && <p className="text-sm text-danger">{error}</p>}
-
       {canUpload && (
-        <div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept={ACCEPT}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFilePicked(file);
-              e.target.value = "";
-            }}
-          />
-          <Button size="sm" variant="secondary" disabled={isPending} onClick={() => fileInputRef.current?.click()}>
-            <Upload size={14} />
-            Dodaj załącznik
-          </Button>
-          <p className="mt-1.5 text-xs text-muted">
-            Obrazy (np. zrzuty ekranu), PDF, dokumenty biurowe, TXT/CSV, ZIP — maks. 10 MB.
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
+          }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragOver(false);
+            handleFilesPicked(e.dataTransfer.files);
+          }}
+          className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
+            isDragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
+          } ${isPending ? "pointer-events-none opacity-60" : ""}`}
+        >
+          <Paperclip size={20} className="text-muted" />
+          <p className="text-sm">
+            <span className="font-medium text-primary">Wybierz pliki</span> albo przeciągnij je tutaj
+          </p>
+          <p className="text-xs text-muted">
+            Obrazy (np. zrzuty ekranu), PDF, dokumenty biurowe, TXT/CSV, ZIP — maks. 10 MB na plik.
           </p>
         </div>
       )}
+
+      <input
+        type="file"
+        multiple
+        ref={fileInputRef}
+        className="hidden"
+        accept={ACCEPT}
+        onChange={(e) => {
+          handleFilesPicked(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <ConfirmDialog
         open={deleteTarget !== null}

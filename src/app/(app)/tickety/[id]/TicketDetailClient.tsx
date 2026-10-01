@@ -329,6 +329,16 @@ export function TicketDetailClient({
                 ))}
             </select>
           </FormField>
+          <div>
+            <p className="mb-1.5 block text-sm font-medium">Załączniki</p>
+            <TicketAttachments
+              ticketId={ticket.id}
+              attachments={attachments}
+              canUpload={perms.canComment || perms.canEdit || perms.canAdmin}
+              canManageAll={perms.canEdit || perms.canAdmin}
+              currentUserId={currentUser.id}
+            />
+          </div>
           {editError && <p className="text-sm text-danger">{editError}</p>}
           <div className="flex justify-end gap-2">
             <Button
