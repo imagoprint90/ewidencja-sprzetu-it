@@ -108,7 +108,9 @@ function NavLinks({
             className={linkClass(active, collapsed ? "justify-center" : "")}
           >
             <Icon size={18} strokeWidth={2} />
-            {!collapsed && <span className={highlighted ? "text-warning" : undefined}>{item.label}</span>}
+            {/* text-accent (nie text-warning!) — --accent to stały pomarańcz z logo (#ef7d00),
+                niezmieniany w trybie ciemnym, w przeciwieństwie do --warning. */}
+            {!collapsed && <span className={highlighted ? "text-accent" : undefined}>{item.label}</span>}
           </Link>
         );
       })}
