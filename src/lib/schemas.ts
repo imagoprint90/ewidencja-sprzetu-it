@@ -67,3 +67,13 @@ export const userFormSchema = z.object({
 });
 
 export type UserFormValues = z.infer<typeof userFormSchema>;
+
+export const ticketFormSchema = z.object({
+  title: z.string().trim().min(1, "Tytuł jest wymagany.").max(200, "Tytuł jest za długi (maks. 200 znaków)."),
+  description: z.string().trim().optional(),
+  categoryId: z.string().optional(),
+  priority: z.enum(["zwykly", "wysoki", "krytyczny"]).optional(),
+  assignedTo: z.string().optional(),
+});
+
+export type TicketFormValues = z.infer<typeof ticketFormSchema>;

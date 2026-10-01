@@ -15,6 +15,11 @@ import {
   mapProtocol,
   mapSoftwareLicense,
   mapSoftwareProduct,
+  mapTicket,
+  mapTicketAssignableUser,
+  mapTicketCategory,
+  mapTicketComment,
+  mapTicketHistoryEntry,
 } from "./mappers";
 import type {
   Category,
@@ -36,9 +41,14 @@ import type {
   LicenseHistoryEntry,
   EquipmentStatusDef,
   LastProtocolInfo,
+  Ticket,
+  TicketAssignableUser,
+  TicketCategory,
+  TicketComment,
+  TicketHistoryEntry,
 } from "@/lib/types";
 import { DEFAULT_EQUIPMENT_STATUSES } from "@/lib/types";
-import type { AppRole } from "@/lib/access";
+import type { AppRole, TicketPermissions } from "@/lib/access";
 
 export async function getCategories(supabase: SupabaseClient): Promise<Category[]> {
   const ordered = await supabase.from("categories").select("*").order("sort_order").order("name");
@@ -269,6 +279,41 @@ export async function getNotificationSchedules(
   return (data ?? []).map(mapNotificationSchedule);
 }
 
+const TICKET_PERMISSION_COLUMNS =
+  "can_create_tickets, can_view_own_tickets, can_view_assigned_tickets, can_view_all_tickets, can_edit_tickets, can_comment_tickets, can_change_ticket_status, can_change_ticket_priority, can_assign_tickets, can_close_tickets, can_admin_tickets, visible_ticket_categories";
+
+// Wiersz profiles zawiera te same kolumny niezależnie od tego, czy to CurrentProfile czy
+// UserProfile — jedno miejsce, żeby nie powielać mapowania 11 flag ticketów w dwóch funkcjach.
+function mapTicketPermissionsRow(row: {
+  can_create_tickets: boolean;
+  can_view_own_tickets: boolean;
+  can_view_assigned_tickets: boolean;
+  can_view_all_tickets: boolean;
+  can_edit_tickets: boolean;
+  can_comment_tickets: boolean;
+  can_change_ticket_status: boolean;
+  can_change_ticket_priority: boolean;
+  can_assign_tickets: boolean;
+  can_close_tickets: boolean;
+  can_admin_tickets: boolean;
+  visible_ticket_categories: string[] | null;
+}): TicketPermissions {
+  return {
+    canCreate: row.can_create_tickets,
+    canViewOwn: row.can_view_own_tickets,
+    canViewAssigned: row.can_view_assigned_tickets,
+    canViewAll: row.can_view_all_tickets,
+    canEdit: row.can_edit_tickets,
+    canComment: row.can_comment_tickets,
+    canChangeStatus: row.can_change_ticket_status,
+    canChangePriority: row.can_change_ticket_priority,
+    canAssign: row.can_assign_tickets,
+    canClose: row.can_close_tickets,
+    canAdmin: row.can_admin_tickets,
+    visibleTicketCategories: row.visible_ticket_categories,
+  };
+}
+
 export interface CurrentProfile {
   fullName: string;
   role: AppRole;
@@ -276,6 +321,7 @@ export interface CurrentProfile {
   visibleCategories: string[] | null;
   canEditEquipment: boolean;
   canTransferEquipment: boolean;
+  ticketPermissions: TicketPermissions;
 }
 
 export async function getCurrentProfile(
@@ -284,7 +330,9 @@ export async function getCurrentProfile(
 ): Promise<CurrentProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("full_name, role, visible_tabs, visible_categories, can_edit_equipment, can_transfer_equipment")
+    .select(
+      `full_name, role, visible_tabs, visible_categories, can_edit_equipment, can_transfer_equipment, ${TICKET_PERMISSION_COLUMNS}`
+    )
     .eq("id", userId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -296,6 +344,7 @@ export async function getCurrentProfile(
     visibleCategories: data.visible_categories,
     canEditEquipment: data.can_edit_equipment,
     canTransferEquipment: data.can_transfer_equipment,
+    ticketPermissions: mapTicketPermissionsRow(data),
   };
 }
 
@@ -308,6 +357,7 @@ export interface UserProfile {
   visibleCategories: string[] | null;
   canEditEquipment: boolean;
   canTransferEquipment: boolean;
+  ticketPermissions: TicketPermissions;
   createdAt: string;
 }
 
@@ -325,6 +375,7 @@ export async function getProfiles(supabase: SupabaseClient): Promise<UserProfile
     visibleCategories: row.visible_categories,
     canEditEquipment: row.can_edit_equipment,
     canTransferEquipment: row.can_transfer_equipment,
+    ticketPermissions: mapTicketPermissionsRow(row),
     createdAt: row.created_at,
   }));
 }
@@ -347,4 +398,60 @@ export async function getEquipmentStatuses(supabase: SupabaseClient): Promise<Eq
     isSystem: row.is_system,
     sortOrder: row.sort_order,
   }));
+}
+
+// ------------------------------------------------------------------------------------------
+// Moduł Tickety
+// ------------------------------------------------------------------------------------------
+
+export async function getTicketCategories(supabase: SupabaseClient): Promise<TicketCategory[]> {
+  const { data, error } = await supabase
+    .from("ticket_categories")
+    .select("*")
+    .order("sort_order")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapTicketCategory);
+}
+
+// RLS filtruje wynik wg uprawnień (własne/przydzielone/wszystkie w dostępnych kategoriach) —
+// patrz polityka "odczyt ticketow wg uprawnien" w migracji 0051.
+export async function getTickets(supabase: SupabaseClient): Promise<Ticket[]> {
+  const { data, error } = await supabase.from("tickets").select("*").order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapTicket);
+}
+
+export async function getTicketById(supabase: SupabaseClient, id: string): Promise<Ticket | null> {
+  const { data, error } = await supabase.from("tickets").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapTicket(data) : null;
+}
+
+export async function getTicketComments(supabase: SupabaseClient, ticketId: string): Promise<TicketComment[]> {
+  const { data, error } = await supabase
+    .from("ticket_comments")
+    .select("*")
+    .eq("ticket_id", ticketId)
+    .order("created_at");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapTicketComment);
+}
+
+export async function getTicketHistory(supabase: SupabaseClient, ticketId: string): Promise<TicketHistoryEntry[]> {
+  const { data, error } = await supabase
+    .from("ticket_history")
+    .select("*")
+    .eq("ticket_id", ticketId)
+    .order("happened_at");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapTicketHistoryEntry);
+}
+
+// Konta, którym można przydzielić ticket — RPC (SECURITY DEFINER), bo zwykłe RLS na profiles
+// nie pozwala odczytać cudzych wierszy (patrz komentarz w migracji 0051).
+export async function getTicketAssignableUsers(supabase: SupabaseClient): Promise<TicketAssignableUser[]> {
+  const { data, error } = await supabase.rpc("list_ticket_assignable_users");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapTicketAssignableUser);
 }

@@ -19,6 +19,7 @@ import {
   Palette,
   PanelLeftClose,
   PanelLeftOpen,
+  Ticket,
   X,
 } from "lucide-react";
 import { useCurrentUser } from "@/lib/current-user-context";
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/pracownicy", label: "Pracownicy", icon: Users, tab: "pracownicy" },
   { href: "/oprogramowanie", label: "Oprogramowanie", icon: AppWindow, tab: "oprogramowanie" },
   { href: "/protokoly", label: "Protokoły", icon: FileText, tab: "protokoly" },
+  { href: "/tickety", label: "Tickety", icon: Ticket, tab: "tickety" },
 ];
 
 // Rozwijane menu "Ustawienia" jest widoczne zawsze. Kliknięcie otwiera stronę ustawień firmy (jeśli

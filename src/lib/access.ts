@@ -6,6 +6,7 @@ export const ASSIGNABLE_TABS = [
   { key: "pracownicy", label: "Pracownicy" },
   { key: "oprogramowanie", label: "Oprogramowanie" },
   { key: "protokoly", label: "Protokoły" },
+  { key: "tickety", label: "Tickety" },
   { key: "kategorie", label: "Kategorie" },
   { key: "lokalizacje", label: "Lokalizacje" },
   { key: "ustawienia", label: "Ustawienia (dane firmy)" },
@@ -36,6 +37,92 @@ export interface ExtraPermissions {
   canTransferEquipment: boolean;
   visibleCategories: string[] | null;
 }
+
+// Uprawnienia modułu Tickety — wyłącznie addytywne flagi (ten sam wzorzec co ExtraPermissions
+// powyżej), dostęp do samej zakładki idzie przez ASSIGNABLE_TABS/visibleTabs jak zawsze.
+// visibleTicketCategories: null = widzi tickety ze wszystkich kategorii (gdy canViewAll).
+export interface TicketPermissions {
+  canCreate: boolean;
+  canViewOwn: boolean;
+  canViewAssigned: boolean;
+  canViewAll: boolean;
+  canEdit: boolean;
+  canComment: boolean;
+  canChangeStatus: boolean;
+  canChangePriority: boolean;
+  canAssign: boolean;
+  canClose: boolean;
+  canAdmin: boolean;
+  visibleTicketCategories: string[] | null;
+}
+
+export const EMPTY_TICKET_PERMISSIONS: TicketPermissions = {
+  canCreate: false,
+  canViewOwn: false,
+  canViewAssigned: false,
+  canViewAll: false,
+  canEdit: false,
+  canComment: false,
+  canChangeStatus: false,
+  canChangePriority: false,
+  canAssign: false,
+  canClose: false,
+  canAdmin: false,
+  visibleTicketCategories: [],
+};
+
+// Trzy gotowe szablony uprawnień proponowane w panelu Użytkownicy — tylko wygoda UI (ustawiają
+// checkboxy za jednym kliknięciem), nie są osobnym bytem w bazie.
+export const TICKET_PERMISSION_PRESETS: Record<string, { label: string; permissions: Omit<TicketPermissions, "visibleTicketCategories"> }> = {
+  zglaszajacy: {
+    label: "Zgłaszający",
+    permissions: {
+      canCreate: true,
+      canViewOwn: true,
+      canViewAssigned: false,
+      canViewAll: false,
+      canEdit: false,
+      canComment: true,
+      canChangeStatus: false,
+      canChangePriority: false,
+      canAssign: false,
+      canClose: false,
+      canAdmin: false,
+    },
+  },
+  obslugujacy: {
+    label: "Obsługujący",
+    permissions: {
+      canCreate: true,
+      canViewOwn: true,
+      canViewAssigned: true,
+      canViewAll: false,
+      canEdit: false,
+      canComment: true,
+      canChangeStatus: true,
+      canChangePriority: false,
+      canAssign: false,
+      canClose: false,
+      canAdmin: false,
+    },
+  },
+  koordynator: {
+    label: "Koordynator / administrator",
+    permissions: {
+      canCreate: true,
+      canViewOwn: true,
+      canViewAssigned: true,
+      canViewAll: true,
+      canEdit: true,
+      canComment: true,
+      canChangeStatus: true,
+      canChangePriority: true,
+      canAssign: true,
+      canClose: true,
+      canAdmin: true,
+    },
+  },
+};
 
 // null/undefined w visibleTabs = brak ograniczeń (widzi wszystko) — dotyczy zarówno
 // administratora (zawsze pełny dostęp, wartość visibleTabs jest dla niego ignorowana) jak i

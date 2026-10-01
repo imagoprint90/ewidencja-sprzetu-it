@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { canViewTab, type AppRole, type TabKey } from "@/lib/access";
+import { canViewTab, type AppRole, type TabKey, type TicketPermissions } from "@/lib/access";
 
 interface CurrentUser {
   id: string;
@@ -12,6 +12,7 @@ interface CurrentUser {
   visibleCategories: string[] | null;
   canEditEquipment: boolean;
   canTransferEquipment: boolean;
+  ticketPermissions: TicketPermissions;
 }
 
 const CurrentUserContext = createContext<CurrentUser | null>(null);
@@ -61,4 +62,28 @@ export function useCanTransferEquipment(): boolean {
 export function useCanViewTab(tab: TabKey): boolean {
   const { role, visibleTabs } = useCurrentUser();
   return canViewTab(role, visibleTabs, tab);
+}
+
+// Administrator ma wszystkie uprawnienia ticketów niejawnie — flagi z bazy (ticketPermissions)
+// mają znaczenie tylko dla kont bez roli "administrator", tak samo jak reszta uprawnień w tej
+// aplikacji (patrz useCanEditEquipment powyżej).
+export function useTicketPermissions(): TicketPermissions {
+  const { role, ticketPermissions } = useCurrentUser();
+  if (role === "administrator") {
+    return {
+      canCreate: true,
+      canViewOwn: true,
+      canViewAssigned: true,
+      canViewAll: true,
+      canEdit: true,
+      canComment: true,
+      canChangeStatus: true,
+      canChangePriority: true,
+      canAssign: true,
+      canClose: true,
+      canAdmin: true,
+      visibleTicketCategories: null,
+    };
+  }
+  return ticketPermissions;
 }

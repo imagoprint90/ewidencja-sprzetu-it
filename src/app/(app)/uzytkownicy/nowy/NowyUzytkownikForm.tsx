@@ -7,11 +7,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { userFormSchema, type UserFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
 import { Button } from "@/components/ui/Button";
-import { ASSIGNABLE_TABS } from "@/lib/access";
+import { ASSIGNABLE_TABS, EMPTY_TICKET_PERMISSIONS, type TicketPermissions } from "@/lib/access";
 import { createUserAction } from "@/lib/supabase/actions/user-actions";
-import type { Category } from "@/lib/types";
+import { TicketPermissionsEditor } from "@/components/users/TicketPermissionsEditor";
+import type { Category, TicketCategory } from "@/lib/types";
 
-export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
+export function NowyUzytkownikForm({
+  categories,
+  ticketCategories,
+}: {
+  categories: Category[];
+  ticketCategories: TicketCategory[];
+}) {
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [role, setRole] = useState<"administrator" | "podglad">("podglad");
@@ -21,6 +28,7 @@ export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
   const [canEditEquipment, setCanEditEquipment] = useState(false);
   const [canTransferEquipment, setCanTransferEquipment] = useState(false);
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set());
+  const [ticketPermissions, setTicketPermissions] = useState<TicketPermissions>(EMPTY_TICKET_PERMISSIONS);
 
   const {
     register,
@@ -59,6 +67,20 @@ export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
       canEditEquipment,
       canTransferEquipment,
       visibleCategories: Array.from(visibleCategories),
+      ticketPermissions: {
+        canCreateTickets: ticketPermissions.canCreate,
+        canViewOwnTickets: ticketPermissions.canViewOwn,
+        canViewAssignedTickets: ticketPermissions.canViewAssigned,
+        canViewAllTickets: ticketPermissions.canViewAll,
+        canEditTickets: ticketPermissions.canEdit,
+        canCommentTickets: ticketPermissions.canComment,
+        canChangeTicketStatus: ticketPermissions.canChangeStatus,
+        canChangeTicketPriority: ticketPermissions.canChangePriority,
+        canAssignTickets: ticketPermissions.canAssign,
+        canCloseTickets: ticketPermissions.canClose,
+        canAdminTickets: ticketPermissions.canAdmin,
+        visibleTicketCategories: ticketPermissions.visibleTicketCategories ?? [],
+      },
     });
     if (!result.ok) {
       setSubmitError(result.error);
@@ -191,6 +213,19 @@ export function NowyUzytkownikForm({ categories }: { categories: Category[] }) {
                   protokołu). Jeśli włączone jest „Edycja i podgląd sprzętu” powyżej, dodatkowo
                   sprzęt spoza zaznaczonych kategorii nie będzie w ogóle widoczny dla tego konta.
                 </p>
+              </div>
+            </FormSection>
+
+            <FormSection
+              title="Uprawnienia: Tickety"
+              description="Niezależne od uprawnień sprzętu. Dostęp do samej zakładki „Tickety” włącza się wyżej, w „Widoczne zakładki”."
+            >
+              <div className="sm:col-span-2">
+                <TicketPermissionsEditor
+                  value={ticketPermissions}
+                  onChange={setTicketPermissions}
+                  categories={ticketCategories}
+                />
               </div>
             </FormSection>
           </>

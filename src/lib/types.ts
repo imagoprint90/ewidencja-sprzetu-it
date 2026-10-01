@@ -341,6 +341,104 @@ export interface AuditLogEntry {
   summary: string;
 }
 
+// ------------------------------------------------------------------------------------------
+// Moduł Tickety
+// ------------------------------------------------------------------------------------------
+
+export type TicketPriority = "zwykly" | "wysoki" | "krytyczny";
+export type TicketStatus = "nowe" | "w_trakcie" | "oczekujace" | "rozwiazane" | "zamkniete";
+
+export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = {
+  zwykly: "Zwykły",
+  wysoki: "Wysoki",
+  krytyczny: "Krytyczny",
+};
+
+export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
+  nowe: "Nowe",
+  w_trakcie: "W trakcie",
+  oczekujace: "Oczekujące",
+  rozwiazane: "Rozwiązane",
+  zamkniete: "Zamknięte",
+};
+
+// Statusy, na które można przełączyć ticket operacją "Zmień status" (uprawnienie
+// can_change_ticket_status) — "nowe" to tylko stan startowy, a "zamkniete" wymaga osobnego
+// uprawnienia "Zamykanie i ponowne otwieranie" (patrz closeTicketAction/reopenTicketAction).
+export const TICKET_WORKFLOW_STATUSES: TicketStatus[] = ["w_trakcie", "oczekujace", "rozwiazane"];
+
+export interface TicketCategory {
+  id: string;
+  name: string;
+  isArchived: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface Ticket {
+  id: string;
+  ticketNumber: string;
+  title: string;
+  description: string | null;
+  categoryId: string | null;
+  status: TicketStatus;
+  priority: TicketPriority;
+  createdBy: string;
+  createdByName: string;
+  assignedTo: string | null;
+  assignedToName: string | null;
+  createdAt: string;
+  firstAssignedAt: string | null;
+  lastAssigneeChangedAt: string | null;
+  updatedAt: string;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  isArchived: boolean;
+}
+
+export interface TicketComment {
+  id: string;
+  ticketId: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+}
+
+export type TicketHistoryAction =
+  | "utworzono"
+  | "przydzielono"
+  | "zmiana_statusu"
+  | "zmiana_priorytetu"
+  | "zmiana_kategorii";
+
+export const TICKET_HISTORY_ACTION_LABELS: Record<TicketHistoryAction, string> = {
+  utworzono: "Utworzono zgłoszenie",
+  przydzielono: "Zmieniono osobę odpowiedzialną",
+  zmiana_statusu: "Zmieniono status",
+  zmiana_priorytetu: "Zmieniono priorytet",
+  zmiana_kategorii: "Zmieniono kategorię",
+};
+
+export interface TicketHistoryEntry {
+  id: string;
+  ticketId: string;
+  actorId: string | null;
+  actorName: string | null;
+  action: TicketHistoryAction;
+  field: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  happenedAt: string;
+}
+
+// Osoba, której można przydzielić ticket — lista z public.list_ticket_assignable_users()
+// (RPC, bo zwykłe RLS na profiles nie pozwala odczytać cudzych wierszy).
+export interface TicketAssignableUser {
+  id: string;
+  fullName: string;
+}
+
 // Kolumny dostępne do wyboru w tabeli sprzętu.
 export const EQUIPMENT_COLUMNS = [
   "inventoryNumber",

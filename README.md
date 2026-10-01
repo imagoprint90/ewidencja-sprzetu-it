@@ -165,6 +165,32 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   poprzedniego użytkownika wymagają osobnej decyzji (nie są przenoszone automatycznie).
   Pulpit pokazuje licencje wygasające w ciągu 60 dni. Klucze aktywacyjne nie są nigdzie
   przechowywane ani wyświetlane.
+- **Tickety** (Etap 7, zakładka `/tickety`): rejestrowanie, przydzielanie i śledzenie zgłoszeń
+  aż do zamknięcia. Każdy ticket ma automatyczny numer (`ZG/00001`), tytuł, opis, autora,
+  opcjonalną osobę odpowiedzialną, priorytet (Zwykły/Wysoki/Krytyczny — krytyczny wyróżniony
+  kolorem na liście i karcie) i status (Nowe/W trakcie/Oczekujące/Rozwiązane/Zamknięte), z
+  automatycznie liczonymi datami: utworzenia, pierwszego przydzielenia, ostatniej zmiany osoby
+  odpowiedzialnej, ostatniej aktualizacji oraz rozwiązania/zamknięcia (czyszczone przy
+  ponownym otwarciu). Zamknięte zgłoszenie można ponownie otworzyć. Karta zgłoszenia ma
+  komentarze (autor + data) i historię zmian statusu/priorytetu/kategorii/przydziału (kto,
+  kiedy, poprzednia i nowa wartość) — wszystko wymuszane triggerami w bazie, nie w kodzie
+  aplikacji. Lista: wyszukiwanie po numerze/tytule, filtry (status, priorytet, kategoria,
+  osoba odpowiedzialna), sortowanie, paginacja i cztery szybkie widoki (Wszystkie/Przypisane
+  do mnie/Nieprzydzielone/Otwarte). Przy przydzieleniu zgłoszenia wysyłany jest e-mail do
+  przypisanej osoby (ten sam SMTP co zakładka Powiadomienia; błąd wysyłki nie blokuje
+  przydzielenia). **Kategorie zgłoszeń to osobny słownik od kategorii sprzętu** (tabela
+  `ticket_categories`), zarządzany wewnątrz zakładki Tickety wyłącznie przez uprawnienie
+  „Administracja modułem”. Usuwanie ticketów jest celowo niedostępne — zamiast tego
+  „Administracja modułem” pozwala je archiwizować, żeby zachować historię obsługi.
+
+  Dostęp do zakładki idzie przez istniejący mechanizm widocznych zakładek (Użytkownicy →
+  Zarządzaj), a wewnątrz zakładki jest **11 niezależnych, addytywnych uprawnień** (dokładnie
+  ten sam wzorzec co uprawnienia sprzętu): tworzenie, podgląd własnych/przydzielonych/
+  wszystkich (ostatnie — ograniczone do wybranych kategorii zgłoszeń, analogicznie do kategorii
+  sprzętu), edycja, komentowanie, zmiana statusu, zmiana priorytetu, przydzielanie, zamykanie i
+  ponowne otwieranie, administracja modułem. W panelu Użytkownicy są trzy gotowe szablony
+  (Zgłaszający/Obsługujący/Koordynator), które tylko wygodnie zaznaczają checkboxy — nie są
+  osobnym bytem w bazie.
 
 **Zostało na później (dodatki, nieblokujące podstawowego procesu):**
 - Import CSV sprzętu, eksport CSV, etykiety z kodami QR, przegląd inwentaryzacyjny.
@@ -297,6 +323,21 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 19. `0041_login_events.sql` (dziennik logowań — Ustawienia → Sesje logowań, tylko administrator)
 18. `0040_windows_edition.sql` (pole Windows Pro/Home dla kategorii z przełącznikiem „Windows”, domyślnie Komputery; spójność pilnowana triggerami w bazie)
 17. `0039_equipment_statuses.sql` (statusy sprzętu jako słownik — własne statusy z kolorami, dodawanie i usuwanie w Ustawienia → Statusy sprzętu; kolumna `equipment.status` z enuma na tekst)
+29. `0051_tickets_module.sql` (moduł **Tickety** — nowa zakładka: zgłoszenia z automatycznym
+    numerem (`ZG/00001`), statusem/priorytetem, przydzielaniem (z migawkami dat: pierwsze
+    przydzielenie, ostatnia zmiana osoby odpowiedzialnej), komentarzami i historią zmian
+    (status/priorytet/kategoria/przydział). Nowa, osobna tabela `ticket_categories`
+    — **nie** to samo co kategorie sprzętu (`categories`) — zarządzana wewnątrz zakładki Tickety
+    przez uprawnienie „Administracja modułem”. 11 nowych addytywnych flag uprawnień na
+    `profiles` (`can_create_tickets`, `can_view_own_tickets`, `can_view_assigned_tickets`,
+    `can_view_all_tickets`, `can_edit_tickets`, `can_comment_tickets`,
+    `can_change_ticket_status`, `can_change_ticket_priority`, `can_assign_tickets`,
+    `can_close_tickets`, `can_admin_tickets`) + `visible_ticket_categories` — edytowane w
+    Użytkownicy → Zarządzaj, tak samo jak uprawnienia sprzętu, z trzema gotowymi szablonami
+    (Zgłaszający/Obsługujący/Koordynator). Dostęp do samej zakładki „Tickety” idzie przez
+    istniejący mechanizm `visible_tabs`. Przy przydzieleniu zgłoszenia system wysyła e-mail do
+    przypisanej osoby (ten sam SMTP co zakładka Powiadomienia) — błąd wysyłki nie blokuje
+    przydzielenia.)
 
 ## Konfiguracja Supabase
 

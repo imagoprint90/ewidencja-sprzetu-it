@@ -29,6 +29,38 @@ async function requireAdmin(): Promise<
   return { ok: true, supabase, userId: user.id };
 }
 
+interface TicketPermissionsInput {
+  canCreateTickets: boolean;
+  canViewOwnTickets: boolean;
+  canViewAssignedTickets: boolean;
+  canViewAllTickets: boolean;
+  canEditTickets: boolean;
+  canCommentTickets: boolean;
+  canChangeTicketStatus: boolean;
+  canChangeTicketPriority: boolean;
+  canAssignTickets: boolean;
+  canCloseTickets: boolean;
+  canAdminTickets: boolean;
+  visibleTicketCategories: string[] | null;
+}
+
+function ticketPermissionsRow(isAdminRole: boolean, input: TicketPermissionsInput) {
+  return {
+    can_create_tickets: !isAdminRole && input.canCreateTickets,
+    can_view_own_tickets: !isAdminRole && input.canViewOwnTickets,
+    can_view_assigned_tickets: !isAdminRole && input.canViewAssignedTickets,
+    can_view_all_tickets: !isAdminRole && input.canViewAllTickets,
+    can_edit_tickets: !isAdminRole && input.canEditTickets,
+    can_comment_tickets: !isAdminRole && input.canCommentTickets,
+    can_change_ticket_status: !isAdminRole && input.canChangeTicketStatus,
+    can_change_ticket_priority: !isAdminRole && input.canChangeTicketPriority,
+    can_assign_tickets: !isAdminRole && input.canAssignTickets,
+    can_close_tickets: !isAdminRole && input.canCloseTickets,
+    can_admin_tickets: !isAdminRole && input.canAdminTickets,
+    visible_ticket_categories: !isAdminRole ? input.visibleTicketCategories : null,
+  };
+}
+
 export async function createUserAction(input: {
   email: string;
   password: string;
@@ -38,6 +70,7 @@ export async function createUserAction(input: {
   canEditEquipment: boolean;
   canTransferEquipment: boolean;
   visibleCategories: string[] | null;
+  ticketPermissions: TicketPermissionsInput;
 }): Promise<ActionResult<{ id: string }>> {
   const guard = await requireAdmin();
   if (!guard.ok) return guard;
@@ -75,6 +108,7 @@ export async function createUserAction(input: {
     can_edit_equipment: !isAdminRole && input.canEditEquipment,
     can_transfer_equipment: !isAdminRole && input.canTransferEquipment,
     visible_categories: !isAdminRole ? input.visibleCategories : null,
+    ...ticketPermissionsRow(isAdminRole, input.ticketPermissions),
   });
 
   if (profileError) {
@@ -95,6 +129,7 @@ export async function updateUserPermissionsAction(
     canEditEquipment: boolean;
     canTransferEquipment: boolean;
     visibleCategories: string[] | null;
+    ticketPermissions: TicketPermissionsInput;
   }
 ): Promise<ActionResult<undefined>> {
   const guard = await requireAdmin();
@@ -113,6 +148,7 @@ export async function updateUserPermissionsAction(
       can_edit_equipment: !isAdminRole && input.canEditEquipment,
       can_transfer_equipment: !isAdminRole && input.canTransferEquipment,
       visible_categories: !isAdminRole ? input.visibleCategories : null,
+      ...ticketPermissionsRow(isAdminRole, input.ticketPermissions),
     })
     .eq("id", id);
 

@@ -1,6 +1,6 @@
 import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/supabase/server";
 import { requireAdminPage } from "@/lib/supabase/require-tab";
-import { getCategories, getProfiles } from "@/lib/supabase/queries";
+import { getCategories, getProfiles, getTicketCategories } from "@/lib/supabase/queries";
 import { UzytkownicyClient } from "./UzytkownicyClient";
 
 // Konta aktualnie zablokowane (po 5 nieudanych logowaniach) — id konta -> koniec blokady.
@@ -22,11 +22,19 @@ async function getLockedUntil(): Promise<Record<string, string>> {
 export default async function UzytkownicyPage() {
   await requireAdminPage();
   const supabase = await createSupabaseServerClient();
-  const [profiles, categories, lockedUntil] = await Promise.all([
+  const [profiles, categories, ticketCategories, lockedUntil] = await Promise.all([
     getProfiles(supabase),
     getCategories(supabase),
+    getTicketCategories(supabase),
     getLockedUntil(),
   ]);
 
-  return <UzytkownicyClient profiles={profiles} categories={categories} lockedUntil={lockedUntil} />;
+  return (
+    <UzytkownicyClient
+      profiles={profiles}
+      categories={categories}
+      ticketCategories={ticketCategories}
+      lockedUntil={lockedUntil}
+    />
+  );
 }

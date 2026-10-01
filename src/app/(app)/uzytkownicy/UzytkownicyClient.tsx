@@ -12,18 +12,26 @@ import { inputClass } from "@/components/ui/Form";
 import { useCurrentUser } from "@/lib/current-user-context";
 import { useSort } from "@/lib/useSort";
 import { applySort, compareNumbers, compareStrings } from "@/lib/sort";
-import { ASSIGNABLE_TABS } from "@/lib/access";
+import { ASSIGNABLE_TABS, EMPTY_TICKET_PERMISSIONS, type TicketPermissions } from "@/lib/access";
 import { formatDateTime } from "@/lib/format";
 import type { UserProfile } from "@/lib/supabase/queries";
-import type { Category } from "@/lib/types";
+import type { Category, TicketCategory } from "@/lib/types";
 import {
   deleteUserAction,
   resetUserPasswordAction,
   updateUserPermissionsAction,
 } from "@/lib/supabase/actions/user-actions";
 import { unlockUserAction } from "@/lib/supabase/actions/auth-actions";
+import { TicketPermissionsEditor } from "@/components/users/TicketPermissionsEditor";
 
 type SortKey = "fullName" | "email" | "role" | "tabs" | "categories" | "createdAt";
+
+function hasAnyTicketPermission(p: TicketPermissions): boolean {
+  return (
+    p.canCreate || p.canViewOwn || p.canViewAssigned || p.canViewAll || p.canEdit || p.canComment ||
+    p.canChangeStatus || p.canChangePriority || p.canAssign || p.canClose || p.canAdmin
+  );
+}
 
 function roleSummary(p: UserProfile): string {
   if (p.role === "administrator") return "Administrator";
@@ -36,10 +44,12 @@ function roleSummary(p: UserProfile): string {
 export function UzytkownicyClient({
   profiles,
   categories,
+  ticketCategories,
   lockedUntil,
 }: {
   profiles: UserProfile[];
   categories: Category[];
+  ticketCategories: TicketCategory[];
   lockedUntil: Record<string, string>;
 }) {
   const router = useRouter();
@@ -52,6 +62,7 @@ export function UzytkownicyClient({
   const [editCanEdit, setEditCanEdit] = useState(false);
   const [editCanTransfer, setEditCanTransfer] = useState(false);
   const [editCategories, setEditCategories] = useState<Set<string>>(new Set());
+  const [editTicketPermissions, setEditTicketPermissions] = useState<TicketPermissions>(EMPTY_TICKET_PERMISSIONS);
   const [editError, setEditError] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
@@ -65,6 +76,7 @@ export function UzytkownicyClient({
     setEditCanEdit(p.canEditEquipment || p.role === "edycja_podglad");
     setEditCanTransfer(p.canTransferEquipment);
     setEditCategories(new Set(p.visibleCategories ?? []));
+    setEditTicketPermissions({ ...p.ticketPermissions, visibleTicketCategories: p.ticketPermissions.visibleTicketCategories ?? [] });
     setEditError(null);
     setNewPassword("");
     setPasswordMessage(null);
@@ -97,6 +109,20 @@ export function UzytkownicyClient({
         canEditEquipment: editCanEdit,
         canTransferEquipment: editCanTransfer,
         visibleCategories: Array.from(editCategories),
+        ticketPermissions: {
+          canCreateTickets: editTicketPermissions.canCreate,
+          canViewOwnTickets: editTicketPermissions.canViewOwn,
+          canViewAssignedTickets: editTicketPermissions.canViewAssigned,
+          canViewAllTickets: editTicketPermissions.canViewAll,
+          canEditTickets: editTicketPermissions.canEdit,
+          canCommentTickets: editTicketPermissions.canComment,
+          canChangeTicketStatus: editTicketPermissions.canChangeStatus,
+          canChangeTicketPriority: editTicketPermissions.canChangePriority,
+          canAssignTickets: editTicketPermissions.canAssign,
+          canCloseTickets: editTicketPermissions.canClose,
+          canAdminTickets: editTicketPermissions.canAdmin,
+          visibleTicketCategories: editTicketPermissions.visibleTicketCategories ?? [],
+        },
       });
       if (!result.ok) {
         setEditError(result.error);
@@ -229,6 +255,9 @@ export function UzytkownicyClient({
                         {p.role !== "administrator" && canEdit && <Badge tone="warning">Edycja sprzętu</Badge>}
                         {p.role !== "administrator" && p.canTransferEquipment && (
                           <Badge tone="warning">Przekazywanie</Badge>
+                        )}
+                        {p.role !== "administrator" && hasAnyTicketPermission(p.ticketPermissions) && (
+                          <Badge tone="warning">Tickety</Badge>
                         )}
                       </div>
                     </td>
@@ -395,6 +424,17 @@ export function UzytkownicyClient({
                                   zaznaczonych kategorii nie będzie w ogóle widoczny dla tego
                                   konta.
                                 </p>
+                              </div>
+
+                              <div>
+                                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+                                  Uprawnienia: Tickety
+                                </p>
+                                <TicketPermissionsEditor
+                                  value={editTicketPermissions}
+                                  onChange={setEditTicketPermissions}
+                                  categories={ticketCategories}
+                                />
                               </div>
                             </>
                           ) : (

@@ -16,6 +16,12 @@ import type {
   SoftwareLicense,
   SoftwareLicenseAssignment,
   SoftwareProduct,
+  Ticket,
+  TicketAssignableUser,
+  TicketCategory,
+  TicketComment,
+  TicketHistoryAction,
+  TicketHistoryEntry,
 } from "@/lib/types";
 
 // Mapowanie wierszy z bazy (snake_case) na typy używane w interfejsie (camelCase).
@@ -350,4 +356,108 @@ export function mapNotificationSchedule(row: {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+export function mapTicketCategory(row: {
+  id: string;
+  name: string;
+  is_archived: boolean;
+  sort_order: number;
+  created_at: string;
+}): TicketCategory {
+  return {
+    id: row.id,
+    name: row.name,
+    isArchived: row.is_archived,
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+  };
+}
+
+export function mapTicket(row: {
+  id: string;
+  ticket_number: string;
+  title: string;
+  description: string | null;
+  category_id: string | null;
+  status: Ticket["status"];
+  priority: Ticket["priority"];
+  created_by: string;
+  created_by_name: string;
+  assigned_to: string | null;
+  assigned_to_name: string | null;
+  created_at: string;
+  first_assigned_at: string | null;
+  last_assignee_changed_at: string | null;
+  updated_at: string;
+  resolved_at: string | null;
+  closed_at: string | null;
+  is_archived: boolean;
+}): Ticket {
+  return {
+    id: row.id,
+    ticketNumber: row.ticket_number,
+    title: row.title,
+    description: row.description,
+    categoryId: row.category_id,
+    status: row.status,
+    priority: row.priority,
+    createdBy: row.created_by,
+    createdByName: row.created_by_name,
+    assignedTo: row.assigned_to,
+    assignedToName: row.assigned_to_name,
+    createdAt: row.created_at,
+    firstAssignedAt: row.first_assigned_at,
+    lastAssigneeChangedAt: row.last_assignee_changed_at,
+    updatedAt: row.updated_at,
+    resolvedAt: row.resolved_at,
+    closedAt: row.closed_at,
+    isArchived: row.is_archived,
+  };
+}
+
+export function mapTicketComment(row: {
+  id: string;
+  ticket_id: string;
+  author_id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+}): TicketComment {
+  return {
+    id: row.id,
+    ticketId: row.ticket_id,
+    authorId: row.author_id,
+    authorName: row.author_name,
+    body: row.body,
+    createdAt: row.created_at,
+  };
+}
+
+export function mapTicketHistoryEntry(row: {
+  id: string;
+  ticket_id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: TicketHistoryAction;
+  field: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  happened_at: string;
+}): TicketHistoryEntry {
+  return {
+    id: row.id,
+    ticketId: row.ticket_id,
+    actorId: row.actor_id,
+    actorName: row.actor_name,
+    action: row.action,
+    field: row.field,
+    oldValue: row.old_value,
+    newValue: row.new_value,
+    happenedAt: row.happened_at,
+  };
+}
+
+export function mapTicketAssignableUser(row: { id: string; full_name: string }): TicketAssignableUser {
+  return { id: row.id, fullName: row.full_name };
 }

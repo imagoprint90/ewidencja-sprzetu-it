@@ -61,6 +61,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         visibleCategories: profile.visibleCategories,
         canEditEquipment: profile.canEditEquipment,
         canTransferEquipment: profile.canTransferEquipment,
+        ticketPermissions: profile.ticketPermissions,
       }}
     >
       <StatusesProvider value={statuses}>
