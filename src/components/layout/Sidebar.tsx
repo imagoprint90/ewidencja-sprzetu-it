@@ -88,13 +88,9 @@ function NavLinks({
     setClosedAt(next ? null : pathname);
   };
 
-  const linkClass = (active: boolean, highlight: boolean, extra = "") =>
+  const linkClass = (active: boolean, extra = "") =>
     `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${extra} ${
-      active
-        ? "bg-primary/10 text-primary"
-        : highlight
-          ? "bg-primary/5 text-foreground/80 hover:bg-primary/10"
-          : "text-foreground/80 hover:bg-black/5"
+      active ? "bg-primary/10 text-primary" : "text-foreground/80 hover:bg-black/5"
     }`;
 
   return (
@@ -102,16 +98,17 @@ function NavLinks({
       {items.map((item) => {
         const Icon = item.icon;
         const active = pathname.startsWith(item.href);
+        const highlighted = Boolean(item.highlight) && !active;
         return (
           <Link
             key={item.href}
             href={item.href}
             onClick={onNavigate}
             title={collapsed ? item.label : undefined}
-            className={linkClass(active, Boolean(item.highlight), collapsed ? "justify-center" : "")}
+            className={linkClass(active, collapsed ? "justify-center" : "")}
           >
-            <Icon size={18} strokeWidth={2} className={!active && item.highlight ? "text-primary" : undefined} />
-            {!collapsed && item.label}
+            <Icon size={18} strokeWidth={2} />
+            {!collapsed && <span className={highlighted ? "text-warning" : undefined}>{item.label}</span>}
           </Link>
         );
       })}
@@ -127,7 +124,7 @@ function NavLinks({
                   onNavigate?.();
                 }}
                 title={collapsed ? SETTINGS_ITEM.label : undefined}
-                className={`${linkClass(pathname.startsWith(SETTINGS_ITEM.href), false, collapsed ? "justify-center" : "")} flex-1`}
+                className={`${linkClass(pathname.startsWith(SETTINGS_ITEM.href), collapsed ? "justify-center" : "")} flex-1`}
               >
                 <Settings size={18} strokeWidth={2} />
                 {!collapsed && SETTINGS_ITEM.label}
@@ -137,7 +134,7 @@ function NavLinks({
                 type="button"
                 onClick={() => setOpen(!open)}
                 title={collapsed ? SETTINGS_ITEM.label : undefined}
-                className={`${linkClass(false, false, collapsed ? "justify-center" : "")} flex-1`}
+                className={`${linkClass(false, collapsed ? "justify-center" : "")} flex-1`}
               >
                 <Settings size={18} strokeWidth={2} />
                 {!collapsed && SETTINGS_ITEM.label}
@@ -167,7 +164,7 @@ function NavLinks({
                     key={item.href}
                     href={item.href}
                     onClick={onNavigate}
-                    className={linkClass(pathname.startsWith(item.href), false).replace("py-2.5", "py-2")}
+                    className={linkClass(pathname.startsWith(item.href)).replace("py-2.5", "py-2")}
                   >
                     <Icon size={16} strokeWidth={2} />
                     {item.label}
