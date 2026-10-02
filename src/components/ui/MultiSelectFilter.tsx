@@ -41,9 +41,11 @@ export function MultiSelectFilter({
 
   const q = query.trim().toLowerCase();
   const visibleOptions = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
+  // Bez wyboru pokazujemy samą nazwę filtra (brak zaznaczenia = wszystkie, to oczywiste i tylko
+  // zajmowałoby miejsce); przy zaznaczeniu — nazwa: wartość / liczba wybranych.
   const summary =
     selected.length === 0
-      ? "wszystkie"
+      ? null
       : selected.length === 1
         ? (options.find((o) => o.value === selected[0])?.label ?? "1 wybrana")
         : `wybrano ${selected.length}`;
@@ -59,7 +61,7 @@ export function MultiSelectFilter({
         }}
         className="whitespace-nowrap"
       >
-        {label}: {summary}
+        {summary === null ? label : `${label}: ${summary}`}
         <ChevronDown size={14} />
       </Button>
       {open && (
