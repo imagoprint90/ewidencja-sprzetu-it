@@ -60,6 +60,7 @@ export function EquipmentEditForm({
       purchasePrice: equipment.purchasePrice?.toString() ?? "",
       inDomain: equipment.inDomain ? "tak" : "nie",
       hasOpenvpn: equipment.hasOpenvpn ? "tak" : "nie",
+      hasForticlient: equipment.hasForticlient ? "tak" : "nie",
       windowsEdition: equipment.windowsEdition ?? "",
       notes: equipment.notes ?? "",
     },
@@ -77,6 +78,7 @@ export function EquipmentEditForm({
     const purchasePrice = values.purchasePrice ? Number(values.purchasePrice) : null;
     const inDomain = values.inDomain === "tak";
     const hasOpenvpn = values.hasOpenvpn === "tak";
+    const hasForticlient = values.hasForticlient === "tak";
     const lastHolderId = lastHolderSelect === MANUAL_OPTION ? null : lastHolderSelect || null;
     const lastHolderName = lastHolderSelect === MANUAL_OPTION ? lastHolderManual.trim() || null : null;
 
@@ -93,6 +95,7 @@ export function EquipmentEditForm({
       purchasePrice,
       inDomain,
       hasOpenvpn,
+      hasForticlient,
       windowsEdition,
       notes: values.notes || null,
       locationId: locationId || null,
@@ -118,6 +121,7 @@ export function EquipmentEditForm({
       purchasePrice,
       inDomain,
       hasOpenvpn,
+      hasForticlient,
       ...(windowsEdition !== undefined ? { windowsEdition } : {}),
       notes: values.notes || null,
       locationId: locationId || null,
@@ -145,7 +149,7 @@ export function EquipmentEditForm({
               ))}
           </select>
         </FormField>
-        <div className="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-4">
           {supportsWindows && (
             <FormField label="Windows" htmlFor="windowsEdition" error={errors.windowsEdition?.message}>
               <select id="windowsEdition" className={inputClass} {...register("windowsEdition")}>
@@ -166,6 +170,12 @@ export function EquipmentEditForm({
           </FormField>
           <FormField label="OpenVPN" htmlFor="hasOpenvpn" error={errors.hasOpenvpn?.message}>
             <select id="hasOpenvpn" className={inputClass} {...register("hasOpenvpn")}>
+              <option value="nie">NIE</option>
+              <option value="tak">TAK</option>
+            </select>
+          </FormField>
+          <FormField label="FortiClient" htmlFor="hasForticlient" error={errors.hasForticlient?.message}>
+            <select id="hasForticlient" className={inputClass} {...register("hasForticlient")}>
               <option value="nie">NIE</option>
               <option value="tak">TAK</option>
             </select>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>FortiClient VPN</title>
+  <defs>
+    <linearGradient id="fc-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fa7ee"/>
+      <stop offset="1" stop-color="#1578c8"/>
+    </linearGradient>
+    <linearGradient id="fc-rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f97e6"/>
+      <stop offset="1" stop-color="#1a78c6"/>
+    </linearGradient>
+    <path id="fc-shield" d="M128 6C92 24 54 31 22 31V112C22 178 68 222 128 250C188 222 234 178 234 112V31C202 31 164 24 128 6Z"/>
+  </defs>
+
+  <use href="#fc-shield" fill="url(#fc-rim)"/>
+  <use href="#fc-shield" fill="#ffffff" transform="translate(128 130) scale(0.93) translate(-128 -130)"/>
+  <use href="#fc-shield" fill="url(#fc-blue)" transform="translate(128 134) scale(0.78) translate(-128 -134)"/>
+
+  <g fill="#ffffff">
+    <rect x="70" y="72" width="34" height="22" rx="8"/>
+    <rect x="111" y="72" width="34" height="22" rx="4"/>
+    <rect x="152" y="72" width="34" height="22" rx="8"/>
+
+    <rect x="70" y="101" width="34" height="22" rx="4"/>
+    <rect x="152" y="101" width="34" height="22" rx="4"/>
+
+    <rect x="70" y="130" width="34" height="22" rx="8"/>
+    <rect x="111" y="130" width="34" height="22" rx="4"/>
+    <rect x="152" y="130" width="34" height="22" rx="8"/>
+  </g>
+</svg>

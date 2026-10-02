@@ -29,6 +29,7 @@ import { getEffectiveCondition, getLastHolderDisplay } from "@/lib/equipment-hel
 import { LastHolderCell } from "@/components/equipment/LastHolderCell";
 import { DomainIcon } from "@/components/ui/DomainIcon";
 import { OpenVpnIcon } from "@/components/ui/OpenVpnIcon";
+import { ForticlientIcon } from "@/components/ui/ForticlientIcon";
 import {
   SoftwareCell,
   type AssignedDeviceLicense,
@@ -90,6 +91,7 @@ const DEFAULT_COLUMN_WIDTHS: Partial<Record<EquipmentColumnKey, number>> = {
   invoice: 60,
   domain: 90,
   openvpn: 90,
+  forticlient: 100,
   protocolCondition: 140,
   windows: 100,
   lastHolder: 180,
@@ -390,6 +392,7 @@ export function EquipmentTable({
       protocolCondition: (a, b) => compareStrings(a.protocolCondition ?? "", b.protocolCondition ?? ""),
       domain: (a, b) => compareNumbers(a.item.inDomain ? 1 : 0, b.item.inDomain ? 1 : 0),
       openvpn: (a, b) => compareNumbers(a.item.hasOpenvpn ? 1 : 0, b.item.hasOpenvpn ? 1 : 0),
+      forticlient: (a, b) => compareNumbers(a.item.hasForticlient ? 1 : 0, b.item.hasForticlient ? 1 : 0),
       invoice: (a, b) => compareNumbers(a.item.purchaseInvoicePath ? 1 : 0, b.item.purchaseInvoicePath ? 1 : 0),
       lastHolder: (a, b) => compareStrings(a.lastHolderName, b.lastHolderName),
     };
@@ -897,6 +900,19 @@ function renderCell(
             { value: "nie", label: "NIE" },
           ]}
           onSave={(v) => extra.onSave({ hasOpenvpn: v === "tak" })}
+        />
+      );
+    case "forticlient":
+      if (!extra.canEdit) return item.hasForticlient ? <ForticlientIcon /> : <span>—</span>;
+      return (
+        <EditableCell
+          value={item.hasForticlient ? "tak" : "nie"}
+          displayValue={item.hasForticlient ? <ForticlientIcon /> : <span>—</span>}
+          options={[
+            { value: "tak", label: "TAK" },
+            { value: "nie", label: "NIE" },
+          ]}
+          onSave={(v) => extra.onSave({ hasForticlient: v === "tak" })}
         />
       );
     case "invoice":

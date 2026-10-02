@@ -353,6 +353,9 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
     usuwać autor załącznika albo ktoś z Edycja/Administracja) oraz **wpis w historii
     zgłoszenia o wysyłce powiadomienia e-mail** (sukces albo powód błędu, przy każdym
     przydzieleniu — nowa dozwolona wartość `wyslano_powiadomienie` w `ticket_history.action`).
+31. `0053_equipment_forticlient.sql` (kolumna `equipment.has_forticlient` — pole „FortiClient”
+    TAK/NIE przy sprzęcie, identycznie jak „OpenVPN”: formularze, karta sprzętu, edytowalna
+    kolumna z ikoną tarczy na liście Sprzęt i filtr za filtrem OpenVPN; domyślnie NIE)
 
 ## Konfiguracja Supabase
 

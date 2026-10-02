@@ -112,6 +112,7 @@ export interface Equipment {
   windowsEdition: WindowsEdition | null;
   inDomain: boolean;
   hasOpenvpn: boolean;
+  hasForticlient: boolean;
   status: EquipmentStatus;
   // null = brak lokalizacji (lokalizacja sprzętu jest niezależna od lokalizacji pracownika)
   locationId: string | null;
@@ -472,6 +473,7 @@ export const EQUIPMENT_COLUMNS = [
   "invoice",
   "domain",
   "openvpn",
+  "forticlient",
   "protocolCondition",
   "windows",
   "lastHolder",
@@ -505,6 +507,7 @@ export const EQUIPMENT_COLUMN_LABELS: Record<EquipmentColumnKey, string> = {
   invoice: "FV",
   domain: "Domena",
   openvpn: "OpenVPN",
+  forticlient: "FortiClient",
   protocolCondition: "Stan techniczny",
   windows: "Windows",
   lastHolder: "Ostatni posiadacz",

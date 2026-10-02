@@ -16,6 +16,7 @@ export function equipmentToInput(item: Equipment): EquipmentInput {
     purchasePrice: item.purchasePrice,
     inDomain: item.inDomain,
     hasOpenvpn: item.hasOpenvpn,
+    hasForticlient: item.hasForticlient,
     windowsEdition: item.windowsEdition ?? undefined,
     lastHolderId: item.lastHolderId ?? undefined,
     lastHolderName: item.lastHolderName ?? undefined,

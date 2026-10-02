@@ -66,7 +66,7 @@ export function NowySprzetForm({
     formState: { errors, isSubmitting },
   } = useForm<EquipmentAddFormValues>({
     resolver: zodResolver(equipmentAddFormSchema),
-    defaultValues: { categoryId: categories.find((c) => !c.isArchived)?.id ?? "", inDomain: "nie", hasOpenvpn: "nie" },
+    defaultValues: { categoryId: categories.find((c) => !c.isArchived)?.id ?? "", inDomain: "nie", hasOpenvpn: "nie", hasForticlient: "nie" },
   });
 
   const selectedCategoryId = useWatch({ control, name: "categoryId" });
@@ -90,6 +90,7 @@ export function NowySprzetForm({
       purchasePrice: values.purchasePrice ? Number(values.purchasePrice) : null,
       inDomain: values.inDomain === "tak",
       hasOpenvpn: values.hasOpenvpn === "tak",
+      hasForticlient: values.hasForticlient === "tak",
       windowsEdition: supportsWindows ? values.windowsEdition || null : undefined,
       lastHolderId: lastHolderSelect === MANUAL_OPTION ? null : lastHolderSelect || null,
       lastHolderName: lastHolderSelect === MANUAL_OPTION ? lastHolderManual.trim() || null : null,
@@ -156,7 +157,7 @@ export function NowySprzetForm({
                 ))}
             </select>
           </FormField>
-          <div className="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-4">
             {supportsWindows && (
               <FormField label="Windows" htmlFor="windowsEdition" error={errors.windowsEdition?.message}>
                 <select id="windowsEdition" className={inputClass} {...register("windowsEdition")}>
@@ -177,6 +178,12 @@ export function NowySprzetForm({
             </FormField>
             <FormField label="OpenVPN" htmlFor="hasOpenvpn" error={errors.hasOpenvpn?.message}>
               <select id="hasOpenvpn" className={inputClass} {...register("hasOpenvpn")}>
+                <option value="nie">NIE</option>
+                <option value="tak">TAK</option>
+              </select>
+            </FormField>
+            <FormField label="FortiClient" htmlFor="hasForticlient" error={errors.hasForticlient?.message}>
+              <select id="hasForticlient" className={inputClass} {...register("hasForticlient")}>
                 <option value="nie">NIE</option>
                 <option value="tak">TAK</option>
               </select>

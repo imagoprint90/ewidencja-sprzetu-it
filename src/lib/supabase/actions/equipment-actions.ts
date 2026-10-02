@@ -24,6 +24,7 @@ export interface EquipmentInput {
   purchasePrice: number | null;
   inDomain: boolean;
   hasOpenvpn: boolean;
+  hasForticlient: boolean;
   notes: string | null;
   // Pro/Home — tylko dla kategorii z Windows (baza czyści wartość dla pozostałych). undefined = bez zmian.
   windowsEdition?: WindowsEdition | null;
@@ -51,6 +52,7 @@ function toRow(input: EquipmentInput) {
     purchase_price: input.purchasePrice,
     in_domain: input.inDomain,
     has_openvpn: input.hasOpenvpn,
+    has_forticlient: input.hasForticlient,
     ...(input.windowsEdition !== undefined ? { windows_edition: input.windowsEdition } : {}),
     ...(input.lastHolderId !== undefined ? { last_holder_id: input.lastHolderId } : {}),
     ...(input.lastHolderName !== undefined ? { last_holder_name: input.lastHolderName } : {}),

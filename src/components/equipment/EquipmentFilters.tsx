@@ -15,6 +15,7 @@ export interface EquipmentFiltersState {
   employeeIds: string[];
   domains?: ("tak" | "nie")[];
   openvpns?: ("tak" | "nie")[];
+  forticlients?: ("tak" | "nie")[];
   conditions?: string[];
   windows?: string[];
   lastHolderIds?: string[];
@@ -33,6 +34,7 @@ export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
   employeeIds: [],
   domains: [],
   openvpns: [],
+  forticlients: [],
   conditions: [],
   windows: [],
   lastHolderIds: [],
@@ -77,7 +79,7 @@ export function EquipmentFilters({
     value.statuses.length > 0 ||
     value.locationIds.length > 0 ||
     value.employeeIds.length > 0 ||
-    [value.domains, value.openvpns, value.conditions, value.windows, value.lastHolderIds, value.softwareProductIds, value.licenseIds].some(
+    [value.domains, value.openvpns, value.forticlients, value.conditions, value.windows, value.lastHolderIds, value.softwareProductIds, value.licenseIds].some(
       (f) => (f ?? []).length > 0
     );
 
@@ -139,6 +141,16 @@ export function EquipmentFilters({
         ]}
         selected={value.openvpns ?? []}
         onChange={(v) => set("openvpns", v as ("tak" | "nie")[])}
+      />
+
+      <MultiSelectFilter
+        label="FortiClient"
+        options={[
+          { value: "tak", label: "TAK" },
+          { value: "nie", label: "NIE" },
+        ]}
+        selected={value.forticlients ?? []}
+        onChange={(v) => set("forticlients", v as ("tak" | "nie")[])}
       />
 
       <MultiSelectFilter

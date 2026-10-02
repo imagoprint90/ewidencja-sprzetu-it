@@ -58,6 +58,7 @@ const DEFAULT_COLUMNS: EquipmentColumnKey[] = [
   "invoice",
   "domain",
   "openvpn",
+  "forticlient",
 ];
 
 function SprzetPageInner({
@@ -198,6 +199,8 @@ function SprzetPageInner({
       if ((filters.domains ?? []).length > 0 && !filters.domains!.includes(item.inDomain ? "tak" : "nie"))
         return false;
       if ((filters.openvpns ?? []).length > 0 && !filters.openvpns!.includes(item.hasOpenvpn ? "tak" : "nie"))
+        return false;
+      if ((filters.forticlients ?? []).length > 0 && !filters.forticlients!.includes(item.hasForticlient ? "tak" : "nie"))
         return false;
       if ((filters.conditions ?? []).length > 0) {
         const cond =

@@ -113,6 +113,7 @@ export function mapEquipment(row: {
   purchase_price: number | string | null;
   in_domain: boolean;
   has_openvpn: boolean;
+  has_forticlient: boolean;
   windows_edition?: Equipment["windowsEdition"];
   status: Equipment["status"];
   location_id: string | null;
@@ -137,6 +138,7 @@ export function mapEquipment(row: {
     purchasePrice: row.purchase_price === null ? null : Number(row.purchase_price),
     inDomain: row.in_domain,
     hasOpenvpn: row.has_openvpn,
+    hasForticlient: row.has_forticlient,
     windowsEdition: row.windows_edition ?? null,
     status: row.status,
     locationId: row.location_id,
