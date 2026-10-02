@@ -142,6 +142,16 @@ export function getLastHolderDisplay(
   return item.lastHolderName?.trim() || "—";
 }
 
+// Tekst do wyszukiwarki: małe litery i bez znaków diakrytycznych (ł nie rozkłada się w NFD,
+// więc osobno) — "michalowski" znajdzie "Michałowski".
+export function normalizeSearch(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/ł/g, "l")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
 // Wartość filtra lokalizacji dla sprzętu przydzielonego pracownikowi bez lokalizacji.
 export const NO_LOCATION_FILTER = "__brak_lokalizacji";
 

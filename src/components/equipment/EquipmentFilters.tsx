@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { FilterX, Search } from "lucide-react";
 import type { Category, Employee, EquipmentStatus, Location, SoftwareLicense, SoftwareProduct } from "@/lib/types";
 import { TECHNICAL_CONDITION_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { useStatuses } from "@/lib/statuses-context";
@@ -43,6 +43,7 @@ export const EMPTY_EQUIPMENT_FILTERS: EquipmentFiltersState = {
 export function EquipmentFilters({
   value,
   onChange,
+  onClear,
   categories,
   employees,
   locations,
@@ -51,6 +52,7 @@ export function EquipmentFilters({
 }: {
   value: EquipmentFiltersState;
   onChange: (next: EquipmentFiltersState) => void;
+  onClear: () => void;
   categories: Category[];
   employees: Employee[];
   locations: Location[];
@@ -68,6 +70,16 @@ export function EquipmentFilters({
       label: `${productNameById.get(l.productId) ?? "Nieznany produkt"} (${l.seatsTotal} stan.)`,
     }))
     .sort((a, b) => a.label.localeCompare(b.label, "pl"));
+
+  const hasActiveFilters =
+    value.query.trim() !== "" ||
+    value.categoryIds.length > 0 ||
+    value.statuses.length > 0 ||
+    value.locationIds.length > 0 ||
+    value.employeeIds.length > 0 ||
+    [value.domains, value.openvpns, value.conditions, value.windows, value.lastHolderIds, value.softwareProductIds, value.licenseIds].some(
+      (f) => (f ?? []).length > 0
+    );
 
   function set<K extends keyof EquipmentFiltersState>(key: K, val: EquipmentFiltersState[K]) {
     onChange({ ...value, [key]: val });
@@ -179,6 +191,18 @@ export function EquipmentFilters({
         selected={value.licenseIds ?? []}
         onChange={(v) => set("licenseIds", v)}
       />
+
+      <button
+        type="button"
+        onClick={onClear}
+        disabled={!hasActiveFilters}
+        title="Czyść wszystkie filtry"
+        aria-label="Czyść wszystkie filtry"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-sm text-muted transition-colors hover:border-danger/40 hover:text-danger disabled:cursor-default disabled:opacity-40 disabled:hover:border-border disabled:hover:text-muted"
+      >
+        <FilterX size={14} />
+        Wyczyść
+      </button>
     </div>
   );
 }

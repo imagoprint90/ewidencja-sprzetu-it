@@ -20,6 +20,8 @@ import { EQUIPMENT_COLUMNS, type ColumnFormat, type EquipmentColumnKey, type Equ
 import {
   employeeFullName,
   getEffectiveCondition,
+  getLastHolderDisplay,
+  normalizeSearch,
   NO_LOCATION_FILTER,
   NO_PROTOCOL_CONDITION,
 } from "@/lib/equipment-helpers";
@@ -189,7 +191,7 @@ function SprzetPageInner({
   const deferredQuery = useDeferredValue(filters.query);
 
   const filtered = useMemo(() => {
-    const q = deferredQuery.trim().toLowerCase();
+    const q = normalizeSearch(deferredQuery.trim());
     return equipmentState.filter((item) => {
       if (filters.categoryIds.length > 0 && !filters.categoryIds.includes(item.categoryId)) return false;
       if (filters.statuses.length > 0 && !filters.statuses.includes(item.status)) return false;
@@ -229,9 +231,10 @@ function SprzetPageInner({
         const active = activeAssignmentByEquipment.get(item.id);
         const activeEmployee = active ? employeeById.get(active.employeeId) : undefined;
         const employeeName = activeEmployee ? employeeFullName(activeEmployee) : "";
-        const haystack = [item.name, item.serialNumber ?? "", item.inventoryNumber, employeeName]
-          .join(" ")
-          .toLowerCase();
+        const lastHolder = getLastHolderDisplay(employees, item);
+        const haystack = normalizeSearch(
+          [item.name, item.serialNumber ?? "", item.inventoryNumber, employeeName, lastHolder === "—" ? "" : lastHolder].join(" ")
+        );
         if (!haystack.includes(q)) return false;
       }
       return true;
@@ -242,6 +245,7 @@ function SprzetPageInner({
     deferredQuery,
     activeAssignmentByEquipment,
     employeeById,
+    employees,
     lastProtocols,
     windowsCategoryIds,
     softwareProductIdsByEquipment,
@@ -343,6 +347,11 @@ function SprzetPageInner({
         <EquipmentFilters
           value={filters}
           onChange={setFilters}
+          onClear={() => {
+            setFilters(EMPTY_EQUIPMENT_FILTERS);
+            // Filtr statusu z linku (np. z Pulpitu) wygrywa z zapisanym — trzeba go zdjąć z adresu.
+            if (urlStatus) router.replace("/sprzet");
+          }}
           categories={categories}
           employees={employees}
           locations={locations}
