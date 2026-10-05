@@ -151,6 +151,8 @@ export interface SoftwareLicense {
   purchaseDate: string | null;
   invoicePath: string | null;
   notes: string | null;
+  // Kolor czcionki nazwy licencji na liście (#rrggbb); null = domyślny.
+  textColor: string | null;
 }
 
 export interface SoftwareLicenseAssignment {

@@ -8,6 +8,8 @@ import { useLocalStorage } from "@/lib/useLocalStorage";
 import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
 import { LicenseHistory } from "./LicenseHistory";
 import { LicenseKey } from "./LicenseKey";
+import { LicenseColorPicker } from "./LicenseColorPicker";
+import { useIsDark, adaptColorForTheme } from "@/lib/useTheme";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -104,7 +106,9 @@ export function OprogramowanieClient({
   const [editSeatsTotal, setEditSeatsTotal] = useState("1");
   const [editValidUntil, setEditValidUntil] = useState("");
   const [editLicenseNotes, setEditLicenseNotes] = useState("");
+  const [editTextColor, setEditTextColor] = useState<string | null>(null);
   const [editLicenseError, setEditLicenseError] = useState<string | null>(null);
+  const isDark = useIsDark();
 
   const [showAddLicense, setShowAddLicense] = useState(false);
   const [licenseProductId, setLicenseProductId] = useState("");
@@ -112,6 +116,7 @@ export function OprogramowanieClient({
   const [seatsTotal, setSeatsTotal] = useState("1");
   const [validUntil, setValidUntil] = useState("");
   const [licenseNotes, setLicenseNotes] = useState("");
+  const [licenseTextColor, setLicenseTextColor] = useState<string | null>(null);
   const [licenseError, setLicenseError] = useState<string | null>(null);
 
   const [expandedLicenseId, setExpandedLicenseId] = useState<string | null>(null);
@@ -229,10 +234,12 @@ export function OprogramowanieClient({
     setEditValidUntil(license.validUntil ?? "");
     setEditPurchaseDate(license.purchaseDate ?? "");
     setEditLicenseNotes(license.notes ?? "");
+    setEditTextColor(license.textColor);
     setEditLicenseError(null);
   }
 
-  function handleSaveLicense(id: string) {
+  function handleSaveLicense(license: SoftwareLicense) {
+    const id = license.id;
     const seats = Number(editSeatsTotal);
     if (!Number.isInteger(seats) || seats < 1) {
       setEditLicenseError("Liczba stanowisk musi być liczbą całkowitą większą od zera.");
@@ -244,6 +251,9 @@ export function OprogramowanieClient({
         validUntil: editValidUntil || null,
         purchaseDate: editPurchaseDate || null,
         notes: editLicenseNotes.trim() || null,
+        // Wysyłamy kolor tylko po zmianie — dzięki temu zapis licencji bez zmiany koloru działa
+        // także przed uruchomieniem migracji 0054.
+        textColor: editTextColor !== license.textColor ? editTextColor : undefined,
       });
       if (!result.ok) {
         setEditLicenseError(result.error);
@@ -273,6 +283,7 @@ export function OprogramowanieClient({
         validUntil: validUntil || null,
         purchaseDate: purchaseDate || null,
         notes: licenseNotes.trim() || null,
+        textColor: licenseTextColor,
       });
       if (!result.ok) {
         setLicenseError(result.error);
@@ -292,6 +303,7 @@ export function OprogramowanieClient({
       setPurchaseDate("");
       setNewLicenseKey("");
       setLicenseNotes("");
+      setLicenseTextColor(null);
       setLicenseError(null);
       setShowAddLicense(false);
       router.refresh();
@@ -655,6 +667,9 @@ export function OprogramowanieClient({
                 onChange={(e) => setLicenseNotes(e.target.value)}
               />
             </FormField>
+            <FormField label="Kolor czcionki (do odróżniania licencji na liście)" htmlFor="licenseTextColor" full>
+              <LicenseColorPicker value={licenseTextColor} onChange={setLicenseTextColor} />
+            </FormField>
             {licenseError && <p className="text-sm text-danger sm:col-span-2">{licenseError}</p>}
             <div className="sm:col-span-2">
               <Button disabled={isPending} onClick={handleAddLicense}>
@@ -752,7 +767,12 @@ export function OprogramowanieClient({
                     </span>
                     <div className="min-w-0 flex-1 basis-64">
                       <div className="flex flex-wrap items-baseline gap-x-2">
-                        <span className="font-medium">{product?.name ?? "Nieznany produkt"}</span>
+                        <span
+                          className="font-medium"
+                          style={license.textColor ? { color: adaptColorForTheme(license.textColor, isDark) } : undefined}
+                        >
+                          {product?.name ?? "Nieznany produkt"}
+                        </span>
                         <span className="text-xs text-muted">{LICENSE_TYPE_LABELS[license.licenseType]}</span>
                       </div>
                       <p className="truncate text-xs text-muted" title={assignedNames(license.id).join(", ")}>
@@ -832,7 +852,7 @@ export function OprogramowanieClient({
                   )}
 
                   {editingLicenseId === license.id && (
-                    <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:items-end">
+                    <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:flex-wrap sm:items-end">
                       <FormField label="Liczba stanowisk" htmlFor={`seats-${license.id}`}>
                         <input
                           id={`seats-${license.id}`}
@@ -869,8 +889,11 @@ export function OprogramowanieClient({
                           onChange={(e) => setEditLicenseNotes(e.target.value)}
                         />
                       </FormField>
+                      <FormField label="Kolor czcionki" htmlFor={`color-${license.id}`}>
+                        <LicenseColorPicker value={editTextColor} onChange={setEditTextColor} />
+                      </FormField>
                       <div className="flex gap-2">
-                        <Button size="sm" disabled={isPending} onClick={() => handleSaveLicense(license.id)}>
+                        <Button size="sm" disabled={isPending} onClick={() => handleSaveLicense(license)}>
                           Zapisz
                         </Button>
                         <Button

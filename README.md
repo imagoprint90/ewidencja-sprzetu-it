@@ -356,6 +356,9 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 31. `0053_equipment_forticlient.sql` (kolumna `equipment.has_forticlient` — pole „FortiClient”
     TAK/NIE przy sprzęcie, identycznie jak „OpenVPN”: formularze, karta sprzętu, edytowalna
     kolumna z ikoną tarczy na liście Sprzęt i filtr za filtrem OpenVPN; domyślnie NIE)
+32. `0054_license_text_color.sql` (kolumna `software_licenses.text_color` — kolor czcionki nazwy
+    licencji na liście Oprogramowanie, wybierany przy dodawaniu/edycji licencji; domyślnie brak
+    koloru, czyli wygląd jak dotąd)
 
 ## Konfiguracja Supabase
 

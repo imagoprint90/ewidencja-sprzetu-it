@@ -69,6 +69,11 @@ export async function importSoftwareProductsAction(
   return { ok: true, data: { imported: toInsert.length, skipped } };
 }
 
+// null/undefined = brak koloru (domyślny); inaczej wyłącznie #rrggbb.
+function isValidColor(color: string | null | undefined): boolean {
+  return color == null || /^#[0-9a-f]{6}$/i.test(color);
+}
+
 export async function addSoftwareLicenseAction(input: {
   productId: string;
   licenseType: LicenseType;
@@ -76,9 +81,11 @@ export async function addSoftwareLicenseAction(input: {
   validUntil: string | null;
   purchaseDate: string | null;
   notes: string | null;
+  textColor?: string | null;
 }): Promise<ActionResult<{ id: string }>> {
   if (!input.productId) return { ok: false, error: "Wybierz produkt." };
   if (input.seatsTotal < 1) return { ok: false, error: "Liczba stanowisk musi być większa od zera." };
+  if (!isValidColor(input.textColor)) return { ok: false, error: "Nieprawidłowy kolor czcionki." };
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -90,6 +97,8 @@ export async function addSoftwareLicenseAction(input: {
       valid_until: input.validUntil,
       purchase_date: input.purchaseDate,
       notes: input.notes,
+      // Tylko gdy ustawiony — brak kolumny (migracja 0054) nie blokuje dodawania zwykłych licencji.
+      ...(input.textColor ? { text_color: input.textColor } : {}),
     })
     .select("id")
     .single();
@@ -195,9 +204,17 @@ export async function updateSoftwareProductAction(
 
 export async function updateSoftwareLicenseAction(
   id: string,
-  input: { seatsTotal: number; validUntil: string | null; purchaseDate: string | null; notes: string | null }
+  input: {
+    seatsTotal: number;
+    validUntil: string | null;
+    purchaseDate: string | null;
+    notes: string | null;
+    // undefined = bez zmian koloru, null = przywróć domyślny.
+    textColor?: string | null;
+  }
 ): Promise<ActionResult<undefined>> {
   if (input.seatsTotal < 1) return { ok: false, error: "Liczba stanowisk musi być większa od zera." };
+  if (!isValidColor(input.textColor)) return { ok: false, error: "Nieprawidłowy kolor czcionki." };
 
   const supabase = await createSupabaseServerClient();
 
@@ -220,6 +237,7 @@ export async function updateSoftwareLicenseAction(
       valid_until: input.validUntil,
       purchase_date: input.purchaseDate,
       notes: input.notes,
+      ...(input.textColor !== undefined ? { text_color: input.textColor } : {}),
     })
     .eq("id", id);
 

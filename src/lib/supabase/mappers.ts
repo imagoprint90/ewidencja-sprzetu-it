@@ -225,6 +225,7 @@ export function mapSoftwareLicense(row: {
   purchase_date: string | null;
   invoice_path: string | null;
   notes: string | null;
+  text_color?: string | null;
 }): SoftwareLicense {
   return {
     id: row.id,
@@ -235,6 +236,7 @@ export function mapSoftwareLicense(row: {
     purchaseDate: row.purchase_date,
     invoicePath: row.invoice_path,
     notes: row.notes,
+    textColor: row.text_color ?? null,
   };
 }
 

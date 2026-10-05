@@ -2838,3 +2838,10 @@ alter table public.ticket_history add constraint ticket_history_action_check
 -- Pole "FortiClient" (TAK/NIE) dla sprzętu — ta sama zasada co "OpenVPN" (has_forticlient,
 -- domyślnie false), edytowalne w formularzach i bezpośrednio w kolumnie na liście Sprzęt.
 alter table public.equipment add column if not exists has_forticlient boolean not null default false;
+
+-- ============================================================
+-- 0054_license_text_color.sql
+-- ============================================================
+-- Kolor czcionki nazwy licencji (lista Oprogramowanie → Licencje) — ułatwia odróżnianie licencji
+-- na liście. Zapisywany przy licencji, więc widzą go wszyscy; null = kolor domyślny (jak dotąd).
+alter table public.software_licenses add column if not exists text_color text;
