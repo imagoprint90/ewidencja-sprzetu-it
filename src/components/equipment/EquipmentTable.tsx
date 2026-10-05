@@ -339,7 +339,7 @@ export function EquipmentTable({
           const license = licenses.find((l) => l.id === a.licenseId);
           if (license) licensedProductIds.add(license.productId);
           const productName = license ? (productNameById.get(license.productId) ?? "Nieznany produkt") : "Nieznana licencja";
-          return { assignmentId: a.id, label: productName };
+          return { assignmentId: a.id, label: productName, textColor: license?.textColor ?? null };
         })
         .sort((a, b) => compareStrings(a.label, b.label));
       const assignedLicenseIds = new Set(rowDeviceAssignments.map((a) => a.licenseId));

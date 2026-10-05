@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
+import { adaptColorForTheme, useIsDark } from "@/lib/useTheme";
 
 export interface AssignedDeviceLicense {
   assignmentId: string;
   label: string;
+  // Kolor czcionki licencji ustawiony w module Oprogramowanie (#rrggbb); null = domyślny niebieski.
+  textColor: string | null;
 }
 
 export interface AvailableDeviceLicense {
@@ -36,6 +39,7 @@ export function SoftwareCell({
   const [selected, setSelected] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isDark = useIsDark();
 
   const empty = installedNames.length === 0 && deviceLicenses.length === 0;
 
@@ -78,7 +82,16 @@ export function SoftwareCell({
           <span
             key={l.assignmentId}
             title="Licencja na urządzenie"
-            className="inline-flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary"
+            // Własny kolor licencji: tekst w tym kolorze (w ciemnym motywie rozjaśniony) i jego
+            // lekki odcień jako tło — bez koloru zostaje domyślny niebieski wygląd.
+            style={
+              l.textColor
+                ? { color: adaptColorForTheme(l.textColor, isDark), backgroundColor: `${l.textColor}22` }
+                : undefined
+            }
+            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${
+              l.textColor ? "" : "bg-primary/10 text-primary"
+            }`}
           >
             {l.label}
             {canEdit && (
@@ -88,7 +101,7 @@ export function SoftwareCell({
                 onClick={() => handleRemove(l.assignmentId)}
                 aria-label={`Odepnij licencję: ${l.label}`}
                 title="Odepnij licencję"
-                className="text-primary/70 hover:text-danger"
+                className={`${l.textColor ? "opacity-70" : "text-primary/70"} hover:text-danger`}
               >
                 <X size={11} />
               </button>
