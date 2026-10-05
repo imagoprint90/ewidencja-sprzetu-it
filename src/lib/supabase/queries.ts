@@ -383,11 +383,16 @@ export async function getProfiles(supabase: SupabaseClient): Promise<UserProfile
 }
 
 export async function getEquipmentStatuses(supabase: SupabaseClient): Promise<EquipmentStatusDef[]> {
-  const { data, error } = await supabase
-    .from("equipment_statuses")
-    .select("*")
-    .order("sort_order")
-    .order("label");
+  const fetchStatuses = () =>
+    supabase.from("equipment_statuses").select("*").order("sort_order").order("label");
+  let { data, error } = await fetchStatuses();
+  // Chwilowy błąd bazy (timeout, zerwane połączenie) nie może po cichu podmienić słownika na
+  // statusy domyślne — wtedy własne statusy wyświetlają się jako surowe klucze (np. s_51737752)
+  // — dlatego jedna ponowna próba, a przy dalszym błędzie wpis w logach serwera.
+  if (error) {
+    ({ data, error } = await fetchStatuses());
+    if (error) console.error("getEquipmentStatuses: nie udało się pobrać słownika statusów:", error.message);
+  }
   // Brak tabeli (migracja 0039 jeszcze nie uruchomiona) albo pusty słownik — statusy domyślne.
   if (error || !data || data.length === 0) return DEFAULT_EQUIPMENT_STATUSES;
   return data.map((row) => ({
