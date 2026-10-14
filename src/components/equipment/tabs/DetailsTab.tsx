@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Category, Employee, Equipment, Location } from "@/lib/types";
+import type { Category, Employee, Equipment, EquipmentDocument, Location } from "@/lib/types";
 import { TECHNICAL_CONDITION_LABELS } from "@/lib/types";
 import { EquipmentEditForm } from "@/components/equipment/EquipmentEditForm";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getLastHolderDisplay, getLocationName } from "@/lib/equipment-helpers";
 import { useCanEditEquipment, useCurrentUser } from "@/lib/current-user-context";
-import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
+import { EquipmentDocuments } from "@/components/equipment/EquipmentDocuments";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -25,12 +25,14 @@ export function DetailsTab({
   categories,
   locations,
   employees,
+  documents,
   startInEdit = false,
 }: {
   equipment: Equipment;
   categories: Category[];
   locations: Location[];
   employees: Employee[];
+  documents: EquipmentDocument[];
   startInEdit?: boolean;
 }) {
   const router = useRouter();
@@ -73,21 +75,14 @@ export function DetailsTab({
               }
             />
             <DetailRow label="Cena zakupu" value={formatCurrency(equipment.purchasePrice)} />
-            <DetailRow
-              label="Faktura zakupu"
-              value={
-                <InvoiceAttachment
-                  equipmentId={equipment.id}
-                  path={equipment.purchaseInvoicePath}
-                  canEdit={canEdit}
-                  bare
-                />
-              }
-            />
             <DetailRow label="Lokalizacja" value={getLocationName(locations, equipment.locationId)} />
             <DetailRow label="Ostatni posiadacz" value={getLastHolderDisplay(employees, equipment)} />
             <DetailRow label="Uwagi" value={equipment.notes ?? "—"} />
           </dl>
+        </div>
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">Dokumenty (faktury, gwarancje)</p>
+          <EquipmentDocuments equipmentId={equipment.id} documents={documents} canEdit={canEdit} />
         </div>
       </div>
     );
@@ -99,6 +94,7 @@ export function DetailsTab({
       categories={editableCategories}
       locations={locations}
       employees={employees}
+      documents={documents}
       onCancel={() => setEditing(false)}
       onSaved={() => {
         setEditing(false);

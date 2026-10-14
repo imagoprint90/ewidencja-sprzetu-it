@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Category, Employee, Equipment, Location } from "@/lib/types";
+import type { Category, Employee, Equipment, EquipmentDocument, Location } from "@/lib/types";
 import { TECHNICAL_CONDITION_LABELS, WINDOWS_EDITION_LABELS } from "@/lib/types";
 import { equipmentFormSchema, type EquipmentFormValues } from "@/lib/schemas";
 import { FormField, FormSection, inputClass } from "@/components/ui/Form";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { EmployeeOrManualSelect, MANUAL_OPTION } from "@/components/ui/EmployeeOrManualSelect";
 import { useCanEditEquipment } from "@/lib/current-user-context";
 import { updateEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
-import { InvoiceAttachment } from "@/components/equipment/InvoiceAttachment";
+import { EquipmentDocuments } from "@/components/equipment/EquipmentDocuments";
 
 // Formularz edycji sprzętu — używany zarówno w oknie edycji na liście Sprzęt, jak i na karcie
 // sprzętu (zakładka Szczegóły).
@@ -20,6 +20,7 @@ export function EquipmentEditForm({
   categories,
   locations,
   employees,
+  documents,
   onCancel,
   onSaved,
 }: {
@@ -27,6 +28,7 @@ export function EquipmentEditForm({
   categories: Category[];
   locations: Location[];
   employees: Employee[];
+  documents?: EquipmentDocument[];
   onCancel: () => void;
   // Dostaje dokładnie to, co zostało zapisane — pozwala wywołującemu zaktualizować lokalną
   // kopię danych bez ponownego odpytywania serwera (patrz użycie w EquipmentTable).
@@ -208,13 +210,8 @@ export function EquipmentEditForm({
           </FormField>
         </div>
         <div className="sm:col-span-2">
-          <p className="mb-1.5 block text-sm font-medium">Faktura zakupu (PDF)</p>
-          <InvoiceAttachment
-            equipmentId={equipment.id}
-            path={equipment.purchaseInvoicePath}
-            canEdit={canEdit}
-            bare
-          />
+          <p className="mb-1.5 block text-sm font-medium">Dokumenty (faktury, gwarancje)</p>
+          <EquipmentDocuments equipmentId={equipment.id} documents={documents} canEdit={canEdit} />
         </div>
       </FormSection>
 

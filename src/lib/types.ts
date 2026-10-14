@@ -128,6 +128,18 @@ export interface Equipment {
   updatedAt: string;
 }
 
+// Dokument przypięty do sprzętu (faktura, gwarancja, skan…) — plik w prywatnym Storage.
+export interface EquipmentDocument {
+  id: string;
+  equipmentId: string;
+  filePath: string;
+  fileName: string;
+  fileSize: number;
+  contentType: string;
+  uploadedByName: string | null;
+  createdAt: string;
+}
+
 export type LicenseType = "urzadzenie" | "uzytkownik";
 
 export const LICENSE_TYPE_LABELS: Record<LicenseType, string> = {

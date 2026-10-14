@@ -4,6 +4,7 @@ import type {
   Department,
   Employee,
   Equipment,
+  EquipmentDocument,
   EquipmentLink,
   InstalledSoftware,
   LicenseType,
@@ -460,6 +461,28 @@ export function mapTicketHistoryEntry(row: {
     oldValue: row.old_value,
     newValue: row.new_value,
     happenedAt: row.happened_at,
+  };
+}
+
+export function mapEquipmentDocument(row: {
+  id: string;
+  equipment_id: string;
+  file_path: string;
+  file_name: string;
+  file_size: number;
+  content_type: string;
+  uploaded_by_name: string | null;
+  created_at: string;
+}): EquipmentDocument {
+  return {
+    id: row.id,
+    equipmentId: row.equipment_id,
+    filePath: row.file_path,
+    fileName: row.file_name,
+    fileSize: row.file_size,
+    contentType: row.content_type,
+    uploadedByName: row.uploaded_by_name,
+    createdAt: row.created_at,
   };
 }
 

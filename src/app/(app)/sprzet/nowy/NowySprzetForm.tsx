@@ -13,16 +13,17 @@ import { useIsAdmin, useCanTransferEquipment } from "@/lib/current-user-context"
 import { employeeFullName } from "@/lib/equipment-helpers";
 import { transferEquipmentSetAction } from "@/lib/supabase/actions/assignment-actions";
 import { TECHNICAL_CONDITION_LABELS, WINDOWS_EDITION_LABELS, type Category, type Employee, type Location } from "@/lib/types";
-import { addEquipmentAction, uploadEquipmentInvoiceAction } from "@/lib/supabase/actions/equipment-actions";
-
-function readFileAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(((reader.result as string) ?? "").split(",")[1] ?? "");
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
+import { addEquipmentAction } from "@/lib/supabase/actions/equipment-actions";
+import { uploadEquipmentDocumentAction } from "@/lib/supabase/actions/equipment-document-actions";
+import { FileDropzone } from "@/components/ui/FileDropzone";
+import {
+  DOCUMENT_ACCEPT,
+  DOCUMENT_HINT,
+  MAX_DOCUMENT_BYTES,
+  formatFileSize,
+  readFileAsBase64,
+} from "@/components/equipment/EquipmentDocuments";
+import { X } from "lucide-react";
 
 export function NowySprzetForm({
   categories,
@@ -57,7 +58,18 @@ export function NowySprzetForm({
     else setLocationId(employees.find((e) => e.id === id)?.locationId ?? "");
   }
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
+  const [documentError, setDocumentError] = useState<string | null>(null);
+
+  function addDocumentFiles(files: File[]) {
+    setDocumentError(null);
+    const tooBig = files.find((f) => f.size > MAX_DOCUMENT_BYTES);
+    if (tooBig) {
+      setDocumentError(`Plik „${tooBig.name}” jest za duży (${(tooBig.size / 1024 / 1024).toFixed(1)} MB) — maksymalnie 3 MB.`);
+      return;
+    }
+    setDocumentFiles((prev) => [...prev, ...files]);
+  }
 
   const {
     register,
@@ -74,16 +86,6 @@ export function NowySprzetForm({
 
   async function onSubmit(values: EquipmentAddFormValues) {
     setSubmitError(null);
-    if (invoiceFile && !invoiceFile.name.toLowerCase().endsWith(".pdf")) {
-      setSubmitError("Faktura musi być plikiem PDF.");
-      return;
-    }
-    if (invoiceFile && invoiceFile.size > 3 * 1024 * 1024) {
-      setSubmitError(
-        `Faktura jest za duża (${(invoiceFile.size / 1024 / 1024).toFixed(1)} MB) — maksymalnie 3 MB. Zmniejsz PDF albo usuń plik z formularza.`
-      );
-      return;
-    }
     const result = await addEquipmentAction({
       categoryId: values.categoryId,
       name: values.name,
@@ -106,16 +108,14 @@ export function NowySprzetForm({
       setSubmitError(result.error);
       return;
     }
-    if (invoiceFile) {
-      const upload = await uploadEquipmentInvoiceAction(
-        result.data.id,
-        await readFileAsBase64(invoiceFile),
-        invoiceFile.name
-      ).catch(() => ({ ok: false as const, error: "Połączenie przerwane albo plik za duży." }));
+    for (const file of documentFiles) {
+      const upload = await readFileAsBase64(file)
+        .then((base64) => uploadEquipmentDocumentAction(result.data.id, base64, file.name))
+        .catch(() => ({ ok: false as const, error: "Połączenie przerwane albo plik za duży." }));
       if (!upload.ok) {
         // Sprzęt już istnieje — nie ponawiamy zapisu (byłby duplikat), tylko kierujemy na kartę,
-        // gdzie fakturę można dodać ponownie.
-        window.alert(`Sprzęt dodano, ale nie udało się wgrać faktury: ${upload.error} Dodasz ją na karcie sprzętu.`);
+        // gdzie dokument można dodać ponownie.
+        window.alert(`Sprzęt dodano, ale nie udało się wgrać „${file.name}”: ${upload.error} Dodasz go na karcie sprzętu.`);
       }
     }
     if (canAssign && employeeId) {
@@ -221,14 +221,30 @@ export function NowySprzetForm({
               <input id="purchasePrice" type="number" step="0.01" className={inputClass} {...register("purchasePrice")} />
             </FormField>
           </div>
-          <FormField label="Faktura zakupu (PDF)" htmlFor="invoiceFile" full>
-            <input
-              id="invoiceFile"
-              type="file"
-              accept="application/pdf"
-              className={inputClass}
-              onChange={(e) => setInvoiceFile(e.target.files?.[0] ?? null)}
-            />
+          <FormField label="Dokumenty (faktury, gwarancje)" htmlFor="documents" full>
+            <FileDropzone onFiles={addDocumentFiles} accept={DOCUMENT_ACCEPT} hint={DOCUMENT_HINT} />
+            {documentError && <p className="mt-1.5 text-sm text-danger">{documentError}</p>}
+            {documentFiles.length > 0 && (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {documentFiles.map((f, i) => (
+                  <li
+                    key={`${f.name}-${i}`}
+                    className="flex items-center gap-2 rounded-full border border-border bg-surface py-1 pl-3 pr-1.5 text-xs"
+                  >
+                    <span className="max-w-[220px] truncate">{f.name}</span>
+                    <span className="text-muted">{formatFileSize(f.size)}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDocumentFiles((prev) => prev.filter((_, j) => j !== i))}
+                      title="Usuń plik"
+                      className="rounded-full p-0.5 text-muted hover:bg-black/10 hover:text-danger"
+                    >
+                      <X size={12} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </FormField>
         </FormSection>
 

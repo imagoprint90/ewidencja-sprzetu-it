@@ -359,6 +359,11 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 32. `0054_license_text_color.sql` (kolumna `software_licenses.text_color` — kolor czcionki nazwy
     licencji na liście Oprogramowanie, wybierany przy dodawaniu/edycji licencji; domyślnie brak
     koloru, czyli wygląd jak dotąd)
+33. `0055_equipment_documents.sql` (tabela `equipment_documents` — wiele dokumentów przy sprzęcie:
+    faktury, gwarancje, skany; pliki w buckecie `faktury`. Na karcie sprzętu i w formularzach
+    strefa przeciągnij-i-upuść, lista nazw z szybkim podglądem (PDF/obrazy) i krzyżykiem
+    usuwania. Istniejące faktury stają się pierwszym dokumentem; `purchase_invoice_path` zostaje
+    jako „pierwszy dokument” dla kolumny FV na liście Sprzęt)
 
 ## Konfiguracja Supabase
 

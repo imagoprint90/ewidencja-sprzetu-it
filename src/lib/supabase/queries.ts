@@ -5,6 +5,7 @@ import {
   mapDepartment,
   mapEmployee,
   mapEquipment,
+  mapEquipmentDocument,
   mapEquipmentLink,
   mapInstalledSoftware,
   mapLicenseAssignment,
@@ -27,6 +28,7 @@ import type {
   Department,
   Employee,
   Equipment,
+  EquipmentDocument,
   Assignment,
   EquipmentLink,
   CompanySettings,
@@ -59,6 +61,20 @@ export async function getCategories(supabase: SupabaseClient): Promise<Category[
   const { data, error } = await supabase.from("categories").select("*").order("name");
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapCategory);
+}
+
+// Brak tabeli (migracja 0055 jeszcze nie uruchomiona) — pusta lista zamiast wywrócenia karty sprzętu.
+export async function getEquipmentDocuments(
+  supabase: SupabaseClient,
+  equipmentId: string
+): Promise<EquipmentDocument[]> {
+  const { data, error } = await supabase
+    .from("equipment_documents")
+    .select("*")
+    .eq("equipment_id", equipmentId)
+    .order("created_at");
+  if (error) return [];
+  return (data ?? []).map(mapEquipmentDocument);
 }
 
 export async function getDepartments(supabase: SupabaseClient): Promise<Department[]> {

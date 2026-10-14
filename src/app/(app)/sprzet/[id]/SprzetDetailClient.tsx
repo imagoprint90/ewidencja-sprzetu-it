@@ -21,6 +21,7 @@ import type {
   Category,
   Employee,
   Equipment,
+  EquipmentDocument,
   EquipmentLink,
   InstalledSoftware,
   Location,
@@ -43,6 +44,7 @@ function SprzetDetailClientInner({
   licenses,
   licenseAssignments,
   locations,
+  documents,
 }: {
   item: Equipment;
   allEquipment: Equipment[];
@@ -56,6 +58,7 @@ function SprzetDetailClientInner({
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
+  documents: EquipmentDocument[];
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
@@ -124,6 +127,7 @@ function SprzetDetailClientInner({
                 categories={categories}
                 locations={locations}
                 employees={employees}
+                documents={documents}
                 startInEdit={startInEdit}
               />
             ),
@@ -190,6 +194,7 @@ export function SprzetDetailClient(props: {
   licenses: SoftwareLicense[];
   licenseAssignments: SoftwareLicenseAssignment[];
   locations: Location[];
+  documents: EquipmentDocument[];
 }) {
   return (
     <Suspense>

@@ -6,6 +6,7 @@ import {
   getCategories,
   getEmployees,
   getEquipment,
+  getEquipmentDocuments,
   getEquipmentLinks,
   getInstalledSoftware,
   getLicenseAssignments,
@@ -38,6 +39,7 @@ export default async function SprzetDetailPage({
     licenses,
     licenseAssignments,
     locations,
+    documents,
   ] = await Promise.all([
     getEquipment(supabase),
     getCategories(supabase),
@@ -50,6 +52,7 @@ export default async function SprzetDetailPage({
     getSoftwareLicenses(supabase),
     getLicenseAssignments(supabase),
     getLocations(supabase),
+    getEquipmentDocuments(supabase, id),
   ]);
 
   const item = equipment.find((e) => e.id === id);
@@ -82,6 +85,7 @@ export default async function SprzetDetailPage({
       licenses={licenses}
       licenseAssignments={licenseAssignments}
       locations={locations}
+      documents={documents}
     />
   );
 }
