@@ -78,6 +78,12 @@ export function NowySprzetForm({
       setSubmitError("Faktura musi być plikiem PDF.");
       return;
     }
+    if (invoiceFile && invoiceFile.size > 3 * 1024 * 1024) {
+      setSubmitError(
+        `Faktura jest za duża (${(invoiceFile.size / 1024 / 1024).toFixed(1)} MB) — maksymalnie 3 MB. Zmniejsz PDF albo usuń plik z formularza.`
+      );
+      return;
+    }
     const result = await addEquipmentAction({
       categoryId: values.categoryId,
       name: values.name,
@@ -105,7 +111,7 @@ export function NowySprzetForm({
         result.data.id,
         await readFileAsBase64(invoiceFile),
         invoiceFile.name
-      );
+      ).catch(() => ({ ok: false as const, error: "Połączenie przerwane albo plik za duży." }));
       if (!upload.ok) {
         // Sprzęt już istnieje — nie ponawiamy zapisu (byłby duplikat), tylko kierujemy na kartę,
         // gdzie fakturę można dodać ponownie.

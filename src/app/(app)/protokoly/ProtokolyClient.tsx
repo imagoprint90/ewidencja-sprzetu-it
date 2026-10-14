@@ -122,16 +122,24 @@ export function ProtokolyClient({ protocols }: { protocols: Protocol[] }) {
 
   function handleFilePicked(protocol: Protocol, file: File) {
     setError(null);
+    if (file.size > 3 * 1024 * 1024) {
+      setError(`Skan jest za duży (${(file.size / 1024 / 1024).toFixed(1)} MB) — maksymalnie 3 MB.`);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1] ?? "";
       startTransition(async () => {
-        const result = await uploadSignedScanAction(protocol.id, protocol.protocolNumber, base64, file.name);
-        if (!result.ok) {
-          setError(result.error);
-          return;
+        try {
+          const result = await uploadSignedScanAction(protocol.id, protocol.protocolNumber, base64, file.name);
+          if (!result.ok) {
+            setError(result.error);
+            return;
+          }
+          router.refresh();
+        } catch {
+          setError("Nie udało się wysłać skanu (połączenie przerwane albo plik za duży). Spróbuj ponownie.");
         }
-        router.refresh();
       });
     };
     reader.readAsDataURL(file);

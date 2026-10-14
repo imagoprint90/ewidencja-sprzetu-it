@@ -193,7 +193,7 @@ Stos technologiczny: Next.js (App Router) + TypeScript + Tailwind CSS, Supabase
   osobnym bytem w bazie.
 
   Dodatkowo: **załączniki** do zgłoszenia (np. zrzuty ekranu — zakładka „Załączniki” na karcie
-  ticketu, wiele plików, prywatny Storage, maks. 10 MB); kategorie zgłoszeń da się **przeciągać
+  ticketu, wiele plików, prywatny Storage, maks. 3 MB); kategorie zgłoszeń da się **przeciągać
   (drag-and-drop)** w panelu „Kategorie”, żeby ustalić kolejność, w jakiej pokazują się później
   na listach wyboru; Pulpit ma osobną sekcję „Tickety” (liczba wszystkich/nowych/w trakcie/
   oczekujących/krytycznych otwartych/przypisanych do mnie/nieprzydzielonych); każda próba
@@ -349,7 +349,7 @@ Postgres nie pozwala użyć nowej wartości enuma w tej samej transakcji, w któ
 30. `0052_ticket_attachments_and_notifications.sql` — dwie rozbudowy modułu Tickety:
     **załączniki** (tabela `ticket_attachments` + prywatny bucket Storage
     `tickety-zalaczniki`, wiele plików na zgłoszenie — obrazy/PDF/dokumenty biurowe/TXT/CSV/
-    ZIP, maks. 10 MB; dodawać może każdy z uprawnieniem Komentowanie/Edycja/Administracja,
+    ZIP, maks. 3 MB; dodawać może każdy z uprawnieniem Komentowanie/Edycja/Administracja,
     usuwać autor załącznika albo ktoś z Edycja/Administracja) oraz **wpis w historii
     zgłoszenia o wysyłce powiadomienia e-mail** (sukces albo powód błędu, przy każdym
     przydzieleniu — nowa dozwolona wartość `wyslano_powiadomienie` w `ticket_history.action`).

@@ -11,6 +11,10 @@ import {
   uploadEquipmentInvoiceAction,
 } from "@/lib/supabase/actions/equipment-actions";
 
+// Maksymalny rozmiar pliku wysyłanego akcją serwerową (patrz serverActions.bodySizeLimit w
+// next.config.ts — base64 powiększa plik o ~33%).
+const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
+
 export function InvoiceAttachment({
   equipmentId,
   path,
@@ -57,16 +61,24 @@ export function InvoiceAttachment({
 
   function handleFilePicked(file: File) {
     setError(null);
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError(`Plik jest za duży (${(file.size / 1024 / 1024).toFixed(1)} MB) — maksymalnie 3 MB. Zmniejsz PDF (np. zapisz z niższą jakością skanu).`);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1] ?? "";
       startTransition(async () => {
-        const result = await upload(equipmentId, base64, file.name);
-        if (!result.ok) {
-          setError(result.error);
-          return;
+        try {
+          const result = await upload(equipmentId, base64, file.name);
+          if (!result.ok) {
+            setError(result.error);
+            return;
+          }
+          router.refresh();
+        } catch {
+          setError("Nie udało się wysłać pliku (połączenie przerwane albo plik za duży). Spróbuj ponownie.");
         }
-        router.refresh();
       });
     };
     reader.readAsDataURL(file);

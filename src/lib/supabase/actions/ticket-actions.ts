@@ -14,7 +14,7 @@ const ALLOWED_ATTACHMENT_EXTENSIONS = [
   "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg",
   "pdf", "doc", "docx", "xls", "xlsx", "txt", "csv", "zip",
 ];
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_ATTACHMENT_SIZE = 3 * 1024 * 1024; // 3 MB
 
 type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -406,7 +406,7 @@ export async function uploadTicketAttachmentAction(
 
   const buffer = Buffer.from(fileBase64, "base64");
   if (buffer.byteLength > MAX_ATTACHMENT_SIZE) {
-    return { ok: false, error: "Plik jest za duży (maks. 10 MB)." };
+    return { ok: false, error: "Plik jest za duży (maks. 3 MB)." };
   }
 
   const safeName = fileName.replace(/[^\w.\-]+/g, "_");

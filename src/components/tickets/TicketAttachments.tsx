@@ -14,7 +14,7 @@ import {
 } from "@/lib/supabase/actions/ticket-actions";
 
 const ACCEPT = ".png,.jpg,.jpeg,.gif,.webp,.bmp,.svg,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip";
-const MAX_SIZE = 10 * 1024 * 1024;
+const MAX_SIZE = 3 * 1024 * 1024;
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -62,20 +62,27 @@ export function TicketAttachments({
     const files = Array.from(list);
     const tooBig = files.find((f) => f.size > MAX_SIZE);
     if (tooBig) {
-      setError(`Plik „${tooBig.name}” jest za duży (maks. 10 MB).`);
+      setError(`Plik „${tooBig.name}” jest za duży (maks. 3 MB).`);
       return;
     }
     startTransition(async () => {
       for (const file of files) {
-        const base64 = await readFileAsBase64(file);
-        const result = await uploadTicketAttachmentAction(
-          ticketId,
-          base64,
-          file.name,
-          file.type || "application/octet-stream"
-        );
-        if (!result.ok) {
-          setError(`Nie udało się dodać „${file.name}”: ${result.error}`);
+        try {
+          const base64 = await readFileAsBase64(file);
+          const result = await uploadTicketAttachmentAction(
+            ticketId,
+            base64,
+            file.name,
+            file.type || "application/octet-stream"
+          );
+          if (!result.ok) {
+            setError(`Nie udało się dodać „${file.name}”: ${result.error}`);
+            router.refresh();
+            return;
+          }
+        } catch {
+          setError(`Nie udało się wysłać „${file.name}” (połączenie przerwane albo plik za duży).`);
+          router.refresh();
           return;
         }
       }
@@ -174,7 +181,7 @@ export function TicketAttachments({
             <span className="font-medium text-primary">Wybierz pliki</span> albo przeciągnij je tutaj
           </p>
           <p className="text-xs text-muted">
-            Obrazy (np. zrzuty ekranu), PDF, dokumenty biurowe, TXT/CSV, ZIP — maks. 10 MB na plik.
+            Obrazy (np. zrzuty ekranu), PDF, dokumenty biurowe, TXT/CSV, ZIP — maks. 3 MB na plik.
           </p>
         </div>
       )}

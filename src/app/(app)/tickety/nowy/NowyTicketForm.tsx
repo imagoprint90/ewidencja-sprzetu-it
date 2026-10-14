@@ -13,7 +13,7 @@ import { createTicketAction, uploadTicketAttachmentAction } from "@/lib/supabase
 import { TICKET_PRIORITY_LABELS, type TicketAssignableUser, type TicketCategory } from "@/lib/types";
 
 const ATTACHMENT_ACCEPT = ".png,.jpg,.jpeg,.gif,.webp,.bmp,.svg,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip";
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_ATTACHMENT_SIZE = 3 * 1024 * 1024; // 3 MB
 
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -73,7 +73,7 @@ function AttachmentPicker({
         <p className="text-sm">
           <span className="font-medium text-primary">Wybierz pliki</span> albo przeciągnij je tutaj
         </p>
-        <p className="text-xs text-muted">Obrazy (np. zrzuty ekranu), PDF, dokumenty biurowe, TXT/CSV, ZIP — maks. 10 MB na plik.</p>
+        <p className="text-xs text-muted">Obrazy (np. zrzuty ekranu), PDF, dokumenty biurowe, TXT/CSV, ZIP — maks. 3 MB na plik.</p>
       </div>
       <input
         type="file"
@@ -143,7 +143,7 @@ export function NowyTicketForm({
     const picked = Array.from(list);
     const tooBig = picked.find((f) => f.size > MAX_ATTACHMENT_SIZE);
     if (tooBig) {
-      setAttachmentError(`Plik „${tooBig.name}” jest za duży (maks. 10 MB).`);
+      setAttachmentError(`Plik „${tooBig.name}” jest za duży (maks. 3 MB).`);
       return;
     }
     setFiles((prev) => [...prev, ...picked]);
@@ -167,13 +167,11 @@ export function NowyTicketForm({
       return;
     }
     for (const file of files) {
-      const base64 = await readFileAsBase64(file);
-      const uploadResult = await uploadTicketAttachmentAction(
-        result.data.id,
-        base64,
-        file.name,
-        file.type || "application/octet-stream"
-      );
+      const uploadResult = await readFileAsBase64(file)
+        .then((base64) =>
+          uploadTicketAttachmentAction(result.data.id, base64, file.name, file.type || "application/octet-stream")
+        )
+        .catch(() => ({ ok: false as const, error: "Połączenie przerwane albo plik za duży." }));
       if (!uploadResult.ok) {
         // Zgłoszenie już powstało — nie cofamy się, tylko informujemy i kierujemy na kartę,
         // gdzie załącznik można dodać ponownie.
