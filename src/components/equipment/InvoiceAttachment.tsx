@@ -103,12 +103,12 @@ export function InvoiceAttachment({
       <div className="flex flex-wrap items-center gap-2">
         {path ? (
           <>
-            <Button size="sm" variant="secondary" disabled={isPending} onClick={handleDownload}>
+            <Button type="button" size="sm" variant="secondary" disabled={isPending} onClick={handleDownload}>
               <Receipt size={14} />
               Pobierz fakturę
             </Button>
             {canEdit && (
-              <Button size="sm" variant="ghost" disabled={isPending} onClick={() => setConfirmOpen(true)}>
+              <Button type="button" size="sm" variant="ghost" disabled={isPending} onClick={() => setConfirmOpen(true)}>
                 <Trash2 size={14} />
                 Usuń
               </Button>
@@ -127,7 +127,7 @@ export function InvoiceAttachment({
                 e.target.value = "";
               }}
             />
-            <Button size="sm" variant="secondary" disabled={isPending} onClick={() => fileInput.current?.click()}>
+            <Button type="button" size="sm" variant="secondary" disabled={isPending} onClick={() => fileInput.current?.click()}>
               <Upload size={14} />
               Dodaj fakturę (PDF)
             </Button>

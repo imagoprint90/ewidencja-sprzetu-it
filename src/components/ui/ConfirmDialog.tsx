@@ -29,10 +29,10 @@ export function ConfirmDialog({
         <h2 className="text-base font-semibold">{title}</h2>
         {description && <p className="mt-2 text-sm text-muted">{description}</p>}
         <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" onClick={onCancel}>
+          <Button type="button" variant="secondary" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button variant={danger ? "danger" : "primary"} onClick={onConfirm}>
+          <Button type="button" variant={danger ? "danger" : "primary"} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </div>
