@@ -60,6 +60,13 @@ function toRow(input: EquipmentInput) {
   };
 }
 
+// Brak kolumny has_forticlient w bazie (migracja 0053 jeszcze nie uruchomiona) nie może blokować
+// zapisu całego sprzętu — wtedy zapisujemy resztę pól bez FortiClient i, jeśli ktoś próbował
+// ustawić FortiClient na TAK, mówimy wprost, czego brakuje.
+const MISSING_COLUMN_CODES = ["42703", "PGRST204"];
+const FORTICLIENT_MIGRATION_MESSAGE =
+  "Pozostałe zmiany zapisano, ale pole FortiClient wymaga uruchomienia migracji 0053 w Supabase (SQL Editor).";
+
 export async function addEquipmentAction(
   input: EquipmentInput,
   locationId?: string | null
@@ -76,16 +83,21 @@ export async function addEquipmentAction(
     return { ok: false, error: "Nie znaleziono domyślnej lokalizacji magazynu." };
   }
 
-  const { data, error } = await supabase
-    .from("equipment")
+  const insertRow = {
+    ...toRow(input),
+    status: "w_magazynie",
     // undefined = domyślnie Magazyn, null = brak lokalizacji, inaczej wskazana lokalizacja
-    .insert({
-      ...toRow(input),
-      status: "w_magazynie",
-      location_id: locationId === undefined ? warehouse.id : locationId,
-    })
-    .select()
-    .single();
+    location_id: locationId === undefined ? warehouse.id : locationId,
+  };
+  let { data, error } = await supabase.from("equipment").insert(insertRow).select().single();
+  if (error && MISSING_COLUMN_CODES.includes(error.code)) {
+    const { has_forticlient: _omit, ...withoutForticlient } = insertRow;
+    void _omit;
+    ({ data, error } = await supabase.from("equipment").insert(withoutForticlient).select().single());
+    if (!error && data && input.hasForticlient) {
+      return { ok: false, error: `Sprzęt dodano. ${FORTICLIENT_MIGRATION_MESSAGE}` };
+    }
+  }
 
   if (error || !data) {
     if (error?.code === "23505") {
@@ -106,7 +118,17 @@ export async function updateEquipmentAction(
   const supabase = await createSupabaseServerClient();
   const row: ReturnType<typeof toRow> & { location_id?: string | null } = toRow(input);
   if (input.locationId !== undefined) row.location_id = input.locationId;
-  const { error } = await supabase.from("equipment").update(row).eq("id", id);
+  let { error } = await supabase.from("equipment").update(row).eq("id", id);
+  if (error && MISSING_COLUMN_CODES.includes(error.code)) {
+    const { has_forticlient: _omit, ...withoutForticlient } = row;
+    void _omit;
+    ({ error } = await supabase.from("equipment").update(withoutForticlient).eq("id", id));
+    if (!error && input.hasForticlient) {
+      revalidatePath("/sprzet");
+      revalidatePath(`/sprzet/${id}`);
+      return { ok: false, error: FORTICLIENT_MIGRATION_MESSAGE };
+    }
+  }
 
   if (error) {
     if (error.code === "23505") {
