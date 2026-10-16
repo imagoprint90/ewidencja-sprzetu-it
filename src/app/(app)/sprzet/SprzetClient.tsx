@@ -415,6 +415,7 @@ function SprzetPageInner({
       ) : (
         <EquipmentTable
           equipment={filtered}
+          allEquipment={equipmentState}
           categories={categories}
           employees={employees}
           assignments={assignments}

@@ -99,6 +99,7 @@ const DEFAULT_COLUMN_WIDTHS: Partial<Record<EquipmentColumnKey, number>> = {
 
 export function EquipmentTable({
   equipment,
+  allEquipment,
   categories,
   employees,
   assignments,
@@ -123,6 +124,9 @@ export function EquipmentTable({
   onLocalRemove,
 }: {
   equipment: Equipment[];
+  // Cała lista sprzętu (bez filtrów) — do kolumny "Powiązany sprzęt": filtr (np. kategoria)
+  // zawęża wiersze tabeli, ale nie może ukrywać powiązanych urządzeń z innych kategorii.
+  allEquipment: Equipment[];
   categories: Category[];
   employees: Employee[];
   assignments: Assignment[];
@@ -262,7 +266,7 @@ export function EquipmentTable({
     const locationNameById = new Map(locations.map((l) => [l.id, l.name]));
     const productNameById = new Map(softwareProducts.map((p) => [p.id, p.name]));
     const licenseProductId = new Map(licenses.map((l) => [l.id, l.productId]));
-    const equipmentById = new Map(equipment.map((e) => [e.id, e]));
+    const equipmentById = new Map(allEquipment.map((e) => [e.id, e]));
     const windowsCategoryIds = new Set(categories.filter((c) => c.supportsWindows).map((c) => c.id));
 
     const activeByEquipment = new Map<string, Assignment>();
@@ -369,7 +373,7 @@ export function EquipmentTable({
         lastHolderName: getLastHolderDisplay(employees, item),
       };
     });
-  }, [equipment, assignments, employees, links, installedSoftware, softwareProducts, licenseAssignments, licenses, lastProtocols, categories, locations]);
+  }, [equipment, allEquipment, assignments, employees, links, installedSoftware, softwareProducts, licenseAssignments, licenses, lastProtocols, categories, locations]);
   const sortedRows = useMemo(() => {
     type Row = (typeof rows)[number];
     const comparators: Record<string, (a: Row, b: Row) => number> = {
