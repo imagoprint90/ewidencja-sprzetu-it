@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { inputClass } from "@/components/ui/Form";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import type { Category, Equipment, EquipmentLink } from "@/lib/types";
 import { getCategoryName } from "@/lib/equipment-helpers";
 import { useIsAdmin } from "@/lib/current-user-context";
@@ -38,8 +38,16 @@ export function LinkedEquipmentTab({
     return { link: l, item: allEquipment.find((e) => e.id === otherId) };
   });
 
+  // Komputery są zwykle "głównym" sprzętem zestawu, a dołączamy do niego akcesoria — ich
+  // lista wyboru jest bez kategorii Komputery, żeby łatwiej było znaleźć właściwe urządzenie.
+  const computerCategoryIds = new Set(
+    categories.filter((c) => c.name.trim().toLowerCase() === "komputery").map((c) => c.id)
+  );
   const candidates = allEquipment.filter(
-    (e) => e.id !== equipment.id && !links.some((l) => l.equipmentId === e.id || l.linkedEquipmentId === e.id)
+    (e) =>
+      e.id !== equipment.id &&
+      !computerCategoryIds.has(e.categoryId) &&
+      !links.some((l) => l.equipmentId === e.id || l.linkedEquipmentId === e.id)
   );
 
   function handleAdd() {
@@ -112,18 +120,19 @@ export function LinkedEquipmentTab({
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="mb-2 text-sm font-medium">Dodaj powiązanie</p>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <select
-              className={inputClass}
-              value={selected}
-              onChange={(e) => setSelected(e.target.value)}
-            >
-              <option value="">Wybierz sprzęt…</option>
-              {candidates.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.inventoryNumber})
-                </option>
-              ))}
-            </select>
+            <div className="flex-1">
+              <SearchableSelect
+                options={candidates.map((c) => ({
+                  value: c.id,
+                  label: `${c.name} (${c.inventoryNumber})`,
+                  hint: getCategoryName(categories, c.categoryId),
+                }))}
+                value={selected}
+                onChange={setSelected}
+                placeholder="Wybierz sprzęt…"
+                searchPlaceholder="Szukaj sprzętu: nazwa, nr inwentarzowy…"
+              />
+            </div>
             <Button variant="secondary" onClick={handleAdd} disabled={!selected || isPending}>
               Dodaj
             </Button>

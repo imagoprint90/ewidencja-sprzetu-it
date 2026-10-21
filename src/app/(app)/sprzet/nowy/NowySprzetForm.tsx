@@ -78,7 +78,7 @@ export function NowySprzetForm({
     formState: { errors, isSubmitting },
   } = useForm<EquipmentAddFormValues>({
     resolver: zodResolver(equipmentAddFormSchema),
-    defaultValues: { categoryId: categories.find((c) => !c.isArchived)?.id ?? "", inDomain: "nie", hasOpenvpn: "nie", hasForticlient: "nie" },
+    defaultValues: { categoryId: categories.find((c) => !c.isArchived)?.id ?? "", inDomain: "nie", hasOpenvpn: "nie", hasForticlient: "nie", manufacturer: "Laptop " },
   });
 
   const selectedCategoryId = useWatch({ control, name: "categoryId" });
