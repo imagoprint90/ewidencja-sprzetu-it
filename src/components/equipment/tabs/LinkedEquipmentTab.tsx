@@ -43,12 +43,12 @@ export function LinkedEquipmentTab({
   const computerCategoryIds = new Set(
     categories.filter((c) => c.name.trim().toLowerCase() === "komputery").map((c) => c.id)
   );
-  const candidates = allEquipment.filter(
-    (e) =>
-      e.id !== equipment.id &&
-      !computerCategoryIds.has(e.categoryId) &&
-      !links.some((l) => l.equipmentId === e.id || l.linkedEquipmentId === e.id)
-  );
+  // Sprzęt już powiązany z jakimkolwiek innym urządzeniem (także z tym) nie jest proponowany —
+  // pod listą pokazujemy tylko, ile pozycji z tego powodu ukryto.
+  const linkedElsewhereIds = new Set(equipmentLinks.flatMap((l) => [l.equipmentId, l.linkedEquipmentId]));
+  const baseCandidates = allEquipment.filter((e) => e.id !== equipment.id && !computerCategoryIds.has(e.categoryId));
+  const candidates = baseCandidates.filter((e) => !linkedElsewhereIds.has(e.id));
+  const hiddenLinkedCount = baseCandidates.length - candidates.length;
 
   function handleAdd() {
     if (!selected) return;
@@ -137,6 +137,11 @@ export function LinkedEquipmentTab({
               Dodaj
             </Button>
           </div>
+          {hiddenLinkedCount > 0 && (
+            <p className="mt-2 text-xs text-muted">
+              Nie pokazujemy {hiddenLinkedCount} urządzeń, które są już powiązane z innym sprzętem.
+            </p>
+          )}
           {error && <p className="mt-2 text-sm text-danger">{error}</p>}
         </div>
       )}
